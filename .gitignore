@@ -1,0 +1,17 @@
+build
+__debug*
+dist
+*.egg-info
+*.exe
+*.gen.*
+gen
+hardcopy.*
+.idea
+*.log
+*.pyc
+*.secret.*
+static.gen.go
+target
+vendor
+.venv
+.vscode
