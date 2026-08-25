@@ -1,0 +1,1 @@
+import{RaasBoughtTogether as s}from"./raas/raas-bought-together.js";class t{async init(i){if(this.config=i,!this.config)throw new Error("SDK configuration is missing.")}async RaasBoughtTogether(i){const n={...this.config,...i},o=new s;return await o.init(n),o}}window.I6Sdk=t;export{t as I6Sdk};
