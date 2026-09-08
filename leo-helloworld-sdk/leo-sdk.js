@@ -4,7 +4,8 @@
 
         async hellworld(msg) {
             return new Promise(resolve => {
-                setTimeout(() => resolve(`reply by leosdk: ${msg}`), 2000)
+                const loc = '' + location.href
+                setTimeout(() => resolve(`reply by leosdk: ${msg}, location: ${location.href}`), 2000)
             })
         }
 
