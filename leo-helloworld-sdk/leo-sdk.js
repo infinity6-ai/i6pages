@@ -9,7 +9,7 @@
             })
         }
 
-        async sum(a, b) {
+        async compute(a, b) {
             return new Promise(resolve => {
                 const loc = '' + location.href
                 const result = a + b
