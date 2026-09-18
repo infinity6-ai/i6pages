@@ -1,1 +1,0 @@
-import{Ingestz as r}from"./ingestz/ingestz.js";const s="https://decsuite.sandbox.rs.infinity6.ai";class n{_config={baseUrl:s};constructor(i){i&&this.config(i)}config(i){if(!i)throw new Error("SDK configuration is missing.");this._config={baseUrl:i.baseUrl??s}}hello(){return"Hello from i6sdk-web!"}async ingestz(){return new r(this._config)}}window.I6Sdk=n;export{n as I6Sdk};
