@@ -73,7 +73,7 @@
       return user;
     }
     async requireUser() {
-      var user = this.user();
+      var user = await this.user();
       if (!user) {
         this.#redirectToLogin();
         return null;
