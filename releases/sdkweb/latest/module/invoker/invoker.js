@@ -1,0 +1,1 @@
+class i{constructor(e){this._services=e}async invoke(e){let r=e.url||`${this._services.config().baseUrl}/${e.path}`;if(e.query){const n=new URLSearchParams(params).toString();r.contains("?")?r=r+"&"+n:r=r+"?"+n}return e.json&&(e.headers={"Content-Type":"application/json"},e.body=JSON.stringify(e.json)),e.credentials="include",await fetch(r,e)}}export{i as Invoker};

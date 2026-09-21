@@ -1,0 +1,1 @@
+class s{constructor(e){this._services=e}#e(){const e=location.href,r=encodeURIComponent(e);location=`${this._services.config().baseUrl}/api/decsuite/auth/login?backurl=${r}`}async user(){return await(await this._services.invoker().invoke({path:"api/auth/me"})).json()}async requireUser(){var e=this.user();return e||(this.#e(),null)}}export{s as Auth};
