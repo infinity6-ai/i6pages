@@ -1,1 +1,20 @@
-export async function pipezStart(n,o){const t=await n.invoker().invoke({method:"POST",path:`api/pipe/start/dataset/${encodeURIComponent(String(o.dataset))}`,json:{params:o.params,pipename:o.pipename,solution_domain:o.solution_domain}}),e={status:t.status,ok:t.ok};if(t.ok&&(e.body=await t.json()),!t.ok){const a=await t.text();try{e.error=JSON.parse(a)}catch{e.error=a}}return e}
+export async function pipezStart(services, params) {
+  const resp = await services.invoker().invoke({
+    method: "POST",
+    path: `api/pipe/start/dataset/${encodeURIComponent(String(params.dataset))}`,
+    json: { params: params.params, pipename: params.pipename, solution_domain: params.solution_domain }
+  });
+  const result = { status: resp.status, ok: resp.ok };
+  if (resp.ok) {
+    result.body = await resp.json();
+  }
+  if (!resp.ok) {
+    const text = await resp.text();
+    try {
+      result.error = JSON.parse(text);
+    } catch {
+      result.error = text;
+    }
+  }
+  return result;
+}

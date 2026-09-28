@@ -1,1 +1,20 @@
-export async function ingestzGetUrl(a,o){const t=await a.invoker().invoke({method:"POST",path:`api/ingest/get-url/dataset/${encodeURIComponent(String(o.dataset))}`,json:{amount:o.amount,partitions:o.partitions,table:o.table}}),e={status:t.status,ok:t.ok};if(t.ok&&(e.body=await t.json()),!t.ok){const n=await t.text();try{e.error=JSON.parse(n)}catch{e.error=n}}return e}
+export async function ingestzGetUrl(services, params) {
+  const resp = await services.invoker().invoke({
+    method: "POST",
+    path: `api/ingest/get-url/dataset/${encodeURIComponent(String(params.dataset))}`,
+    json: { amount: params.amount, partitions: params.partitions, table: params.table }
+  });
+  const result = { status: resp.status, ok: resp.ok };
+  if (resp.ok) {
+    result.body = await resp.json();
+  }
+  if (!resp.ok) {
+    const text = await resp.text();
+    try {
+      result.error = JSON.parse(text);
+    } catch {
+      result.error = text;
+    }
+  }
+  return result;
+}

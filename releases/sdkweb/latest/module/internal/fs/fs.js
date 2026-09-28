@@ -1,1 +1,139 @@
-const w="i6/fs",s=async(a,e)=>(await(await a.getFileHandle(e)).getFile()).text(),f=async(a,e,r)=>{const t=await(await a.getFileHandle(e,{create:!0})).createWritable();await t.write(r),await t.close()},c=async()=>{let a=await navigator.storage.getDirectory();for(const e of w.split("/"))a=await a.getDirectoryHandle(e);return a};class y{async cleanFile(e){if(!e||!e.name)throw new TypeError("fs: opts.name is required");try{const r=await c(),t=await r.getDirectoryHandle(e.name),n=await s(t,"version.txt").then(i=>"v"+i,()=>null);for await(const[i,o]of t.entries())n&&o.kind==="directory"&&i<n&&await t.removeEntry(i,{recursive:!0});for await(const i of t.entries())return;await r.removeEntry(e.name)}catch(r){if(r.name!=="NotFoundError")throw r}}async clean(){try{const e=[];for await(const[r,t]of(await c()).entries())t.kind==="directory"&&e.push(r);for(const r of e)await this.cleanFile({name:r})}catch(e){if(e.name!=="NotFoundError")throw e}}async get(e){if(!e||!e.name)throw new TypeError("fs: opts.name is required");try{const r=await(await c()).getDirectoryHandle(e.name),t=e.version||await s(r,"version.txt"),n=await r.getDirectoryHandle("v"+t);return{name:e.name,version:t,etag:await s(n,"etag.txt")}}catch(r){if(r.name==="NotFoundError")return null;throw r}}async create(e){if(!e||!e.name)throw new TypeError("fs: opts.name is required");if(!e.etag)throw new TypeError("fs: opts.etag is required");let r=await navigator.storage.getDirectory();for(const o of[...w.split("/"),e.name])r=await r.getDirectoryHandle(o,{create:!0});let t=null;for await(const[o,l]of r.entries())l.kind==="directory"&&o.startsWith("v")&&(!t||o>t)&&(t=o);if(t&&await s(await r.getDirectoryHandle(t),"etag.txt").catch(()=>null)===e.etag)return{name:e.name,version:t.substring(1),etag:e.etag};if(e.data===void 0)throw new TypeError("fs: opts.data is required to create a new version");const n=new Date().toISOString(),i=await r.getDirectoryHandle("v"+n,{create:!0});return await f(i,"etag.txt",e.etag),{name:e.name,version:n,etag:e.etag}}async resolve(e){if(!e||!e.name)throw new TypeError("fs: opts.name is required");if(!e.version)throw new TypeError("fs: opts.version is required");return`${w}/${e.name}/v${e.version}/blob.bin`}async release(e){if(!e||!e.name)throw new TypeError("fs: opts.name is required");if(!e.version)throw new TypeError("fs: opts.version is required");const r=await this.get(e);if(!r)throw new Error(`fs: version ${e.version} of ${e.name} does not exist`);return await f(await(await c()).getDirectoryHandle(e.name),"version.txt",e.version),await this.cleanFile(e),r}}const d=new y;export{d as fs};
+const base = "i6/fs";
+const readText = async (dir, fileName) => (await (await dir.getFileHandle(fileName)).getFile()).text();
+const writeFile = async (dir, fileName, data) => {
+  const writable = await (await dir.getFileHandle(fileName, { create: true })).createWritable();
+  await writable.write(data);
+  await writable.close();
+};
+const baseDir = async () => {
+  let dir = await navigator.storage.getDirectory();
+  for (const segment of base.split("/")) {
+    dir = await dir.getDirectoryHandle(segment);
+  }
+  return dir;
+};
+class FS {
+  /**
+   * Removes the versions older than version.txt, and the whole file if it is left empty.
+   * Without version.txt no version is removed.
+   * @param {Object} opts
+   * @param {string} opts.name - required
+   * @returns {Promise<void>}
+   */
+  async cleanFile(opts) {
+    if (!opts || !opts.name) throw new TypeError("fs: opts.name is required");
+    try {
+      const parent = await baseDir();
+      const dir = await parent.getDirectoryHandle(opts.name);
+      const released = await readText(dir, "version.txt").then((v) => "v" + v, () => null);
+      for await (const [entryName, entry] of dir.entries()) {
+        if (released && entry.kind === "directory" && entryName < released) {
+          await dir.removeEntry(entryName, { recursive: true });
+        }
+      }
+      for await (const _ of dir.entries()) return;
+      await parent.removeEntry(opts.name);
+    } catch (e) {
+      if (e.name !== "NotFoundError") throw e;
+    }
+  }
+  /**
+   * Cleans all files, see cleanFile.
+   * @returns {Promise<void>}
+   */
+  async clean() {
+    try {
+      const names = [];
+      for await (const [entryName, entry] of (await baseDir()).entries()) {
+        if (entry.kind === "directory") names.push(entryName);
+      }
+      for (const name of names) {
+        await this.cleanFile({ name });
+      }
+    } catch (e) {
+      if (e.name !== "NotFoundError") throw e;
+    }
+  }
+  /**
+   * Resolves a version of a file.
+   * @param {Object} opts
+   * @param {string} opts.name - required
+   * @param {string} [opts.version] - defaults to the content of version.txt
+   * @returns {Promise<FileRef|null>} a new full FileRef, or null if it does not exist.
+   */
+  async get(opts) {
+    if (!opts || !opts.name) throw new TypeError("fs: opts.name is required");
+    try {
+      const dir = await (await baseDir()).getDirectoryHandle(opts.name);
+      const version = opts.version || await readText(dir, "version.txt");
+      const versionDir = await dir.getDirectoryHandle("v" + version);
+      return {
+        name: opts.name,
+        version,
+        etag: await readText(versionDir, "etag.txt")
+      };
+    } catch (e) {
+      if (e.name === "NotFoundError") return null;
+      throw e;
+    }
+  }
+  /**
+   * Creates a new version, unless the latest version already has this etag.
+   * The new version is not released.
+   * @param {Object} opts
+   * @param {string} opts.name - required
+   * @param {string} opts.etag - required
+   * @param {Blob|BufferSource|string} [opts.data] - content, required when a new version is created
+   * @returns {Promise<FileRef>} a new full FileRef.
+   */
+  async create(opts) {
+    if (!opts || !opts.name) throw new TypeError("fs: opts.name is required");
+    if (!opts.etag) throw new TypeError("fs: opts.etag is required");
+    let dir = await navigator.storage.getDirectory();
+    for (const segment of [...base.split("/"), opts.name]) {
+      dir = await dir.getDirectoryHandle(segment, { create: true });
+    }
+    let latest = null;
+    for await (const [entryName, entry] of dir.entries()) {
+      if (entry.kind === "directory" && entryName.startsWith("v") && (!latest || entryName > latest)) latest = entryName;
+    }
+    if (latest && await readText(await dir.getDirectoryHandle(latest), "etag.txt").catch(() => null) === opts.etag) {
+      return { name: opts.name, version: latest.substring(1), etag: opts.etag };
+    }
+    if (opts.data === void 0) throw new TypeError("fs: opts.data is required to create a new version");
+    const version = (/* @__PURE__ */ new Date()).toISOString();
+    const versionDir = await dir.getDirectoryHandle("v" + version, { create: true });
+    await writeFile(versionDir, "etag.txt", opts.etag);
+    return { name: opts.name, version, etag: opts.etag };
+  }
+  /**
+   * Returns the bin file path, full (with base). Does not check that it exists, see get.
+   * @param {Object} opts
+   * @param {string} opts.name - required
+   * @param {string} opts.version - required
+   * @returns {Promise<string>} e.g. "i6/fs/{name}/v{version}/blob.bin"
+   */
+  async resolve(opts) {
+    if (!opts || !opts.name) throw new TypeError("fs: opts.name is required");
+    if (!opts.version) throw new TypeError("fs: opts.version is required");
+    return `${base}/${opts.name}/v${opts.version}/blob.bin`;
+  }
+  /**
+   * Makes a version the current one (version.txt), then cleans the older versions.
+   * @param {Object} opts
+   * @param {string} opts.name - required
+   * @param {string} opts.version - required, must exist
+   * @returns {Promise<FileRef>} a new full FileRef of the released version.
+   */
+  async release(opts) {
+    if (!opts || !opts.name) throw new TypeError("fs: opts.name is required");
+    if (!opts.version) throw new TypeError("fs: opts.version is required");
+    const ref = await this.get(opts);
+    if (!ref) throw new Error(`fs: version ${opts.version} of ${opts.name} does not exist`);
+    await writeFile(await (await baseDir()).getDirectoryHandle(opts.name), "version.txt", opts.version);
+    await this.cleanFile(opts);
+    return ref;
+  }
+}
+const fs = new FS();
+export { fs };

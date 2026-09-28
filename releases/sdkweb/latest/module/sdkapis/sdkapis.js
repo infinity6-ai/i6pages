@@ -1,1 +1,82 @@
-export async function samplefraction(n,o){const t=await n.invoker().invoke({method:"POST",path:`api/gox/routez/sample/fraction/${encodeURIComponent(String(o.params.numerator))}/${encodeURIComponent(String(o.params.denominator))}`,query:o.query,headers:o.headers,json:o.payload}),a={status:t.status,ok:t.ok};if(t.ok&&(a.payload=await t.json()),!t.ok){const e=await t.text();try{a.error=JSON.parse(e)}catch{a.error=e}}return a}export async function ingestzGetUrl(n,o){const t=await n.invoker().invoke({method:"POST",path:`api/ingest/get-url/dataset/${encodeURIComponent(String(o.params.dataset))}`,json:o.payload}),a={status:t.status,ok:t.ok};if(t.ok&&(a.payload=await t.json()),!t.ok){const e=await t.text();try{a.error=JSON.parse(e)}catch{a.error=e}}return a}export async function pipezStart(n,o){const t=await n.invoker().invoke({method:"POST",path:`api/pipe/start/dataset/${encodeURIComponent(String(o.params.dataset))}`,json:o.payload}),a={status:t.status,ok:t.ok};if(t.ok&&(a.payload=await t.json()),!t.ok){const e=await t.text();try{a.error=JSON.parse(e)}catch{a.error=e}}return a}export async function dszDomainSelect(n,o){const t=await n.invoker().invoke({method:"POST",path:`api/ds/solution-domain-select/dataset/${encodeURIComponent(String(o.params.dataset))}`,json:o.payload}),a={status:t.status,ok:t.ok};if(t.ok&&(a.body=await t.json()),!t.ok){const e=await t.text();try{a.error=JSON.parse(e)}catch{a.error=e}}return a}
+export async function samplefraction(services, req) {
+  const resp = await services.invoker().invoke({
+    method: "POST",
+    path: `api/gox/routez/sample/fraction/${encodeURIComponent(String(req.params.numerator))}/${encodeURIComponent(String(req.params.denominator))}`,
+    query: req.query,
+    headers: req.headers,
+    json: req.payload
+  });
+  const result = { status: resp.status, ok: resp.ok };
+  if (resp.ok) {
+    result.payload = await resp.json();
+  }
+  if (!resp.ok) {
+    const text = await resp.text();
+    try {
+      result.error = JSON.parse(text);
+    } catch {
+      result.error = text;
+    }
+  }
+  return result;
+}
+export async function ingestzGetUrl(services, req) {
+  const resp = await services.invoker().invoke({
+    method: "POST",
+    path: `api/ingest/get-url/dataset/${encodeURIComponent(String(req.params.dataset))}`,
+    json: req.payload
+  });
+  const result = { status: resp.status, ok: resp.ok };
+  if (resp.ok) {
+    result.payload = await resp.json();
+  }
+  if (!resp.ok) {
+    const text = await resp.text();
+    try {
+      result.error = JSON.parse(text);
+    } catch {
+      result.error = text;
+    }
+  }
+  return result;
+}
+export async function pipezStart(services, req) {
+  const resp = await services.invoker().invoke({
+    method: "POST",
+    path: `api/pipe/start/dataset/${encodeURIComponent(String(req.params.dataset))}`,
+    json: req.payload
+  });
+  const result = { status: resp.status, ok: resp.ok };
+  if (resp.ok) {
+    result.payload = await resp.json();
+  }
+  if (!resp.ok) {
+    const text = await resp.text();
+    try {
+      result.error = JSON.parse(text);
+    } catch {
+      result.error = text;
+    }
+  }
+  return result;
+}
+export async function dszDomainSelect(services, req) {
+  const resp = await services.invoker().invoke({
+    method: "POST",
+    path: `api/ds/solution-domain-select/dataset/${encodeURIComponent(String(req.params.dataset))}`,
+    json: req.payload
+  });
+  const result = { status: resp.status, ok: resp.ok };
+  if (resp.ok) {
+    result.body = await resp.json();
+  }
+  if (!resp.ok) {
+    const text = await resp.text();
+    try {
+      result.error = JSON.parse(text);
+    } catch {
+      result.error = text;
+    }
+  }
+  return result;
+}
