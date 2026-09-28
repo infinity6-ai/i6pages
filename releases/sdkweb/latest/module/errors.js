@@ -1,0 +1,1 @@
+class s extends Error{constructor(e,{code:t,status:r,body:n,cause:d}={}){super(e,d===void 0?void 0:{cause:d}),this.name="I6Error",this.code=t??(r===void 0?void 0:"http"),this.status=r,this.body=n}static fromResult(e,t){return new s(`${e} with status ${t.status}`,{code:"http",status:t.status,body:t.error})}}export{s as I6Error};

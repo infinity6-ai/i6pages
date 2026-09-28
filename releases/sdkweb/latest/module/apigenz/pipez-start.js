@@ -1,0 +1,1 @@
+export async function pipezStart(n,o){const t=await n.invoker().invoke({method:"POST",path:`api/pipe/start/dataset/${encodeURIComponent(String(o.dataset))}`,json:{params:o.params,pipename:o.pipename,solution_domain:o.solution_domain}}),e={status:t.status,ok:t.ok};if(t.ok&&(e.body=await t.json()),!t.ok){const a=await t.text();try{e.error=JSON.parse(a)}catch{e.error=a}}return e}
