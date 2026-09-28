@@ -183,6 +183,12 @@ export type samplefractionrespPayload = {
  */
 /**
  * @param {import("../services/services.js").Services} services
+ * @param {samplefractionReq} req
+ * @returns {Promise<samplefractionResp>}
+ */
+export declare function samplefraction(services: import("../services/services.js").Services, req: samplefractionReq): Promise<samplefractionResp>;
+/**
+ * @param {import("../services/services.js").Services} services
  * @param {ingestzGetUrlReq} req
  * @returns {Promise<ingestzGetUrlResp>}
  */
@@ -199,9 +205,3 @@ export declare function pipezStart(services: import("../services/services.js").S
  * @returns {Promise<dszDomainSelectResp>}
  */
 export declare function dszDomainSelect(services: import("../services/services.js").Services, req: dszDomainSelectReq): Promise<dszDomainSelectResp>;
-/**
- * @param {import("../services/services.js").Services} services
- * @param {samplefractionReq} req
- * @returns {Promise<samplefractionResp>}
- */
-export declare function samplefraction(services: import("../services/services.js").Services, req: samplefractionReq): Promise<samplefractionResp>;
