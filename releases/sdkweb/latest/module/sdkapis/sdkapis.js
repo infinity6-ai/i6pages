@@ -1,4 +1,4 @@
-export async function samplefraction(services, req) {
+export async function apiSamplefraction(services, req) {
   const resp = await services.invoker().invoke({
     method: "POST",
     path: `api/gox/routez/sample/fraction/${encodeURIComponent(String(req.params.numerator))}/${encodeURIComponent(String(req.params.denominator))}`,
@@ -20,7 +20,7 @@ export async function samplefraction(services, req) {
   }
   return result;
 }
-export async function ingestzGetUrl(services, req) {
+export async function apiIngestzGetUrl(services, req) {
   const resp = await services.invoker().invoke({
     method: "POST",
     path: `api/ingest/get-url/dataset/${encodeURIComponent(String(req.params.dataset))}`,
@@ -40,7 +40,7 @@ export async function ingestzGetUrl(services, req) {
   }
   return result;
 }
-export async function pipezStart(services, req) {
+export async function apiPipezStart(services, req) {
   const resp = await services.invoker().invoke({
     method: "POST",
     path: `api/pipe/start/dataset/${encodeURIComponent(String(req.params.dataset))}`,
@@ -60,7 +60,7 @@ export async function pipezStart(services, req) {
   }
   return result;
 }
-export async function dszDomainSelect(services, req) {
+export async function apiDszDomainSelect(services, req) {
   const resp = await services.invoker().invoke({
     method: "POST",
     path: `api/ds/solution-domain-select/dataset/${encodeURIComponent(String(req.params.dataset))}`,

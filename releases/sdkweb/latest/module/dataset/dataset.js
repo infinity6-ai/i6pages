@@ -1,4 +1,4 @@
-import { dszDomainSelect } from "../sdkapis/sdkapis.js";
+import { apiDszDomainSelect } from "../sdkapis/sdkapis.js";
 import { I6Error } from "../errors.js";
 class Dataset {
   /**

@@ -1,1 +1,0 @@
-export async function ingestzGetUrl(a,o){const t=await a.invoker().invoke({method:"POST",path:`api/ingest/get-url/dataset/${encodeURIComponent(String(o.dataset))}`,json:{amount:o.amount,partitions:o.partitions,table:o.table}}),e={status:t.status,ok:t.ok};if(t.ok&&(e.body=await t.json()),!t.ok){const n=await t.text();try{e.error=JSON.parse(n)}catch{e.error=n}}return e}

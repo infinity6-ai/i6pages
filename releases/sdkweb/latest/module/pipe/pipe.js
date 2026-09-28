@@ -1,4 +1,4 @@
-import { pipezStart } from "../sdkapis/sdkapis.js";
+import { apiPipezStart } from "../sdkapis/sdkapis.js";
 import { I6Error } from "../errors.js";
 class Pipe {
   /**

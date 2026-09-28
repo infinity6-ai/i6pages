@@ -1,138 +1,3 @@
-export type PipezStartParams = {
-    dataset: string;
-    params: {
-        name: string;
-        value: string;
-    }[];
-    pipename: string;
-    solution_domain: any;
-};
-export type PipezStartResult = {
-    /**
-     * - HTTP status code.
-     */
-    status: number;
-    /**
-     * - true when the status is 2xx.
-     */
-    ok: boolean;
-    /**
-     * - Parsed JSON body, present only when ok.
-     */
-    body?: {
-        id: string;
-    };
-    /**
-     * - Error body (parsed JSON, or raw text when not JSON), present only when not ok.
-     */
-    error?: any;
-};
-/**
- * @typedef {Object} PipezStartParams
- * @property {string} dataset
- * @property {{name: string, value: string}[]} params
- * @property {string} pipename
- * @property {*} solution_domain
- */
-/**
- * @typedef {Object} PipezStartResult
- * @property {number} status - HTTP status code.
- * @property {boolean} ok - true when the status is 2xx.
- * @property {{id: string}} [body] - Parsed JSON body, present only when ok.
- * @property {*} [error] - Error body (parsed JSON, or raw text when not JSON), present only when not ok.
- */
-/**
- * @param {import("../services/services.js").Services} services
- * @param {PipezStartParams} params
- * @returns {Promise<PipezStartResult>}
- */
-export declare function pipezStart(services: import("../services/services.js").Services, params: PipezStartParams): Promise<PipezStartResult>;
-export type IngestzGetUrlParams = {
-    dataset: string;
-    amount: number;
-    partitions: Record<string, string>;
-    table: any;
-};
-export type IngestzGetUrlResult = {
-    /**
-     * - HTTP status code.
-     */
-    status: number;
-    /**
-     * - true when the status is 2xx.
-     */
-    ok: boolean;
-    /**
-     * - Parsed JSON body, present only when ok.
-     */
-    body?: {
-        ingest_id: string;
-        uploads: string[];
-    };
-    /**
-     * - Error body (parsed JSON, or raw text when not JSON), present only when not ok.
-     */
-    error?: any;
-};
-/**
- * @typedef {Object} IngestzGetUrlParams
- * @property {string} dataset
- * @property {number} amount
- * @property {Record<string, string>} partitions
- * @property {*} table
- */
-/**
- * @typedef {Object} IngestzGetUrlResult
- * @property {number} status - HTTP status code.
- * @property {boolean} ok - true when the status is 2xx.
- * @property {{ingest_id: string, uploads: string[]}} [body] - Parsed JSON body, present only when ok.
- * @property {*} [error] - Error body (parsed JSON, or raw text when not JSON), present only when not ok.
- */
-/**
- * @param {import("../services/services.js").Services} services
- * @param {IngestzGetUrlParams} params
- * @returns {Promise<IngestzGetUrlResult>}
- */
-export declare function ingestzGetUrl(services: import("../services/services.js").Services, params: IngestzGetUrlParams): Promise<IngestzGetUrlResult>;
-export type DszDomainSelectParams = {
-    dataset: string;
-    domain: any;
-    solution: any;
-    store: string;
-};
-export type DszDomainSelectResult = {
-    /**
-     * - HTTP status code.
-     */
-    status: number;
-    /**
-     * - true when the status is 2xx.
-     */
-    ok: boolean;
-    /**
-     * - Error body (parsed JSON, or raw text when not JSON), present only when not ok.
-     */
-    error?: any;
-};
-/**
- * @typedef {Object} DszDomainSelectParams
- * @property {string} dataset
- * @property {*} domain
- * @property {*} solution
- * @property {string} store
- */
-/**
- * @typedef {Object} DszDomainSelectResult
- * @property {number} status - HTTP status code.
- * @property {boolean} ok - true when the status is 2xx.
- * @property {*} [error] - Error body (parsed JSON, or raw text when not JSON), present only when not ok.
- */
-/**
- * @param {import("../services/services.js").Services} services
- * @param {DszDomainSelectParams} params
- * @returns {Promise<DszDomainSelectResult>}
- */
-export declare function dszDomainSelect(services: import("../services/services.js").Services, params: DszDomainSelectParams): Promise<DszDomainSelectResult>;
 /**
  * @fileoverview HTTP client for sending API requests to i6 services.
  */
@@ -476,212 +341,212 @@ declare class I6Error extends Error {
 }
 export { I6Error };
 /**
- * dszDomainSelect Request
- * @typedef {object} dszDomainSelectReq
- * @property {dszDomainSelectparams} params
- * @property {dszDomainSelectreqPayload} payload
+ * apiDszDomainSelect Request
+ * @typedef {object} apiDszDomainSelectReq
+ * @property {apiDszDomainSelectparams} params
+ * @property {apiDszDomainSelectreqPayload} payload
  */
-export type dszDomainSelectReq = {
-    params: dszDomainSelectparams;
-    payload: dszDomainSelectreqPayload;
+export type apiDszDomainSelectReq = {
+    params: apiDszDomainSelectparams;
+    payload: apiDszDomainSelectreqPayload;
 };
-export type dszDomainSelectResp = object;
-export type dszDomainSelectparams = {
+export type apiDszDomainSelectResp = object;
+export type apiDszDomainSelectparams = {
     dataset: string;
 };
-export type dszDomainSelectreqPayload = {
+export type apiDszDomainSelectreqPayload = {
     domain: string;
     solution: string;
     store: string;
 };
-export type ingestzGetUrlReq = {
-    params: ingestzGetUrlparams;
-    payload: ingestzGetUrlreqPayload;
+export type apiIngestzGetUrlReq = {
+    params: apiIngestzGetUrlparams;
+    payload: apiIngestzGetUrlreqPayload;
 };
-export type ingestzGetUrlResp = {
-    payload: ingestzGetUrlrespPayload;
+export type apiIngestzGetUrlResp = {
+    payload: apiIngestzGetUrlrespPayload;
 };
-export type ingestzGetUrlparams = {
+export type apiIngestzGetUrlparams = {
     dataset: string;
 };
-export type ingestzGetUrlreqPayload = {
+export type apiIngestzGetUrlreqPayload = {
     amount: number;
     partitions: Record<string, string>;
     table: string;
 };
-export type ingestzGetUrlrespPayload = object;
-export type pipezStartReq = {
-    params: pipezStartparams;
-    payload: pipezStartreqPayload;
+export type apiIngestzGetUrlrespPayload = object;
+export type apiPipezStartReq = {
+    params: apiPipezStartparams;
+    payload: apiPipezStartreqPayload;
 };
-export type pipezStartResp = {
-    payload: pipezStartrespPayload;
+export type apiPipezStartResp = {
+    payload: apiPipezStartrespPayload;
 };
-export type pipezStartparams = {
+export type apiPipezStartparams = {
     dataset: string;
 };
-export type pipezStartreqPayload = {
+export type apiPipezStartreqPayload = {
     params: Array<object>;
     pipename: string;
     solution_domain: string;
 };
-export type pipezStartrespPayload = object;
-export type samplefractionReq = {
-    params: samplefractionparams;
-    query: samplefractionquery;
-    headers: samplefractionreqHeaders;
-    payload: samplefractionreqPayload;
+export type apiPipezStartrespPayload = object;
+export type apiSamplefractionReq = {
+    params: apiSamplefractionparams;
+    query: apiSamplefractionquery;
+    headers: apiSamplefractionreqHeaders;
+    payload: apiSamplefractionreqPayload;
 };
-export type samplefractionResp = {
-    headers: samplefractionrespHeaders;
-    payload: samplefractionrespPayload;
+export type apiSamplefractionResp = {
+    headers: apiSamplefractionrespHeaders;
+    payload: apiSamplefractionrespPayload;
 };
-export type samplefractionparams = {
+export type apiSamplefractionparams = {
     denominator: number;
     numerator: number;
 };
-export type samplefractionquery = {
+export type apiSamplefractionquery = {
     precision: number;
 };
-export type samplefractionreqHeaders = {
+export type apiSamplefractionreqHeaders = {
     x_i6_trace_id: string;
 };
-export type samplefractionreqPayload = {
+export type apiSamplefractionreqPayload = {
     reason: string;
 };
-export type samplefractionrespHeaders = {
+export type apiSamplefractionrespHeaders = {
     x_i6_trace_message: string;
 };
-export type samplefractionrespPayload = {
+export type apiSamplefractionrespPayload = {
     display: string;
     result: string;
 };
 /**
- * dszDomainSelect Response
- * @typedef {object} dszDomainSelectResp
+ * apiDszDomainSelect Response
+ * @typedef {object} apiDszDomainSelectResp
  */
 /**
- * @typedef {object} dszDomainSelectparams
+ * @typedef {object} apiDszDomainSelectparams
  * @property {string} dataset
  */
 /**
- * @typedef {object} dszDomainSelectreqPayload
+ * @typedef {object} apiDszDomainSelectreqPayload
  * @property {string} domain
  * @property {string} solution
  * @property {string} store
  */
 /**
- * ingestzGetUrl Request
- * @typedef {object} ingestzGetUrlReq
- * @property {ingestzGetUrlparams} params
- * @property {ingestzGetUrlreqPayload} payload
+ * apiIngestzGetUrl Request
+ * @typedef {object} apiIngestzGetUrlReq
+ * @property {apiIngestzGetUrlparams} params
+ * @property {apiIngestzGetUrlreqPayload} payload
  */
 /**
- * ingestzGetUrl Response
- * @typedef {object} ingestzGetUrlResp
- * @property {ingestzGetUrlrespPayload} payload
+ * apiIngestzGetUrl Response
+ * @typedef {object} apiIngestzGetUrlResp
+ * @property {apiIngestzGetUrlrespPayload} payload
  */
 /**
- * @typedef {object} ingestzGetUrlparams
+ * @typedef {object} apiIngestzGetUrlparams
  * @property {string} dataset
  */
 /**
- * @typedef {object} ingestzGetUrlreqPayload
+ * @typedef {object} apiIngestzGetUrlreqPayload
  * @property {number} amount
  * @property {Record<string, string>} partitions
  * @property {string} table
  */
 /**
- * @typedef {object} ingestzGetUrlrespPayload
+ * @typedef {object} apiIngestzGetUrlrespPayload
  */
 /**
- * pipezStart Request
- * @typedef {object} pipezStartReq
- * @property {pipezStartparams} params
- * @property {pipezStartreqPayload} payload
+ * apiPipezStart Request
+ * @typedef {object} apiPipezStartReq
+ * @property {apiPipezStartparams} params
+ * @property {apiPipezStartreqPayload} payload
  */
 /**
- * pipezStart Response
- * @typedef {object} pipezStartResp
- * @property {pipezStartrespPayload} payload
+ * apiPipezStart Response
+ * @typedef {object} apiPipezStartResp
+ * @property {apiPipezStartrespPayload} payload
  */
 /**
- * @typedef {object} pipezStartparams
+ * @typedef {object} apiPipezStartparams
  * @property {string} dataset
  */
 /**
- * @typedef {object} pipezStartreqPayload
+ * @typedef {object} apiPipezStartreqPayload
  * @property {Array<object>} params
  * @property {string} pipename
  * @property {string} solution_domain
  */
 /**
- * @typedef {object} pipezStartrespPayload
+ * @typedef {object} apiPipezStartrespPayload
  */
 /**
- * samplefraction Request
- * @typedef {object} samplefractionReq
- * @property {samplefractionparams} params
- * @property {samplefractionquery} query
- * @property {samplefractionreqHeaders} headers
- * @property {samplefractionreqPayload} payload
+ * apiSamplefraction Request
+ * @typedef {object} apiSamplefractionReq
+ * @property {apiSamplefractionparams} params
+ * @property {apiSamplefractionquery} query
+ * @property {apiSamplefractionreqHeaders} headers
+ * @property {apiSamplefractionreqPayload} payload
  */
 /**
- * samplefraction Response
- * @typedef {object} samplefractionResp
- * @property {samplefractionrespHeaders} headers
- * @property {samplefractionrespPayload} payload
+ * apiSamplefraction Response
+ * @typedef {object} apiSamplefractionResp
+ * @property {apiSamplefractionrespHeaders} headers
+ * @property {apiSamplefractionrespPayload} payload
  */
 /**
- * @typedef {object} samplefractionparams
+ * @typedef {object} apiSamplefractionparams
  * @property {number} denominator
  * @property {number} numerator
  */
 /**
- * @typedef {object} samplefractionquery
+ * @typedef {object} apiSamplefractionquery
  * @property {number} precision
  */
 /**
- * @typedef {object} samplefractionreqHeaders
+ * @typedef {object} apiSamplefractionreqHeaders
  * @property {string} x_i6_trace_id
  */
 /**
- * @typedef {object} samplefractionreqPayload
+ * @typedef {object} apiSamplefractionreqPayload
  * @property {string} reason
  */
 /**
- * @typedef {object} samplefractionrespHeaders
+ * @typedef {object} apiSamplefractionrespHeaders
  * @property {string} x_i6_trace_message
  */
 /**
- * @typedef {object} samplefractionrespPayload
+ * @typedef {object} apiSamplefractionrespPayload
  * @property {string} display
  * @property {string} result
  */
 /**
  * @param {import("../services/services.js").Services} services
- * @param {samplefractionReq} req
- * @returns {Promise<samplefractionResp>}
+ * @param {apiSamplefractionReq} req
+ * @returns {Promise<apiSamplefractionResp>}
  */
-export declare function samplefraction(services: import("../services/services.js").Services, req: samplefractionReq): Promise<samplefractionResp>;
+export declare function apiSamplefraction(services: import("../services/services.js").Services, req: apiSamplefractionReq): Promise<apiSamplefractionResp>;
 /**
  * @param {import("../services/services.js").Services} services
- * @param {ingestzGetUrlReq} req
- * @returns {Promise<ingestzGetUrlResp>}
+ * @param {apiIngestzGetUrlReq} req
+ * @returns {Promise<apiIngestzGetUrlResp>}
  */
-export declare function ingestzGetUrl(services: import("../services/services.js").Services, req: ingestzGetUrlReq): Promise<ingestzGetUrlResp>;
+export declare function apiIngestzGetUrl(services: import("../services/services.js").Services, req: apiIngestzGetUrlReq): Promise<apiIngestzGetUrlResp>;
 /**
  * @param {import("../services/services.js").Services} services
- * @param {pipezStartReq} req
- * @returns {Promise<pipezStartResp>}
+ * @param {apiPipezStartReq} req
+ * @returns {Promise<apiPipezStartResp>}
  */
-export declare function pipezStart(services: import("../services/services.js").Services, req: pipezStartReq): Promise<pipezStartResp>;
+export declare function apiPipezStart(services: import("../services/services.js").Services, req: apiPipezStartReq): Promise<apiPipezStartResp>;
 /**
  * @param {import("../services/services.js").Services} services
- * @param {dszDomainSelectReq} req
- * @returns {Promise<dszDomainSelectResp>}
+ * @param {apiDszDomainSelectReq} req
+ * @returns {Promise<apiDszDomainSelectResp>}
  */
-export declare function dszDomainSelect(services: import("../services/services.js").Services, req: dszDomainSelectReq): Promise<dszDomainSelectResp>;
+export declare function apiDszDomainSelect(services: import("../services/services.js").Services, req: apiDszDomainSelectReq): Promise<apiDszDomainSelectResp>;
 /**
  * @fileoverview Generic and shared type definitions for the i6 Web Legacy SDK.
  */

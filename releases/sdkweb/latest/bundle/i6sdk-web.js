@@ -89,68 +89,6 @@
     }
   };
 
-  // src/sdkapis/sdkapis.js
-  async function ingestzGetUrl(services, req) {
-    const resp = await services.invoker().invoke({
-      method: "POST",
-      path: `api/ingest/get-url/dataset/${encodeURIComponent(String(req.params.dataset))}`,
-      json: req.payload
-    });
-    const result = { status: resp.status, ok: resp.ok };
-    if (resp.ok) {
-      result.payload = await resp.json();
-    }
-    if (!resp.ok) {
-      const text = await resp.text();
-      try {
-        result.error = JSON.parse(text);
-      } catch {
-        result.error = text;
-      }
-    }
-    return result;
-  }
-  async function pipezStart(services, req) {
-    const resp = await services.invoker().invoke({
-      method: "POST",
-      path: `api/pipe/start/dataset/${encodeURIComponent(String(req.params.dataset))}`,
-      json: req.payload
-    });
-    const result = { status: resp.status, ok: resp.ok };
-    if (resp.ok) {
-      result.payload = await resp.json();
-    }
-    if (!resp.ok) {
-      const text = await resp.text();
-      try {
-        result.error = JSON.parse(text);
-      } catch {
-        result.error = text;
-      }
-    }
-    return result;
-  }
-  async function dszDomainSelect(services, req) {
-    const resp = await services.invoker().invoke({
-      method: "POST",
-      path: `api/ds/solution-domain-select/dataset/${encodeURIComponent(String(req.params.dataset))}`,
-      json: req.payload
-    });
-    const result = { status: resp.status, ok: resp.ok };
-    if (resp.ok) {
-      result.body = await resp.json();
-    }
-    if (!resp.ok) {
-      const text = await resp.text();
-      try {
-        result.error = JSON.parse(text);
-      } catch {
-        result.error = text;
-      }
-    }
-    return result;
-  }
-
   // src/errors.js
   var I6Error = class _I6Error extends Error {
     /**

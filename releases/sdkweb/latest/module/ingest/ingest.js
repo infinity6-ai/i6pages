@@ -1,4 +1,4 @@
-import { ingestzGetUrl } from "../sdkapis/sdkapis.js";
+import { apiIngestzGetUrl } from "../sdkapis/sdkapis.js";
 import { I6Error } from "../errors.js";
 class Ingest {
   /**

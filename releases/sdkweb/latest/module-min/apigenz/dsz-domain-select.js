@@ -1,1 +1,0 @@
-export async function dszDomainSelect(s,t){const o=await s.invoker().invoke({method:"POST",path:`api/ds/solution-domain-select/dataset/${encodeURIComponent(String(t.dataset))}`,json:{domain:t.domain,solution:t.solution,store:t.store}}),e={status:o.status,ok:o.ok};if(!o.ok){const n=await o.text();try{e.error=JSON.parse(n)}catch{e.error=n}}return e}
