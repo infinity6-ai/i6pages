@@ -340,186 +340,145 @@ export { I6Error };
  * @typedef {import("../services/services.js").Services} Services
  */
 export type Services = import("../services/services.js").Services;
-export type apiDszDomainSelectReq = {
-    params: apiDszDomainSelectparams;
-    payload: apiDszDomainSelectreqPayload;
-};
-export type apiDszDomainSelectResp = object;
-export type apiDszDomainSelectparams = {
+export type apiIngestzGetUrlParams = {
+    /**
+     * - Name of the dataset that receives the uploaded files.
+     */
     dataset: string;
-};
-export type apiDszDomainSelectreqPayload = {
-    domain: string;
-    solution: string;
-    store: string;
 };
 export type apiIngestzGetUrlReq = {
-    params: apiIngestzGetUrlparams;
-    payload: apiIngestzGetUrlreqPayload;
+    params: apiIngestzGetUrlParams;
+    payload: apiIngestzGetUrlReqPayload;
 };
-export type apiIngestzGetUrlResp = {
-    payload: apiIngestzGetUrlrespPayload;
-};
-export type apiIngestzGetUrlparams = {
-    dataset: string;
-};
-export type apiIngestzGetUrlreqPayload = {
+export type apiIngestzGetUrlReqPayload = {
+    /**
+     * - Number of presigned upload URLs to generate.
+     */
     amount: number;
+    /**
+     * - Partition key/value pairs that select the table partition the files are ingested into.
+     */
     partitions: Record<string, string>;
+    /**
+     * - Name of the table, inside the dataset, that receives the uploaded files.
+     */
     table: string;
 };
-export type apiIngestzGetUrlrespPayload = object;
-export type apiPipezStartReq = {
-    params: apiPipezStartparams;
-    payload: apiPipezStartreqPayload;
+export type apiIngestzGetUrlResp = {
+    payload: apiIngestzGetUrlRespPayload;
 };
-export type apiPipezStartResp = {
-    payload: apiPipezStartrespPayload;
+export type apiIngestzGetUrlRespPayload = {
+    /**
+     * - Ingestion token that identifies this ingestion and ties the uploaded files together.
+     */
+    ingest_id: string;
+    /**
+     * - Presigned PUT URLs, one per requested file; upload each file to its URL.
+     */
+    uploads: Array<string>;
 };
-export type apiPipezStartparams = {
-    dataset: string;
-};
-export type apiPipezStartreqPayload = {
-    params: Array<object>;
-    pipename: string;
-    solution_domain: string;
-};
-export type apiPipezStartrespPayload = object;
-export type apiSamplefractionReq = {
-    params: apiSamplefractionparams;
-    query: apiSamplefractionquery;
-    headers: apiSamplefractionreqHeaders;
-    payload: apiSamplefractionreqPayload;
-};
-export type apiSamplefractionResp = {
-    headers: apiSamplefractionrespHeaders;
-    payload: apiSamplefractionrespPayload;
-};
-export type apiSamplefractionparams = {
+export type apiSamplefractionParams = {
     denominator: number;
     numerator: number;
 };
-export type apiSamplefractionquery = {
+export type apiSamplefractionQuery = {
     precision: number;
 };
-export type apiSamplefractionreqHeaders = {
+export type apiSamplefractionReq = {
+    params: apiSamplefractionParams;
+    query: apiSamplefractionQuery;
+    headers: apiSamplefractionReqHeaders;
+    payload: apiSamplefractionReqPayload;
+};
+export type apiSamplefractionReqHeaders = {
     x_i6_trace_id: string;
 };
-export type apiSamplefractionreqPayload = {
+export type apiSamplefractionReqPayload = {
     reason: string;
 };
-export type apiSamplefractionrespHeaders = {
+export type apiSamplefractionResp = {
+    headers: apiSamplefractionRespHeaders;
+    payload: apiSamplefractionRespPayload;
+};
+export type apiSamplefractionRespHeaders = {
     x_i6_trace_message: string;
 };
-export type apiSamplefractionrespPayload = {
+export type apiSamplefractionRespPayload = {
     display: string;
     result: string;
 };
 /**
- * apiDszDomainSelect Request
- * @typedef {object} apiDszDomainSelectReq
- * @property {apiDszDomainSelectparams} params
- * @property {apiDszDomainSelectreqPayload} payload
- */
-/**
- * apiDszDomainSelect Response
- * @typedef {object} apiDszDomainSelectResp
- */
-/**
- * @typedef {object} apiDszDomainSelectparams
- * @property {string} dataset
- */
-/**
- * @typedef {object} apiDszDomainSelectreqPayload
- * @property {string} domain
- * @property {string} solution
- * @property {string} store
+ * apiIngestzGetUrl params
+ * @typedef {object} apiIngestzGetUrlParams
+ * @property {string} dataset - Name of the dataset that receives the uploaded files.
  */
 /**
  * apiIngestzGetUrl Request
  * @typedef {object} apiIngestzGetUrlReq
- * @property {apiIngestzGetUrlparams} params
- * @property {apiIngestzGetUrlreqPayload} payload
+ * @property {apiIngestzGetUrlParams} params
+ * @property {apiIngestzGetUrlReqPayload} payload
+ */
+/**
+ * apiIngestzGetUrl reqPayload
+ * @typedef {object} apiIngestzGetUrlReqPayload
+ * @property {number} amount - Number of presigned upload URLs to generate.
+ * @property {Record<string, string>} partitions - Partition key/value pairs that select the table partition the files are ingested into.
+ * @property {string} table - Name of the table, inside the dataset, that receives the uploaded files.
  */
 /**
  * apiIngestzGetUrl Response
  * @typedef {object} apiIngestzGetUrlResp
- * @property {apiIngestzGetUrlrespPayload} payload
+ * @property {apiIngestzGetUrlRespPayload} payload
  */
 /**
- * @typedef {object} apiIngestzGetUrlparams
- * @property {string} dataset
+ * apiIngestzGetUrl respPayload
+ * @typedef {object} apiIngestzGetUrlRespPayload
+ * @property {string} ingest_id - Ingestion token that identifies this ingestion and ties the uploaded files together.
+ * @property {Array<string>} uploads - Presigned PUT URLs, one per requested file; upload each file to its URL.
  */
 /**
- * @typedef {object} apiIngestzGetUrlreqPayload
- * @property {number} amount
- * @property {Record<string, string>} partitions
- * @property {string} table
- */
-/**
- * @typedef {object} apiIngestzGetUrlrespPayload
- */
-/**
- * apiPipezStart Request
- * @typedef {object} apiPipezStartReq
- * @property {apiPipezStartparams} params
- * @property {apiPipezStartreqPayload} payload
- */
-/**
- * apiPipezStart Response
- * @typedef {object} apiPipezStartResp
- * @property {apiPipezStartrespPayload} payload
- */
-/**
- * @typedef {object} apiPipezStartparams
- * @property {string} dataset
- */
-/**
- * @typedef {object} apiPipezStartreqPayload
- * @property {Array<object>} params
- * @property {string} pipename
- * @property {string} solution_domain
- */
-/**
- * @typedef {object} apiPipezStartrespPayload
- */
-/**
- * apiSamplefraction Request
- * @typedef {object} apiSamplefractionReq
- * @property {apiSamplefractionparams} params
- * @property {apiSamplefractionquery} query
- * @property {apiSamplefractionreqHeaders} headers
- * @property {apiSamplefractionreqPayload} payload
- */
-/**
- * apiSamplefraction Response
- * @typedef {object} apiSamplefractionResp
- * @property {apiSamplefractionrespHeaders} headers
- * @property {apiSamplefractionrespPayload} payload
- */
-/**
- * @typedef {object} apiSamplefractionparams
+ * apiSamplefraction params
+ * @typedef {object} apiSamplefractionParams
  * @property {number} denominator
  * @property {number} numerator
  */
 /**
- * @typedef {object} apiSamplefractionquery
+ * apiSamplefraction query
+ * @typedef {object} apiSamplefractionQuery
  * @property {number} precision
  */
 /**
- * @typedef {object} apiSamplefractionreqHeaders
+ * apiSamplefraction Request
+ * @typedef {object} apiSamplefractionReq
+ * @property {apiSamplefractionParams} params
+ * @property {apiSamplefractionQuery} query
+ * @property {apiSamplefractionReqHeaders} headers
+ * @property {apiSamplefractionReqPayload} payload
+ */
+/**
+ * apiSamplefraction reqHeaders
+ * @typedef {object} apiSamplefractionReqHeaders
  * @property {string} x_i6_trace_id
  */
 /**
- * @typedef {object} apiSamplefractionreqPayload
+ * apiSamplefraction reqPayload
+ * @typedef {object} apiSamplefractionReqPayload
  * @property {string} reason
  */
 /**
- * @typedef {object} apiSamplefractionrespHeaders
+ * apiSamplefraction Response
+ * @typedef {object} apiSamplefractionResp
+ * @property {apiSamplefractionRespHeaders} headers
+ * @property {apiSamplefractionRespPayload} payload
+ */
+/**
+ * apiSamplefraction respHeaders
+ * @typedef {object} apiSamplefractionRespHeaders
  * @property {string} x_i6_trace_message
  */
 /**
- * @typedef {object} apiSamplefractionrespPayload
+ * apiSamplefraction respPayload
+ * @typedef {object} apiSamplefractionRespPayload
  * @property {string} display
  * @property {string} result
  */
@@ -535,25 +494,23 @@ declare class Apis {
      */
     constructor(services: Services);
     /**
+     *
+     *
+     *
+     *
      * @param {apiSamplefractionReq} req
      * @returns {Promise<apiSamplefractionResp>}
      */
     samplefraction(req: apiSamplefractionReq): Promise<apiSamplefractionResp>;
     /**
+     * Get Ingestion Upload URLs
+     *
+     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
+     *
      * @param {apiIngestzGetUrlReq} req
      * @returns {Promise<apiIngestzGetUrlResp>}
      */
     ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<apiIngestzGetUrlResp>;
-    /**
-     * @param {apiPipezStartReq} req
-     * @returns {Promise<apiPipezStartResp>}
-     */
-    pipezStart(req: apiPipezStartReq): Promise<apiPipezStartResp>;
-    /**
-     * @param {apiDszDomainSelectReq} req
-     * @returns {Promise<apiDszDomainSelectResp>}
-     */
-    dszDomainSelect(req: apiDszDomainSelectReq): Promise<apiDszDomainSelectResp>;
 }
 export { Apis };
 /**
