@@ -36,10 +36,10 @@ declare class I6Sdk {
      */
     auth(): Auth;
     /**
-     * Returns a Pipe service instance.
-     * @returns {Pipe} An instance of the Pipe client.
+     * I6 Apis.
+     * @returns {Apis} I6 Apis.
      */
-    pipe(): Pipe;
+    apis(): Apis;
     /**
      * Registers an event listener on the internal event dispatcher.
      * @param {string} evt - The event type or name to listen for.

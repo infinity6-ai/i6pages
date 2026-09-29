@@ -30,11 +30,11 @@ class I6Sdk {
     return this._service.auth();
   }
   /**
-   * Returns a Pipe service instance.
-   * @returns {Pipe} An instance of the Pipe client.
+   * I6 Apis.
+   * @returns {Apis} I6 Apis.
    */
-  pipe() {
-    return this._service.pipe();
+  apis() {
+    return this._service.apis();
   }
   /**
    * Registers an event listener on the internal event dispatcher.
