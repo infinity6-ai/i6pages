@@ -2,11 +2,12 @@
  * @fileoverview Main entry point for the i6 Web Legacy SDK.
  */
 import { I6Error } from "./errors.js";
-export type I6SdkConfig = import("./types.js").I6SdkConfig;
-export type Ingest = import("./ingest/ingest.js").Ingest;
-export type Auth = import("./auth/auth.js").Auth;
-export type Pipe = import("./pipe/pipe.js").Pipe;
-export type Dataset = import("./dataset/dataset.js").Dataset;
+export type I6SdkConfig = {
+    /**
+     * - Base URL of the i6 server. Defaults to the sandbox environment.
+     */
+    baseUrl?: string;
+};
 /**
  * Main SDK class providing access to i6 services.
  */
@@ -39,11 +40,6 @@ declare class I6Sdk {
      * @returns {Pipe} An instance of the Pipe client.
      */
     pipe(): Pipe;
-    /**
-     * Returns a Dataset service instance.
-     * @returns {Dataset} An instance of the Dataset client.
-     */
-    dataset(): Dataset;
     /**
      * Registers an event listener on the internal event dispatcher.
      * @param {string} evt - The event type or name to listen for.

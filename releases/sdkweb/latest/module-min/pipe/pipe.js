@@ -1,1 +1,0 @@
-import"../sdkapis/sdkapis.js";import{I6Error as s}from"../errors.js";class p{constructor(r){this._services=r}async start({dataset:r,pipename:i,params:a=[],solutionDomain:o}){const t=await pipezStart(this._services,{params:{dataset:r},payload:{pipename:i,params:a,solution_domain:o}});if(!t.ok)throw s.fromResult("Start pipe failed",t);return{id:t.payload.id}}}export{p as Pipe};

@@ -1,9 +1,7 @@
 /**
- * apiDszDomainSelect Request
- * @typedef {object} apiDszDomainSelectReq
- * @property {apiDszDomainSelectparams} params
- * @property {apiDszDomainSelectreqPayload} payload
+ * @typedef {import("../services/services.js").Services} Services
  */
+export type Services = import("../services/services.js").Services;
 export type apiDszDomainSelectReq = {
     params: apiDszDomainSelectparams;
     payload: apiDszDomainSelectreqPayload;
@@ -79,6 +77,12 @@ export type apiSamplefractionrespPayload = {
     display: string;
     result: string;
 };
+/**
+ * apiDszDomainSelect Request
+ * @typedef {object} apiDszDomainSelectReq
+ * @property {apiDszDomainSelectparams} params
+ * @property {apiDszDomainSelectreqPayload} payload
+ */
 /**
  * apiDszDomainSelect Response
  * @typedef {object} apiDszDomainSelectResp
@@ -181,27 +185,36 @@ export type apiSamplefractionrespPayload = {
  * @property {string} display
  * @property {string} result
  */
-/**
- * @param {import("../services/services.js").Services} services
- * @param {apiSamplefractionReq} req
- * @returns {Promise<apiSamplefractionResp>}
- */
-export declare function apiSamplefraction(services: import("../services/services.js").Services, req: apiSamplefractionReq): Promise<apiSamplefractionResp>;
-/**
- * @param {import("../services/services.js").Services} services
- * @param {apiIngestzGetUrlReq} req
- * @returns {Promise<apiIngestzGetUrlResp>}
- */
-export declare function apiIngestzGetUrl(services: import("../services/services.js").Services, req: apiIngestzGetUrlReq): Promise<apiIngestzGetUrlResp>;
-/**
- * @param {import("../services/services.js").Services} services
- * @param {apiPipezStartReq} req
- * @returns {Promise<apiPipezStartResp>}
- */
-export declare function apiPipezStart(services: import("../services/services.js").Services, req: apiPipezStartReq): Promise<apiPipezStartResp>;
-/**
- * @param {import("../services/services.js").Services} services
- * @param {apiDszDomainSelectReq} req
- * @returns {Promise<apiDszDomainSelectResp>}
- */
-export declare function apiDszDomainSelect(services: import("../services/services.js").Services, req: apiDszDomainSelectReq): Promise<apiDszDomainSelectResp>;
+declare class Apis {
+    /**
+     * @private
+     * @type {Services}
+     */
+    _services;
+    /**
+     * Constructs an Ingest client instance.
+     * @param {Services} services - The services manager instance.
+     */
+    constructor(services: Services);
+    /**
+     * @param {apiSamplefractionReq} req
+     * @returns {Promise<apiSamplefractionResp>}
+     */
+    samplefraction(req: apiSamplefractionReq): Promise<apiSamplefractionResp>;
+    /**
+     * @param {apiIngestzGetUrlReq} req
+     * @returns {Promise<apiIngestzGetUrlResp>}
+     */
+    ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<apiIngestzGetUrlResp>;
+    /**
+     * @param {apiPipezStartReq} req
+     * @returns {Promise<apiPipezStartResp>}
+     */
+    pipezStart(req: apiPipezStartReq): Promise<apiPipezStartResp>;
+    /**
+     * @param {apiDszDomainSelectReq} req
+     * @returns {Promise<apiDszDomainSelectResp>}
+     */
+    dszDomainSelect(req: apiDszDomainSelectReq): Promise<apiDszDomainSelectResp>;
+}
+export { Apis };

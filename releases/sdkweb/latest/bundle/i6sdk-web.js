@@ -155,7 +155,7 @@
      * @throws {I6Error} If the request fails or no upload URL is returned.
      */
     async #getUrl({ dataset, table, partitions }) {
-      const resp = await ingestzGetUrl(this._services, {
+      const resp = await this._services.apis().ingestzGetUrl({
         params: { dataset },
         payload: { table, partitions, amount: 1 }
       });
@@ -222,56 +222,112 @@
     }
   };
 
-  // src/pipe/pipe.js
-  var Pipe = class {
+  // src/sdkapis/sdkapis.js
+  var Apis = class {
     /**
-     * Constructs a Pipe client instance.
+     * Constructs an Ingest client instance.
      * @param {Services} services - The services manager instance.
      */
     constructor(services) {
       this._services = services;
     }
     /**
-     * Starts a pipe (pipez-start API).
-     * @param {StartParams} params - Start parameters.
-     * @returns {Promise<StartResult>} The id of the started run.
-     * @throws {I6Error} If the request fails.
+     * @param {apiSamplefractionReq} req
+     * @returns {Promise<apiSamplefractionResp>}
      */
-    async start({ dataset, pipename, params = [], solutionDomain }) {
-      const resp = await pipezStart(this._services, {
-        params: { dataset },
-        payload: { pipename, params, solution_domain: solutionDomain }
+    async samplefraction(req) {
+      const resp = await this._services.invoker().invoke({
+        method: "POST",
+        path: `api/gox/routez/sample/fraction/${encodeURIComponent(String(req.params.numerator))}/${encodeURIComponent(String(req.params.denominator))}`,
+        query: req.query,
+        headers: req.headers,
+        json: req.payload
       });
-      if (!resp.ok) {
-        throw I6Error.fromResult("Start pipe failed", resp);
+      const result = { status: resp.status, ok: resp.ok };
+      if (resp.ok) {
+        result.payload = await resp.json();
       }
-      return { id: resp.payload.id };
-    }
-  };
-
-  // src/dataset/dataset.js
-  var Dataset = class {
-    /**
-     * Constructs a Dataset client instance.
-     * @param {Services} services - The services manager instance.
-     */
-    constructor(services) {
-      this._services = services;
+      if (!resp.ok) {
+        const text = await resp.text();
+        try {
+          result.error = JSON.parse(text);
+        } catch {
+          result.error = text;
+        }
+      }
+      return result;
     }
     /**
-     * Selects the solution domain of a dataset (dsz-domain-select API).
-     * @param {SelectDomainParams} params - Selection parameters.
-     * @returns {Promise<void>} Resolves when the domain is selected.
-     * @throws {I6Error} If the request fails.
+     * @param {apiIngestzGetUrlReq} req
+     * @returns {Promise<apiIngestzGetUrlResp>}
      */
-    async selectDomain({ dataset, domain, solution, store }) {
-      const resp = await dszDomainSelect(this._services, {
-        params: { dataset },
-        payload: { domain, solution, store }
+    async ingestzGetUrl(req) {
+      const resp = await this._services.invoker().invoke({
+        method: "POST",
+        path: `api/ingest/get-url/dataset/${encodeURIComponent(String(req.params.dataset))}`,
+        json: req.payload
       });
-      if (!resp.ok) {
-        throw I6Error.fromResult("Select domain failed", resp);
+      const result = { status: resp.status, ok: resp.ok };
+      if (resp.ok) {
+        result.payload = await resp.json();
       }
+      if (!resp.ok) {
+        const text = await resp.text();
+        try {
+          result.error = JSON.parse(text);
+        } catch {
+          result.error = text;
+        }
+      }
+      return result;
+    }
+    /**
+     * @param {apiPipezStartReq} req
+     * @returns {Promise<apiPipezStartResp>}
+     */
+    async pipezStart(req) {
+      const resp = await this._services.invoker().invoke({
+        method: "POST",
+        path: `api/pipe/start/dataset/${encodeURIComponent(String(req.params.dataset))}`,
+        json: req.payload
+      });
+      const result = { status: resp.status, ok: resp.ok };
+      if (resp.ok) {
+        result.payload = await resp.json();
+      }
+      if (!resp.ok) {
+        const text = await resp.text();
+        try {
+          result.error = JSON.parse(text);
+        } catch {
+          result.error = text;
+        }
+      }
+      return result;
+    }
+    /**
+     * @param {apiDszDomainSelectReq} req
+     * @returns {Promise<apiDszDomainSelectResp>}
+     */
+    async dszDomainSelect(req) {
+      const resp = await this._services.invoker().invoke({
+        method: "POST",
+        path: `api/ds/solution-domain-select/dataset/${encodeURIComponent(String(req.params.dataset))}`,
+        json: req.payload
+      });
+      const result = { status: resp.status, ok: resp.ok };
+      if (resp.ok) {
+        result.body = await resp.json();
+      }
+      if (!resp.ok) {
+        const text = await resp.text();
+        try {
+          result.error = JSON.parse(text);
+        } catch {
+          result.error = text;
+        }
+      }
+      return result;
     }
   };
 
@@ -335,22 +391,11 @@
       return ret;
     }
     /**
-     * Creates and returns a Pipe service instance.
-     * @returns {Pipe} An instance of the Pipe client.
+     * Returns i6 apis
+     * @returns {Apis} i6 apis.
      */
-    pipe() {
-      const ret = new Pipe(this);
-      if (ret.prepare) {
-        ret.prepare();
-      }
-      return ret;
-    }
-    /**
-     * Creates and returns a Dataset service instance.
-     * @returns {Dataset} An instance of the Dataset client.
-     */
-    dataset() {
-      const ret = new Dataset(this);
+    apis() {
+      const ret = new Apis(this);
       if (ret.prepare) {
         ret.prepare();
       }
@@ -394,13 +439,6 @@
      */
     pipe() {
       return this._service.pipe();
-    }
-    /**
-     * Returns a Dataset service instance.
-     * @returns {Dataset} An instance of the Dataset client.
-     */
-    dataset() {
-      return this._service.dataset();
     }
     /**
      * Registers an event listener on the internal event dispatcher.

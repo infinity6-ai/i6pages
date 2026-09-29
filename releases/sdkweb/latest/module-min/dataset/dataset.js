@@ -1,1 +1,0 @@
-import"../sdkapis/sdkapis.js";import{I6Error as r}from"../errors.js";class i{constructor(s){this._services=s}async selectDomain({dataset:s,domain:o,solution:t,store:a}){const e=await dszDomainSelect(this._services,{params:{dataset:s},payload:{domain:o,solution:t,store:a}});if(!e.ok)throw r.fromResult("Select domain failed",e)}}export{i as Dataset};

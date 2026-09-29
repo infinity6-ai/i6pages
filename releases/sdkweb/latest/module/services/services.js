@@ -1,8 +1,7 @@
 import { Invoker } from "../invoker/invoker.js";
 import { Auth } from "../auth/auth.js";
 import { Ingest } from "../ingest/ingest.js";
-import { Pipe } from "../pipe/pipe.js";
-import { Dataset } from "../dataset/dataset.js";
+import { Apis } from "../sdkapis/sdkapis.js";
 class Services {
   /**
    * Constructs a Services instance.
@@ -62,22 +61,11 @@ class Services {
     return ret;
   }
   /**
-   * Creates and returns a Pipe service instance.
-   * @returns {Pipe} An instance of the Pipe client.
+   * Returns i6 apis
+   * @returns {Apis} i6 apis.
    */
-  pipe() {
-    const ret = new Pipe(this);
-    if (ret.prepare) {
-      ret.prepare();
-    }
-    return ret;
-  }
-  /**
-   * Creates and returns a Dataset service instance.
-   * @returns {Dataset} An instance of the Dataset client.
-   */
-  dataset() {
-    const ret = new Dataset(this);
+  apis() {
+    const ret = new Apis(this);
     if (ret.prepare) {
       ret.prepare();
     }

@@ -4,12 +4,7 @@
 import { Invoker } from "../invoker/invoker.js";
 import { Auth } from "../auth/auth.js";
 import { Ingest } from "../ingest/ingest.js";
-import { Pipe } from "../pipe/pipe.js";
-import { Dataset } from "../dataset/dataset.js";
-export type I6SdkConfig = import("../types.js").I6SdkConfig;
-/**
- * @typedef {import("../types.js").I6SdkConfig} I6SdkConfig
- */
+import { Apis } from "../sdkapis/sdkapis.js";
 /**
  * Service container that instantiates and provides access to SDK service clients.
  */
@@ -53,14 +48,9 @@ declare class Services {
      */
     ingest(): Ingest;
     /**
-     * Creates and returns a Pipe service instance.
-     * @returns {Pipe} An instance of the Pipe client.
+     * Returns i6 apis
+     * @returns {Apis} i6 apis.
      */
-    pipe(): Pipe;
-    /**
-     * Creates and returns a Dataset service instance.
-     * @returns {Dataset} An instance of the Dataset client.
-     */
-    dataset(): Dataset;
+    apis(): Apis;
 }
 export { Services };

@@ -92,11 +92,12 @@ export { Invoker };
  * @fileoverview Main entry point for the i6 Web Legacy SDK.
  */
 import { I6Error } from "./errors.js";
-export type I6SdkConfig = import("./types.js").I6SdkConfig;
-export type Ingest = import("./ingest/ingest.js").Ingest;
-export type Auth = import("./auth/auth.js").Auth;
-export type Pipe = import("./pipe/pipe.js").Pipe;
-export type Dataset = import("./dataset/dataset.js").Dataset;
+export type I6SdkConfig = {
+    /**
+     * - Base URL of the i6 server. Defaults to the sandbox environment.
+     */
+    baseUrl?: string;
+};
 /**
  * Main SDK class providing access to i6 services.
  */
@@ -129,11 +130,6 @@ declare class I6Sdk {
      * @returns {Pipe} An instance of the Pipe client.
      */
     pipe(): Pipe;
-    /**
-     * Returns a Dataset service instance.
-     * @returns {Dataset} An instance of the Dataset client.
-     */
-    dataset(): Dataset;
     /**
      * Registers an event listener on the internal event dispatcher.
      * @param {string} evt - The event type or name to listen for.
@@ -341,11 +337,9 @@ declare class I6Error extends Error {
 }
 export { I6Error };
 /**
- * apiDszDomainSelect Request
- * @typedef {object} apiDszDomainSelectReq
- * @property {apiDszDomainSelectparams} params
- * @property {apiDszDomainSelectreqPayload} payload
+ * @typedef {import("../services/services.js").Services} Services
  */
+export type Services = import("../services/services.js").Services;
 export type apiDszDomainSelectReq = {
     params: apiDszDomainSelectparams;
     payload: apiDszDomainSelectreqPayload;
@@ -421,6 +415,12 @@ export type apiSamplefractionrespPayload = {
     display: string;
     result: string;
 };
+/**
+ * apiDszDomainSelect Request
+ * @typedef {object} apiDszDomainSelectReq
+ * @property {apiDszDomainSelectparams} params
+ * @property {apiDszDomainSelectreqPayload} payload
+ */
 /**
  * apiDszDomainSelect Response
  * @typedef {object} apiDszDomainSelectResp
@@ -523,57 +523,46 @@ export type apiSamplefractionrespPayload = {
  * @property {string} display
  * @property {string} result
  */
-/**
- * @param {import("../services/services.js").Services} services
- * @param {apiSamplefractionReq} req
- * @returns {Promise<apiSamplefractionResp>}
- */
-export declare function apiSamplefraction(services: import("../services/services.js").Services, req: apiSamplefractionReq): Promise<apiSamplefractionResp>;
-/**
- * @param {import("../services/services.js").Services} services
- * @param {apiIngestzGetUrlReq} req
- * @returns {Promise<apiIngestzGetUrlResp>}
- */
-export declare function apiIngestzGetUrl(services: import("../services/services.js").Services, req: apiIngestzGetUrlReq): Promise<apiIngestzGetUrlResp>;
-/**
- * @param {import("../services/services.js").Services} services
- * @param {apiPipezStartReq} req
- * @returns {Promise<apiPipezStartResp>}
- */
-export declare function apiPipezStart(services: import("../services/services.js").Services, req: apiPipezStartReq): Promise<apiPipezStartResp>;
-/**
- * @param {import("../services/services.js").Services} services
- * @param {apiDszDomainSelectReq} req
- * @returns {Promise<apiDszDomainSelectResp>}
- */
-export declare function apiDszDomainSelect(services: import("../services/services.js").Services, req: apiDszDomainSelectReq): Promise<apiDszDomainSelectResp>;
-/**
- * @fileoverview Generic and shared type definitions for the i6 Web Legacy SDK.
- */
-export type I6SdkConfig = {
+declare class Apis {
     /**
-     * - Base URL of the i6 server. Defaults to the sandbox environment.
+     * @private
+     * @type {Services}
      */
-    baseUrl?: string;
-};
-/**
- * Configuration options for the i6 SDK.
- * @typedef {Object} I6SdkConfig
- * @property {string} [baseUrl] - Base URL of the i6 server. Defaults to the sandbox environment.
- */
-export {};
+    _services;
+    /**
+     * Constructs an Ingest client instance.
+     * @param {Services} services - The services manager instance.
+     */
+    constructor(services: Services);
+    /**
+     * @param {apiSamplefractionReq} req
+     * @returns {Promise<apiSamplefractionResp>}
+     */
+    samplefraction(req: apiSamplefractionReq): Promise<apiSamplefractionResp>;
+    /**
+     * @param {apiIngestzGetUrlReq} req
+     * @returns {Promise<apiIngestzGetUrlResp>}
+     */
+    ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<apiIngestzGetUrlResp>;
+    /**
+     * @param {apiPipezStartReq} req
+     * @returns {Promise<apiPipezStartResp>}
+     */
+    pipezStart(req: apiPipezStartReq): Promise<apiPipezStartResp>;
+    /**
+     * @param {apiDszDomainSelectReq} req
+     * @returns {Promise<apiDszDomainSelectResp>}
+     */
+    dszDomainSelect(req: apiDszDomainSelectReq): Promise<apiDszDomainSelectResp>;
+}
+export { Apis };
 /**
  * @fileoverview Service container managing SDK service instances and configuration.
  */
 import { Invoker } from "../invoker/invoker.js";
 import { Auth } from "../auth/auth.js";
 import { Ingest } from "../ingest/ingest.js";
-import { Pipe } from "../pipe/pipe.js";
-import { Dataset } from "../dataset/dataset.js";
-export type I6SdkConfig = import("../types.js").I6SdkConfig;
-/**
- * @typedef {import("../types.js").I6SdkConfig} I6SdkConfig
- */
+import { Apis } from "../sdkapis/sdkapis.js";
 /**
  * Service container that instantiates and provides access to SDK service clients.
  */
@@ -617,15 +606,10 @@ declare class Services {
      */
     ingest(): Ingest;
     /**
-     * Creates and returns a Pipe service instance.
-     * @returns {Pipe} An instance of the Pipe client.
+     * Returns i6 apis
+     * @returns {Apis} i6 apis.
      */
-    pipe(): Pipe;
-    /**
-     * Creates and returns a Dataset service instance.
-     * @returns {Dataset} An instance of the Dataset client.
-     */
-    dataset(): Dataset;
+    apis(): Apis;
 }
 export { Services };
 /**
@@ -670,62 +654,6 @@ declare class Auth {
     requireUser(): Promise<UserProfile | null>;
 }
 export { Auth };
-/**
- * @fileoverview Dataset client for selecting the solution domain of a dataset.
- */
-export type Services = import("../services/services.js").Services;
-export type SelectDomainParams = {
-    /**
-     * - Dataset to configure.
-     */
-    dataset: string;
-    /**
-     * - Domain to select.
-     */
-    domain: any;
-    /**
-     * - Solution the domain belongs to.
-     */
-    solution: any;
-    /**
-     * - Store the selection applies to.
-     */
-    store: string;
-};
-/**
- * @typedef {import("../services/services.js").Services} Services
- */
-/**
- * Parameters for selecting a solution domain.
- * @typedef {Object} SelectDomainParams
- * @property {string} dataset - Dataset to configure.
- * @property {*} domain - Domain to select.
- * @property {*} solution - Solution the domain belongs to.
- * @property {string} store - Store the selection applies to.
- */
-/**
- * Client for dataset operations.
- */
-declare class Dataset {
-    /**
-     * @private
-     * @type {Services}
-     */
-    _services;
-    /**
-     * Constructs a Dataset client instance.
-     * @param {Services} services - The services manager instance.
-     */
-    constructor(services: Services);
-    /**
-     * Selects the solution domain of a dataset (dsz-domain-select API).
-     * @param {SelectDomainParams} params - Selection parameters.
-     * @returns {Promise<void>} Resolves when the domain is selected.
-     * @throws {I6Error} If the request fails.
-     */
-    selectDomain({ dataset, domain, solution, store }: SelectDomainParams): Promise<void>;
-}
-export { Dataset };
 export type FileRef = {
     /**
      * - [write it: bla, ble].
@@ -821,73 +749,3 @@ declare class Downloader {
 }
 declare const downloader: Downloader;
 export { downloader };
-/**
- * @fileoverview Pipe client for starting pipelines.
- */
-export type Services = import("../services/services.js").Services;
-export type StartParams = {
-    /**
-     * - Dataset the pipe runs on.
-     */
-    dataset: string;
-    /**
-     * - Name of the pipe to start.
-     */
-    pipename: string;
-    /**
-     * - Pipe parameters.
-     */
-    params?: {
-        name: string;
-        value: string;
-    }[];
-    /**
-     * - Solution/domain the pipe runs in.
-     */
-    solutionDomain: any;
-};
-export type StartResult = {
-    /**
-     * - Id of the started pipe run.
-     */
-    id: string;
-};
-/**
- * @typedef {import("../services/services.js").Services} Services
- */
-/**
- * Parameters for starting a pipe.
- * @typedef {Object} StartParams
- * @property {string} dataset - Dataset the pipe runs on.
- * @property {string} pipename - Name of the pipe to start.
- * @property {{name: string, value: string}[]} [params] - Pipe parameters.
- * @property {*} solutionDomain - Solution/domain the pipe runs in.
- */
-/**
- * Result of a successful start.
- * @typedef {Object} StartResult
- * @property {string} id - Id of the started pipe run.
- */
-/**
- * Client for starting pipes.
- */
-declare class Pipe {
-    /**
-     * @private
-     * @type {Services}
-     */
-    _services;
-    /**
-     * Constructs a Pipe client instance.
-     * @param {Services} services - The services manager instance.
-     */
-    constructor(services: Services);
-    /**
-     * Starts a pipe (pipez-start API).
-     * @param {StartParams} params - Start parameters.
-     * @returns {Promise<StartResult>} The id of the started run.
-     * @throws {I6Error} If the request fails.
-     */
-    start({ dataset, pipename, params, solutionDomain }: StartParams): Promise<StartResult>;
-}
-export { Pipe };

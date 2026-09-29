@@ -1,4 +1,3 @@
-import { apiIngestzGetUrl } from "../sdkapis/sdkapis.js";
 import { I6Error } from "../errors.js";
 class Ingest {
   /**
@@ -33,7 +32,7 @@ class Ingest {
    * @throws {I6Error} If the request fails or no upload URL is returned.
    */
   async #getUrl({ dataset, table, partitions }) {
-    const resp = await ingestzGetUrl(this._services, {
+    const resp = await this._services.apis().ingestzGetUrl({
       params: { dataset },
       payload: { table, partitions, amount: 1 }
     });
