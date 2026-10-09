@@ -72,22 +72,11 @@ declare class Infer {
     run(opts: InferOptions): Promise<any>;
     /**
      * Finds where the model files are: the signed URLs of the model API, unless opts has both URLs (tests).
-     * Also used by the demo page, which runs the steps one by one.
+     * @private
      * @param {InferOptions} opts - Inference options.
      * @returns {Promise<{sqlite: string, tflite: string}>} Download URLs of the files.
      * @throws {I6Error} With code "asset" if the API gave no URL for a file.
      */
-    assetUrls(opts: InferOptions): Promise<{
-        sqlite: string;
-        tflite: string;
-    }>;
+    private _assetUrls;
 }
-/**
- * The values bound to the output query (also used by the demo page): `?1` the model outputs as `{name: {values: [...]}}` (plain arrays, which JSON
- * can hold), `?2` the limit.
- * @param {Record<string, ArrayLike<number>>} outputs - Model outputs (typed arrays).
- * @param {InferOptions} opts - Inference options.
- * @returns {Array<*>} The params of `namedJsonQuery`.
- */
-declare function outputQueryParams(outputs: Record<string, ArrayLike<number>>, opts: InferOptions): Array<any>;
-export { Infer, outputQueryParams };
+export { Infer };

@@ -30,6 +30,13 @@ class I6Sdk {
     return this._service.infer();
   }
   /**
+   * Returns a Dash service instance, which queries an i6 dash in the browser and returns the result.
+   * @returns {Dash} An instance of the Dash client.
+   */
+  dash() {
+    return this._service.dash();
+  }
+  /**
    * Returns an Auth service instance.
    * @returns {Auth} An instance of the Auth client.
    */

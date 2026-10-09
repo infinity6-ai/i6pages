@@ -36,6 +36,11 @@ declare class I6Sdk {
      */
     infer(): Infer;
     /**
+     * Returns a Dash service instance, which queries an i6 dash in the browser and returns the result.
+     * @returns {Dash} An instance of the Dash client.
+     */
+    dash(): Dash;
+    /**
      * Returns an Auth service instance.
      * @returns {Auth} An instance of the Auth client.
      */

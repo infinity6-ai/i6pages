@@ -1544,6 +1544,11 @@ declare class I6Sdk {
      */
     infer(): Infer;
     /**
+     * Returns a Dash service instance, which queries an i6 dash in the browser and returns the result.
+     * @returns {Dash} An instance of the Dash client.
+     */
+    dash(): Dash;
+    /**
      * Returns an Auth service instance.
      * @returns {Auth} An instance of the Auth client.
      */
@@ -2339,7 +2344,6 @@ export type sdkFuncProductRelevanceFashionDashFunnelResp = {
 };
 export type sdkFuncProductRelevanceFashionFbtInput = {
     dataset: string;
-    model_name: string;
     skus: Array<sdkFuncProductRelevanceFashionFbtInputSkusElement>;
 };
 export type sdkFuncProductRelevanceFashionFbtInputSkusElement = {
@@ -3002,7 +3006,6 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  * sdkFuncProductRelevanceFashionFbt input
  * @typedef {object} sdkFuncProductRelevanceFashionFbtInput
  * @property {string} dataset
- * @property {string} model_name
  * @property {Array<sdkFuncProductRelevanceFashionFbtInputSkusElement>} skus
  */
 /**
@@ -3048,15 +3051,6 @@ declare class Apis {
      */
     constructor(services: Services);
     /**
-     * List Dataset Tables
-     *
-     * Lists files and tables in the specified dataset.
-     *
-     * @param {apiDszTableListReq} req
-     * @returns {Promise<apiDszTableListResp>}
-     */
-    dszTableList(req: apiDszTableListReq): Promise<apiDszTableListResp>;
-    /**
      *
      *
      *
@@ -3070,91 +3064,10 @@ declare class Apis {
      *
      *
      *
-     * @param {apiDszListIngestionTokensReq} req
-     * @returns {Promise<apiDszListIngestionTokensResp>}
+     * @param {apiDszListDatasetsReq} req
+     * @returns {Promise<apiDszListDatasetsResp>}
      */
-    dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<apiDszListIngestionTokensResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateIngestionTokenReq} req
-     * @returns {Promise<apiDszCreateIngestionTokenResp>}
-     */
-    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq): Promise<apiDszCreateIngestionTokenResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListRecsysTokensReq} req
-     * @returns {Promise<apiDszListRecsysTokensResp>}
-     */
-    dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<apiDszListRecsysTokensResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDeleteTokenReq} req
-     * @returns {Promise<apiDszDeleteTokenResp>}
-     */
-    dszDeleteToken(req: apiDszDeleteTokenReq): Promise<apiDszDeleteTokenResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDomainSelectReq} req
-     * @returns {Promise<apiDszDomainSelectResp>}
-     */
-    dszDomainSelect(req: apiDszDomainSelectReq): Promise<apiDszDomainSelectResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListStoresReq} req
-     * @returns {Promise<apiDszListStoresResp>}
-     */
-    dszListStores(req: apiDszListStoresReq): Promise<apiDszListStoresResp>;
-    /**
-     * Get Model Signed URLs
-     *
-     * Generates presigned URLs for accessing model files in the specified dataset.
-     *
-     * @param {apiDszModelGetReq} req
-     * @returns {Promise<apiDszModelGetResp>}
-     */
-    dszModelGet(req: apiDszModelGetReq): Promise<apiDszModelGetResp>;
-    /**
-     * Get Dataset Table File
-     *
-     * Get table file by redirecting to its signed URL.
-     *
-     * @param {apiDszTableGetReq} req
-     * @returns {Promise<apiDszTableGetResp>}
-     */
-    dszTableGet(req: apiDszTableGetReq): Promise<apiDszTableGetResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiPipezStartReq} req
-     * @returns {Promise<apiPipezStartResp>}
-     */
-    pipezStart(req: apiPipezStartReq): Promise<apiPipezStartResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateRecsysTokenReq} req
-     * @returns {Promise<apiDszCreateRecsysTokenResp>}
-     */
-    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<apiDszCreateRecsysTokenResp>;
+    dszListDatasets(req: apiDszListDatasetsReq): Promise<apiDszListDatasetsResp>;
     /**
      * Get Ingestion Upload URLs
      *
@@ -3169,10 +3082,82 @@ declare class Apis {
      *
      * Ingests stream data into a target dataset table.
      *
+     * @param {apiIngestzStreamRelevanceFashionEventReq} req
+     * @returns {Promise<apiIngestzStreamRelevanceFashionEventResp>}
+     */
+    ingestzStreamRelevanceFashionEvent(req: apiIngestzStreamRelevanceFashionEventReq): Promise<apiIngestzStreamRelevanceFashionEventResp>;
+    /**
+     * List Dataset Tables
+     *
+     * Lists files and tables in the specified dataset.
+     *
+     * @param {apiDszTableListReq} req
+     * @returns {Promise<apiDszTableListResp>}
+     */
+    dszTableList(req: apiDszTableListReq): Promise<apiDszTableListResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezStartReq} req
+     * @returns {Promise<apiPipezStartResp>}
+     */
+    pipezStart(req: apiPipezStartReq): Promise<apiPipezStartResp>;
+    /**
+     * Stream Ingestion
+     *
+     * Ingests stream data into a target dataset table.
+     *
      * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
      * @returns {Promise<apiIngestzStreamRelevanceFashionCatalogResp>}
      */
     ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<apiIngestzStreamRelevanceFashionCatalogResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszDomainSelectReq} req
+     * @returns {Promise<apiDszDomainSelectResp>}
+     */
+    dszDomainSelect(req: apiDszDomainSelectReq): Promise<apiDszDomainSelectResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateIngestionTokenReq} req
+     * @returns {Promise<apiDszCreateIngestionTokenResp>}
+     */
+    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq): Promise<apiDszCreateIngestionTokenResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListStoresReq} req
+     * @returns {Promise<apiDszListStoresResp>}
+     */
+    dszListStores(req: apiDszListStoresReq): Promise<apiDszListStoresResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListIngestionTokensReq} req
+     * @returns {Promise<apiDszListIngestionTokensResp>}
+     */
+    dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<apiDszListIngestionTokensResp>;
+    /**
+     * Sample Fraction
+     *
+     * Sample API that performs a fraction operation
+     *
+     * @param {apiSampleFractionReq} req
+     * @returns {Promise<apiSampleFractionResp>}
+     */
+    sampleFraction(req: apiSampleFractionReq): Promise<apiSampleFractionResp>;
     /**
      * Get Dataset Signed URLs
      *
@@ -3182,6 +3167,15 @@ declare class Apis {
      * @returns {Promise<apiDszSignedUrlResp>}
      */
     dszSignedUrl(req: apiDszSignedUrlReq): Promise<apiDszSignedUrlResp>;
+    /**
+     * Get Dataset Table File
+     *
+     * Get table file by redirecting to its signed URL.
+     *
+     * @param {apiDszTableGetReq} req
+     * @returns {Promise<apiDszTableGetResp>}
+     */
+    dszTableGet(req: apiDszTableGetReq): Promise<apiDszTableGetResp>;
     /**
      *
      *
@@ -3196,28 +3190,37 @@ declare class Apis {
      *
      *
      *
-     * @param {apiDszListDatasetsReq} req
-     * @returns {Promise<apiDszListDatasetsResp>}
+     * @param {apiDszListRecsysTokensReq} req
+     * @returns {Promise<apiDszListRecsysTokensResp>}
      */
-    dszListDatasets(req: apiDszListDatasetsReq): Promise<apiDszListDatasetsResp>;
+    dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<apiDszListRecsysTokensResp>;
     /**
-     * Sample Fraction
      *
-     * Sample API that performs a fraction operation
      *
-     * @param {apiSampleFractionReq} req
-     * @returns {Promise<apiSampleFractionResp>}
+     *
+     *
+     * @param {apiDszCreateRecsysTokenReq} req
+     * @returns {Promise<apiDszCreateRecsysTokenResp>}
      */
-    sampleFraction(req: apiSampleFractionReq): Promise<apiSampleFractionResp>;
+    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<apiDszCreateRecsysTokenResp>;
     /**
-     * Stream Ingestion
      *
-     * Ingests stream data into a target dataset table.
      *
-     * @param {apiIngestzStreamRelevanceFashionEventReq} req
-     * @returns {Promise<apiIngestzStreamRelevanceFashionEventResp>}
+     *
+     *
+     * @param {apiDszDeleteTokenReq} req
+     * @returns {Promise<apiDszDeleteTokenResp>}
      */
-    ingestzStreamRelevanceFashionEvent(req: apiIngestzStreamRelevanceFashionEventReq): Promise<apiIngestzStreamRelevanceFashionEventResp>;
+    dszDeleteToken(req: apiDszDeleteTokenReq): Promise<apiDszDeleteTokenResp>;
+    /**
+     * Get Model Signed URLs
+     *
+     * Generates presigned URLs for accessing model files in the specified dataset.
+     *
+     * @param {apiDszModelGetReq} req
+     * @returns {Promise<apiDszModelGetResp>}
+     */
+    dszModelGet(req: apiDszModelGetReq): Promise<apiDszModelGetResp>;
 }
 export { Apis };
 declare class SdkFuncs {
@@ -3251,6 +3254,7 @@ import { Auth } from "../auth/auth.js";
 import { Ingest } from "../ingest/ingest.js";
 import { Apis, SdkFuncs } from "../sdkapis/sdkapis.js";
 import { Infer } from "../infer/infer.js";
+import { Dash } from "../dash/dash.js";
 export type I6SdkConfig = import("../index.js").I6SdkConfig;
 /**
  * @typedef {import("../index.js").I6SdkConfig} I6SdkConfig
@@ -3303,6 +3307,11 @@ declare class Services {
      * @returns {Infer} An instance of the Infer client.
      */
     infer(): Infer;
+    /**
+     * Creates and returns a Dash service instance.
+     * @returns {Dash} An instance of the Dash client.
+     */
+    dash(): Dash;
     /**
      * Creates and returns an Apis service instance.
      * @returns {Apis} An instance of the generated Apis client.
@@ -3372,6 +3381,67 @@ declare class Auth {
     requireUser(): Promise<UserProfile | null>;
 }
 export { Auth };
+/**
+ * @fileoverview Queries an i6 dash in the browser: downloads the dash's sqlite, runs the named query
+ * `dash-${dashName}` on it and returns its result as is. Nothing here is dash specific.
+ *
+ * Set `window.I6_DEBUG = true` to see what happens in the console.
+ */
+export type Services = import("../services/services.js").Services;
+export type DashOptions = {
+    /**
+     * - Dash name (e.g. "product-relevance-fashion-dash-funnel"); names the cached sqlite and the named query.
+     */
+    dashName: string;
+    /**
+     * - Partitions of the dash, name -> value (e.g. `{ store_id: "s1", version: "v1" }`).
+     */
+    partitions: Record<string, string>;
+    /**
+     * - Dataset that holds the dash file.
+     */
+    dataset: string;
+    /**
+     * - Query input, any JSON. Bound as `?1` of the named query.
+     */
+    params: any;
+    /**
+     * - Tests only: URL of the sqlite (must answer HEAD with an etag). Default: the model API.
+     */
+    sqliteUrl?: string;
+};
+/**
+ * Dash client.
+ */
+declare class Dash {
+    /**
+     * @private
+     * @type {Services}
+     */
+    _services;
+    /**
+     * Constructs a Dash client instance.
+     * @param {Services} services - The services manager instance.
+     */
+    constructor(services: Services);
+    /**
+     * Downloads the dash sqlite (cached by etag), runs the named query `dash-${dashName}` with `params` and returns its result.
+     * @param {DashOptions} opts - Dash options.
+     * @returns {Promise<*>} The `ret` of the named query.
+     * @throws {I6Error} With code "invalid_argument" if opts is malformed, "asset" if the download fails,
+     *   "query" if the sqlite fails.
+     */
+    query(opts: DashOptions): Promise<any>;
+    /**
+     * Finds where the dash sqlite is: the signed URL of the model API (like Infer), unless opts has `sqliteUrl` (tests).
+     * @private
+     * @param {DashOptions} opts - Dash options.
+     * @returns {Promise<string>} Download URL of the sqlite.
+     * @throws {I6Error} With code "asset" if the API gave no URL.
+     */
+    private _sqliteUrl;
+}
+export { Dash };
 /**
  * @fileoverview The LiteRT side of infer: loads the tflite model and runs it. Everything that touches the
  * LiteRT library (runtime, model, tensors) is in this file. The caller only gives data and gets values back.
@@ -3505,25 +3575,14 @@ declare class Infer {
     run(opts: InferOptions): Promise<any>;
     /**
      * Finds where the model files are: the signed URLs of the model API, unless opts has both URLs (tests).
-     * Also used by the demo page, which runs the steps one by one.
+     * @private
      * @param {InferOptions} opts - Inference options.
      * @returns {Promise<{sqlite: string, tflite: string}>} Download URLs of the files.
      * @throws {I6Error} With code "asset" if the API gave no URL for a file.
      */
-    assetUrls(opts: InferOptions): Promise<{
-        sqlite: string;
-        tflite: string;
-    }>;
+    private _assetUrls;
 }
-/**
- * The values bound to the output query (also used by the demo page): `?1` the model outputs as `{name: {values: [...]}}` (plain arrays, which JSON
- * can hold), `?2` the limit.
- * @param {Record<string, ArrayLike<number>>} outputs - Model outputs (typed arrays).
- * @param {InferOptions} opts - Inference options.
- * @returns {Array<*>} The params of `namedJsonQuery`.
- */
-declare function outputQueryParams(outputs: Record<string, ArrayLike<number>>, opts: InferOptions): Array<any>;
-export { Infer, outputQueryParams };
+export { Infer };
 declare const result: any;
 /**
  * @fileoverview Versioned file store on the browser's origin private file system (OPFS).
@@ -3645,6 +3704,32 @@ declare class FS {
 /** Shared FS instance. */
 declare const fs: FS;
 export { fs };
+/**
+ * @fileoverview Helpers shared by the services that run on files downloaded from i6 (infer, dash).
+ */
+export type FileRef = import("../fs/fs.js").FileRef;
+/**
+ * @typedef {import("../fs/fs.js").FileRef} FileRef
+ */
+/**
+ * @param {Object<string, string>} partitions - Partitions, name -> value.
+ * @returns {string} A stable key of the partitions, safe as part of a cache file name (e.g. "store_id%3Ds1-version%3Dv1").
+ */
+declare function partitionsKey(partitions: Record<string, string>): string;
+/**
+ * @param {*} partitions - Value to check.
+ * @returns {boolean} True if it is an object (not an array) whose values are all strings.
+ */
+declare function isPartitions(partitions: any): boolean;
+/**
+ * Brings one remote file to the browser cache, downloading it only if its etag changed.
+ * @param {string} name - Name of the cached file.
+ * @param {string} url - URL of the file.
+ * @returns {Promise<FileRef>} The cached file.
+ * @throws {I6Error} With code "asset" if the download fails.
+ */
+declare function downloadFile(name: string, url: string): Promise<FileRef>;
+export { partitionsKey, isPartitions, downloadFile };
 /**
  * @fileoverview Sqlite client for the SDK, running sqlite (sql.js, wasm) in the browser.
  *

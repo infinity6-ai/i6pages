@@ -6,6 +6,7 @@ import { Auth } from "../auth/auth.js";
 import { Ingest } from "../ingest/ingest.js";
 import { Apis, SdkFuncs } from "../sdkapis/sdkapis.js";
 import { Infer } from "../infer/infer.js";
+import { Dash } from "../dash/dash.js";
 export type I6SdkConfig = import("../index.js").I6SdkConfig;
 /**
  * @typedef {import("../index.js").I6SdkConfig} I6SdkConfig
@@ -58,6 +59,11 @@ declare class Services {
      * @returns {Infer} An instance of the Infer client.
      */
     infer(): Infer;
+    /**
+     * Creates and returns a Dash service instance.
+     * @returns {Dash} An instance of the Dash client.
+     */
+    dash(): Dash;
     /**
      * Creates and returns an Apis service instance.
      * @returns {Apis} An instance of the generated Apis client.
