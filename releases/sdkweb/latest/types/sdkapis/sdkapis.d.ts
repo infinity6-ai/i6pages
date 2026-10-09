@@ -1282,14 +1282,50 @@ declare class Apis {
      */
     constructor(services: Services);
     /**
-     * Get Ingestion Upload URLs
+     * List Dataset Tables
      *
-     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
+     * Lists files and tables in the specified dataset.
      *
-     * @param {apiIngestzGetUrlReq} req
-     * @returns {Promise<apiIngestzGetUrlResp>}
+     * @param {apiDszTableListReq} req
+     * @returns {Promise<apiDszTableListResp>}
      */
-    ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<apiIngestzGetUrlResp>;
+    dszTableList(req: apiDszTableListReq): Promise<apiDszTableListResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszDomainGetReq} req
+     * @returns {Promise<apiDszDomainGetResp>}
+     */
+    dszDomainGet(req: apiDszDomainGetReq): Promise<apiDszDomainGetResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateRecsysTokenReq} req
+     * @returns {Promise<apiDszCreateRecsysTokenResp>}
+     */
+    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<apiDszCreateRecsysTokenResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszDeleteTokenReq} req
+     * @returns {Promise<apiDszDeleteTokenResp>}
+     */
+    dszDeleteToken(req: apiDszDeleteTokenReq): Promise<apiDszDeleteTokenResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListIngestionTokensReq} req
+     * @returns {Promise<apiDszListIngestionTokensResp>}
+     */
+    dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<apiDszListIngestionTokensResp>;
     /**
      * Stream Ingestion
      *
@@ -1299,6 +1335,15 @@ declare class Apis {
      * @returns {Promise<apiIngestzStreamRelevanceFashionEventResp>}
      */
     ingestzStreamRelevanceFashionEvent(req: apiIngestzStreamRelevanceFashionEventReq): Promise<apiIngestzStreamRelevanceFashionEventResp>;
+    /**
+     * Get Dataset Signed URLs
+     *
+     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     *
+     * @param {apiDszSignedUrlReq} req
+     * @returns {Promise<apiDszSignedUrlResp>}
+     */
+    dszSignedUrl(req: apiDszSignedUrlReq): Promise<apiDszSignedUrlResp>;
     /**
      *
      *
@@ -1318,59 +1363,23 @@ declare class Apis {
      */
     dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq): Promise<apiDszCreateIngestionTokenResp>;
     /**
+     * Get Model Signed URLs
      *
+     * Generates presigned URLs for accessing model files in the specified dataset.
      *
-     *
-     *
-     * @param {apiDszListRecsysTokensReq} req
-     * @returns {Promise<apiDszListRecsysTokensResp>}
+     * @param {apiDszModelGetReq} req
+     * @returns {Promise<apiDszModelGetResp>}
      */
-    dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<apiDszListRecsysTokensResp>;
+    dszModelGet(req: apiDszModelGetReq): Promise<apiDszModelGetResp>;
     /**
-     * Sample Fraction
+     * Get Ingestion Upload URLs
      *
-     * Sample API that performs a fraction operation
+     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
      *
-     * @param {apiSampleFractionReq} req
-     * @returns {Promise<apiSampleFractionResp>}
+     * @param {apiIngestzGetUrlReq} req
+     * @returns {Promise<apiIngestzGetUrlResp>}
      */
-    sampleFraction(req: apiSampleFractionReq): Promise<apiSampleFractionResp>;
-    /**
-     * Get Dataset Signed URLs
-     *
-     * Generates presigned URLs for accessing or mutating files in the specified dataset.
-     *
-     * @param {apiDszSignedUrlReq} req
-     * @returns {Promise<apiDszSignedUrlResp>}
-     */
-    dszSignedUrl(req: apiDszSignedUrlReq): Promise<apiDszSignedUrlResp>;
-    /**
-     * List Dataset Tables
-     *
-     * Lists files and tables in the specified dataset.
-     *
-     * @param {apiDszTableListReq} req
-     * @returns {Promise<apiDszTableListResp>}
-     */
-    dszTableList(req: apiDszTableListReq): Promise<apiDszTableListResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateStoreReq} req
-     * @returns {Promise<apiDszCreateStoreResp>}
-     */
-    dszCreateStore(req: apiDszCreateStoreReq): Promise<apiDszCreateStoreResp>;
-    /**
-     * Stream Ingestion
-     *
-     * Ingests stream data into a target dataset table.
-     *
-     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
-     * @returns {Promise<apiIngestzStreamRelevanceFashionCatalogResp>}
-     */
-    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<apiIngestzStreamRelevanceFashionCatalogResp>;
+    ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<apiIngestzGetUrlResp>;
     /**
      * Get Dataset Table File
      *
@@ -1385,28 +1394,28 @@ declare class Apis {
      *
      *
      *
-     * @param {apiDszDomainGetReq} req
-     * @returns {Promise<apiDszDomainGetResp>}
+     * @param {apiDszCreateStoreReq} req
+     * @returns {Promise<apiDszCreateStoreResp>}
      */
-    dszDomainGet(req: apiDszDomainGetReq): Promise<apiDszDomainGetResp>;
+    dszCreateStore(req: apiDszCreateStoreReq): Promise<apiDszCreateStoreResp>;
     /**
+     * Sample Fraction
      *
+     * Sample API that performs a fraction operation
      *
-     *
-     *
-     * @param {apiDszListStoresReq} req
-     * @returns {Promise<apiDszListStoresResp>}
+     * @param {apiSampleFractionReq} req
+     * @returns {Promise<apiSampleFractionResp>}
      */
-    dszListStores(req: apiDszListStoresReq): Promise<apiDszListStoresResp>;
+    sampleFraction(req: apiSampleFractionReq): Promise<apiSampleFractionResp>;
     /**
+     * Stream Ingestion
      *
+     * Ingests stream data into a target dataset table.
      *
-     *
-     *
-     * @param {apiDszListIngestionTokensReq} req
-     * @returns {Promise<apiDszListIngestionTokensResp>}
+     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
+     * @returns {Promise<apiIngestzStreamRelevanceFashionCatalogResp>}
      */
-    dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<apiDszListIngestionTokensResp>;
+    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<apiIngestzStreamRelevanceFashionCatalogResp>;
     /**
      *
      *
@@ -1430,28 +1439,19 @@ declare class Apis {
      *
      *
      *
-     * @param {apiDszCreateRecsysTokenReq} req
-     * @returns {Promise<apiDszCreateRecsysTokenResp>}
+     * @param {apiDszListStoresReq} req
+     * @returns {Promise<apiDszListStoresResp>}
      */
-    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<apiDszCreateRecsysTokenResp>;
+    dszListStores(req: apiDszListStoresReq): Promise<apiDszListStoresResp>;
     /**
      *
      *
      *
      *
-     * @param {apiDszDeleteTokenReq} req
-     * @returns {Promise<apiDszDeleteTokenResp>}
+     * @param {apiDszListRecsysTokensReq} req
+     * @returns {Promise<apiDszListRecsysTokensResp>}
      */
-    dszDeleteToken(req: apiDszDeleteTokenReq): Promise<apiDszDeleteTokenResp>;
-    /**
-     * Get Model Signed URLs
-     *
-     * Generates presigned URLs for accessing model files in the specified dataset.
-     *
-     * @param {apiDszModelGetReq} req
-     * @returns {Promise<apiDszModelGetResp>}
-     */
-    dszModelGet(req: apiDszModelGetReq): Promise<apiDszModelGetResp>;
+    dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<apiDszListRecsysTokensResp>;
 }
 export { Apis };
 declare class SdkFuncs {
@@ -1467,13 +1467,13 @@ declare class SdkFuncs {
     constructor(services: Services);
     /**
      * @param {sdkFuncProductRelevanceFashionFbtReq} req
-     * @returns {Promise<sdkFuncProductRelevanceFashionFbtResp>}
+     * @returns {Promise<sdkFuncProductRelevanceFashionFbtOutput>}
      */
-    productRelevanceFashionFbtV1(req: sdkFuncProductRelevanceFashionFbtReq): Promise<sdkFuncProductRelevanceFashionFbtResp>;
+    productRelevanceFashionFbtV1(req: sdkFuncProductRelevanceFashionFbtReq): Promise<sdkFuncProductRelevanceFashionFbtOutput>;
     /**
      * @param {sdkFuncProductRelevanceFashionDashFunnelReq} req
-     * @returns {Promise<sdkFuncProductRelevanceFashionDashFunnelResp>}
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>}
      */
-    productRelevanceFashionDashFunnelV1(req: sdkFuncProductRelevanceFashionDashFunnelReq): Promise<sdkFuncProductRelevanceFashionDashFunnelResp>;
+    productRelevanceFashionDashFunnelV1(req: sdkFuncProductRelevanceFashionDashFunnelReq): Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>;
 }
 export { SdkFuncs };
