@@ -4,9 +4,15 @@
 import { Invoker } from "../invoker/invoker.js";
 import { Auth } from "../auth/auth.js";
 import { Ingest } from "../ingest/ingest.js";
-import { Apis } from "../sdkapis/sdkapis.js";
+import { Apis, SdkFuncs } from "../sdkapis/sdkapis.js";
+import { Infer } from "../infer/infer.js";
+export type I6SdkConfig = import("../index.js").I6SdkConfig;
+/**
+ * @typedef {import("../index.js").I6SdkConfig} I6SdkConfig
+ */
 /**
  * Service container that instantiates and provides access to SDK service clients.
+ * Every accessor returns a new client sharing this container's config and dispatcher.
  */
 declare class Services {
     _dispatcher: EventTarget;
@@ -48,9 +54,19 @@ declare class Services {
      */
     ingest(): Ingest;
     /**
-     * Returns i6 apis
-     * @returns {Apis} i6 apis.
+     * Creates and returns an Infer service instance.
+     * @returns {Infer} An instance of the Infer client.
+     */
+    infer(): Infer;
+    /**
+     * Creates and returns an Apis service instance.
+     * @returns {Apis} An instance of the generated Apis client.
      */
     apis(): Apis;
+    /**
+    * Creates and returns a Funcs service instance.
+    * @returns {SdkFuncs} An instance of the generated SdkFuncs client.
+    */
+    funcs(): SdkFuncs;
 }
 export { Services };

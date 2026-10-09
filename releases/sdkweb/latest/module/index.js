@@ -23,6 +23,13 @@ class I6Sdk {
     return this._service.ingest();
   }
   /**
+   * Returns an Infer service instance, which runs an i6 model in the browser and returns the result.
+   * @returns {Infer} An instance of the Infer client.
+   */
+  infer() {
+    return this._service.infer();
+  }
+  /**
    * Returns an Auth service instance.
    * @returns {Auth} An instance of the Auth client.
    */
@@ -30,14 +37,22 @@ class I6Sdk {
     return this._service.auth();
   }
   /**
-   * I6 Apis.
-   * @returns {Apis} I6 Apis.
+   * Returns the Apis service instance, one typed method per i6 server API.
+   * Each call resolves with `{status, ok, payload?, error?}` and does not throw on an HTTP error.
+   * @returns {Apis} An instance of the generated Apis client.
    */
   apis() {
     return this._service.apis();
   }
   /**
-   * Registers an event listener on the internal event dispatcher.
+   * Returns the Funcs service instance.
+   * @returns {SdkFuncs} An instance of the generated Apis client.
+   */
+  funcs() {
+    return this._service.funcs();
+  }
+  /**
+   * Registers an event listener on the SDK's internal event dispatcher (an EventTarget).
    * @param {string} evt - The event type or name to listen for.
    * @param {EventListenerOrEventListenerObject|Function} fn - The callback function or event listener object invoked when the event occurs.
    * @returns {void}

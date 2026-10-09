@@ -1,11 +1,15 @@
 import { fs } from "../fs/fs.js";
 class Downloader {
   /**
-   * Download the file by name if necessary (checking etag)
+   * Downloads the file by name if necessary (checking etag): sends a HEAD request, and
+   * if the etag differs from the released version, streams the body into a new version
+   * and releases it.
    * @param {Object} opts
-   * @param {string} opts.name - required
-   * @param {string} opts.url - required
-   * @returns {Promise<FileRef>} the FileRef of the downloaded file (basically to get the version)
+   * @param {string} opts.name - required, name to store the file under (see fs.js)
+   * @param {string} opts.url - required, URL of the file; must answer HEAD with an etag
+   * @returns {Promise<FileRef>} the FileRef of the up-to-date file (basically to get the version)
+   * @throws {TypeError} If name or url is missing.
+   * @throws {Error} If the HEAD or GET request fails, or the HEAD response has no etag.
   */
   async update(opts) {
     if (!opts || !opts.name) throw new TypeError("downloader: opts.name is required");
@@ -17,13 +21,22 @@ class Downloader {
     const current = await fs.get({ name: opts.name });
     if (current && current.etag === etag) return current;
     const ref = await fs.create({ name: opts.name, etag, data: "" });
-    const response = await fetch(opts.url);
-    if (!response.ok) throw new Error(`downloader: GET ${opts.url} failed (${response.status})`);
-    let dir = await navigator.storage.getDirectory();
-    for (const segment of (await fs.resolve(ref)).split("/")) {
-      dir = segment === "blob.bin" ? await dir.getFileHandle(segment, { create: true }) : await dir.getDirectoryHandle(segment);
+    let success = false;
+    try {
+      const response = await fetch(opts.url);
+      if (!response.ok) throw new Error(`downloader: GET ${opts.url} failed (${response.status})`);
+      let dir = await navigator.storage.getDirectory();
+      for (const segment of (await fs.resolve(ref)).split("/")) {
+        dir = segment === "blob.bin" ? await dir.getFileHandle(segment, { create: true }) : await dir.getDirectoryHandle(segment);
+      }
+      await response.body.pipeTo(await dir.createWritable());
+      success = true;
+    } finally {
+      if (!success) {
+        await fs.discard(ref).catch(() => {
+        });
+      }
     }
-    await response.body.pipeTo(await dir.createWritable());
     return fs.release(ref);
   }
 }

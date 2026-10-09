@@ -1,9 +1,9 @@
 /**
  * @fileoverview Error types thrown by the i6 Web Legacy SDK.
  */
-export type I6ErrorCode = "http" | "network" | "invalid_argument" | "no_upload_url";
+export type I6ErrorCode = "http" | "network" | "invalid_argument" | "no_upload_url" | "asset" | "model" | "query";
 /**
- * @typedef {"http"|"network"|"invalid_argument"|"no_upload_url"} I6ErrorCode
+ * @typedef {"http"|"network"|"invalid_argument"|"no_upload_url"|"asset"|"model"|"query"} I6ErrorCode
  */
 /**
  * Error thrown by the SDK when a call fails.

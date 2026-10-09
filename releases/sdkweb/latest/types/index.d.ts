@@ -31,17 +31,28 @@ declare class I6Sdk {
      */
     ingest(): Ingest;
     /**
+     * Returns an Infer service instance, which runs an i6 model in the browser and returns the result.
+     * @returns {Infer} An instance of the Infer client.
+     */
+    infer(): Infer;
+    /**
      * Returns an Auth service instance.
      * @returns {Auth} An instance of the Auth client.
      */
     auth(): Auth;
     /**
-     * I6 Apis.
-     * @returns {Apis} I6 Apis.
+     * Returns the Apis service instance, one typed method per i6 server API.
+     * Each call resolves with `{status, ok, payload?, error?}` and does not throw on an HTTP error.
+     * @returns {Apis} An instance of the generated Apis client.
      */
     apis(): Apis;
     /**
-     * Registers an event listener on the internal event dispatcher.
+     * Returns the Funcs service instance.
+     * @returns {SdkFuncs} An instance of the generated Apis client.
+     */
+    funcs(): SdkFuncs;
+    /**
+     * Registers an event listener on the SDK's internal event dispatcher (an EventTarget).
      * @param {string} evt - The event type or name to listen for.
      * @param {EventListenerOrEventListenerObject|Function} fn - The callback function or event listener object invoked when the event occurs.
      * @returns {void}

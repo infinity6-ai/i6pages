@@ -7,7 +7,9 @@ class Auth {
     this._services = services;
   }
   /**
-   * Redirects the browser to the login page with the current URL as backurl.
+   * Redirects the browser to the login page, passing the current URL (encoded)
+   * as `backurl` so the user returns to this page after signing in.
+   * Navigates away from the page; code after the call may not run.
    * @private
    * @returns {void}
    */
@@ -18,9 +20,11 @@ class Auth {
     location = loginUrl;
   }
   /**
-   * Fetches the current authenticated user profile.
-   * @returns {Promise<UserProfile|null>} The user profile data, or null if redirected to login.
-   * @throws {Error} If the HTTP request fails.
+   * Fetches the current authenticated user profile (`GET api/auth/me`).
+   * Does not redirect; use {@link Auth#requireUser} to force a login.
+   * @returns {Promise<UserProfile|null>} The user profile data, or null if the
+   *   server returns no user.
+   * @throws {Error} If the network request fails or the response body is not valid JSON.
    */
   async user() {
     const resp = await this._services.invoker().invoke({
@@ -29,6 +33,14 @@ class Auth {
     const user = await resp.json();
     return user;
   }
+  /**
+   * Fetches the current user, redirecting the browser to the login page when
+   * there is none. The login page sends the user back to the current URL
+   * afterwards.
+   * @returns {Promise<UserProfile|null>} The user profile data, or null when the
+   *   browser is being redirected to login.
+   * @throws {Error} If the network request fails or the response body is not valid JSON.
+   */
   async requireUser() {
     var user = await this.user();
     if (!user) {

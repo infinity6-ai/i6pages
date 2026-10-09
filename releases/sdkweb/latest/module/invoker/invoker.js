@@ -14,7 +14,11 @@ class Invoker {
    * @param {string} [opts.path] - The path to append to the baseUrl if `url` is not provided.
    * @param {Record<string, any>} [opts.query] - Key-value pairs to append as query parameters.
    * @param {*} [opts.json] - JSON-serializable body data. If provided, sets Content-Type header to application/json and serializes to body.
+   * Credentials are always set to "include" so the session cookie is sent. Note that `opts`
+   * is modified (credentials, and headers/body when `json` is given). An HTTP error status
+   * does not throw; check `ok` on the returned Response.
    * @returns {Promise<Response>} A promise that resolves to the fetch Response.
+   * @throws {TypeError} If the network request fails (from fetch).
    */
   async invoke(opts) {
     let url = opts.url || `${this._services.config().baseUrl}/${opts.path}`;
