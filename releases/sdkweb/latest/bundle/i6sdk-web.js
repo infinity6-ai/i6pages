@@ -4150,18 +4150,18 @@
      * 
      * 
      * 
-     * @param {apiDszCreateStoreReq} req
-     * @returns {Promise<apiDszCreateStoreResp>}
+     * @param {apiDszListDatasetsReq} req
+     * @returns {Promise<apiDszListDatasetsResp>}
      */
-    async dszCreateStore(req) {
+    async dszListDatasets(req) {
       const resp = await this._services.invoker().invoke({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/create`,
-        json: req.payload
+        method: "GET",
+        path: `api/dsz/datasets`,
+        query: req.query
       });
       const result = { status: resp.status, ok: resp.ok };
       if (resp.ok) {
-        result.body = await resp.json();
+        result.payload = await resp.json();
       }
       if (!resp.ok) {
         const text = await resp.text();
@@ -4201,18 +4201,100 @@
       return result;
     }
     /**
-     * Get Model Signed URLs
      * 
-     * Generates presigned URLs for accessing model files in the specified dataset.
      * 
-     * @param {apiDszModelGetReq} req
-     * @returns {Promise<apiDszModelGetResp>}
+     * 
+     * 
+     * @param {apiDszCreateRecsysTokenReq} req
+     * @returns {Promise<apiDszCreateRecsysTokenResp>}
      */
-    async dszModelGet(req) {
+    async dszCreateRecsysToken(req) {
       const resp = await this._services.invoker().invoke({
         method: "POST",
-        path: `api/model/dataset/${encodeURIComponent(String(req.params.dataset))}/signed-get/${encodeURIComponent(String(req.params.model_name))}`,
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/recsystoken/create`,
         json: req.payload
+      });
+      const result = { status: resp.status, ok: resp.ok };
+      if (resp.ok) {
+        result.payload = await resp.json();
+      }
+      if (!resp.ok) {
+        const text = await resp.text();
+        try {
+          result.error = JSON.parse(text);
+        } catch {
+          result.error = text;
+        }
+      }
+      return result;
+    }
+    /**
+     * 
+     * 
+     * 
+     * 
+     * @param {apiDszDomainGetReq} req
+     * @returns {Promise<apiDszDomainGetResp>}
+     */
+    async dszDomainGet(req) {
+      const resp = await this._services.invoker().invoke({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/solution-domain`,
+        query: req.query
+      });
+      const result = { status: resp.status, ok: resp.ok };
+      if (resp.ok) {
+        result.payload = await resp.json();
+      }
+      if (!resp.ok) {
+        const text = await resp.text();
+        try {
+          result.error = JSON.parse(text);
+        } catch {
+          result.error = text;
+        }
+      }
+      return result;
+    }
+    /**
+     * 
+     * 
+     * 
+     * 
+     * @param {apiDszListStoresReq} req
+     * @returns {Promise<apiDszListStoresResp>}
+     */
+    async dszListStores(req) {
+      const resp = await this._services.invoker().invoke({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/list`
+      });
+      const result = { status: resp.status, ok: resp.ok };
+      if (resp.ok) {
+        result.payload = await resp.json();
+      }
+      if (!resp.ok) {
+        const text = await resp.text();
+        try {
+          result.error = JSON.parse(text);
+        } catch {
+          result.error = text;
+        }
+      }
+      return result;
+    }
+    /**
+     * 
+     * 
+     * 
+     * 
+     * @param {apiDszListIngestionTokensReq} req
+     * @returns {Promise<apiDszListIngestionTokensResp>}
+     */
+    async dszListIngestionTokens(req) {
+      const resp = await this._services.invoker().invoke({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/ingestiontoken/list`
       });
       const result = { status: resp.status, ok: resp.ok };
       if (resp.ok) {
@@ -4233,13 +4315,13 @@
      * 
      * Ingests stream data into a target dataset table.
      * 
-     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
-     * @returns {Promise<apiIngestzStreamRelevanceFashionCatalogResp>}
+     * @param {apiIngestzStreamRelevanceFashionEventReq} req
+     * @returns {Promise<apiIngestzStreamRelevanceFashionEventResp>}
      */
-    async ingestzStreamRelevanceFashionCatalog(req) {
+    async ingestzStreamRelevanceFashionEvent(req) {
       const resp = await this._services.invoker().invoke({
         method: "POST",
-        path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/stream/relevance-fashion-catalog`,
+        path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/stream/relevance-fashion-event`,
         json: req.payload
       });
       const result = { status: resp.status, ok: resp.ok };
@@ -4289,14 +4371,14 @@
      * 
      * 
      * 
-     * @param {apiDszListDatasetsReq} req
-     * @returns {Promise<apiDszListDatasetsResp>}
+     * @param {apiPipezStartReq} req
+     * @returns {Promise<apiPipezStartResp>}
      */
-    async dszListDatasets(req) {
+    async pipezStart(req) {
       const resp = await this._services.invoker().invoke({
-        method: "GET",
-        path: `api/dsz/datasets`,
-        query: req.query
+        method: "POST",
+        path: `api/pipe/start/dataset/${encodeURIComponent(String(req.params.dataset))}`,
+        json: req.payload
       });
       const result = { status: resp.status, ok: resp.ok };
       if (resp.ok) {
@@ -4317,13 +4399,97 @@
      * 
      * 
      * 
-     * @param {apiDszCreateRecsysTokenReq} req
-     * @returns {Promise<apiDszCreateRecsysTokenResp>}
+     * @param {apiDszDomainSelectReq} req
+     * @returns {Promise<apiDszDomainSelectResp>}
      */
-    async dszCreateRecsysToken(req) {
+    async dszDomainSelect(req) {
       const resp = await this._services.invoker().invoke({
         method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/recsystoken/create`,
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/solution-domain`,
+        json: req.payload
+      });
+      const result = { status: resp.status, ok: resp.ok };
+      if (resp.ok) {
+        result.body = await resp.json();
+      }
+      if (!resp.ok) {
+        const text = await resp.text();
+        try {
+          result.error = JSON.parse(text);
+        } catch {
+          result.error = text;
+        }
+      }
+      return result;
+    }
+    /**
+     * 
+     * 
+     * 
+     * 
+     * @param {apiDszCreateStoreReq} req
+     * @returns {Promise<apiDszCreateStoreResp>}
+     */
+    async dszCreateStore(req) {
+      const resp = await this._services.invoker().invoke({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/create`,
+        json: req.payload
+      });
+      const result = { status: resp.status, ok: resp.ok };
+      if (resp.ok) {
+        result.body = await resp.json();
+      }
+      if (!resp.ok) {
+        const text = await resp.text();
+        try {
+          result.error = JSON.parse(text);
+        } catch {
+          result.error = text;
+        }
+      }
+      return result;
+    }
+    /**
+     * 
+     * 
+     * 
+     * 
+     * @param {apiDszCreateIngestionTokenReq} req
+     * @returns {Promise<apiDszCreateIngestionTokenResp>}
+     */
+    async dszCreateIngestionToken(req) {
+      const resp = await this._services.invoker().invoke({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/ingestiontoken/create`,
+        json: req.payload
+      });
+      const result = { status: resp.status, ok: resp.ok };
+      if (resp.ok) {
+        result.payload = await resp.json();
+      }
+      if (!resp.ok) {
+        const text = await resp.text();
+        try {
+          result.error = JSON.parse(text);
+        } catch {
+          result.error = text;
+        }
+      }
+      return result;
+    }
+    /**
+     * Get Model Signed URLs
+     * 
+     * Generates presigned URLs for accessing model files in the specified dataset.
+     * 
+     * @param {apiDszModelGetReq} req
+     * @returns {Promise<apiDszModelGetResp>}
+     */
+    async dszModelGet(req) {
+      const resp = await this._services.invoker().invoke({
+        method: "POST",
+        path: `api/model/dataset/${encodeURIComponent(String(req.params.dataset))}/signed-get/${encodeURIComponent(String(req.params.model_name))}`,
         json: req.payload
       });
       const result = { status: resp.status, ok: resp.ok };
@@ -4403,129 +4569,18 @@
      * 
      * Ingests stream data into a target dataset table.
      * 
-     * @param {apiIngestzStreamRelevanceFashionEventReq} req
-     * @returns {Promise<apiIngestzStreamRelevanceFashionEventResp>}
+     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
+     * @returns {Promise<apiIngestzStreamRelevanceFashionCatalogResp>}
      */
-    async ingestzStreamRelevanceFashionEvent(req) {
+    async ingestzStreamRelevanceFashionCatalog(req) {
       const resp = await this._services.invoker().invoke({
         method: "POST",
-        path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/stream/relevance-fashion-event`,
+        path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/stream/relevance-fashion-catalog`,
         json: req.payload
       });
       const result = { status: resp.status, ok: resp.ok };
       if (resp.ok) {
         result.body = await resp.json();
-      }
-      if (!resp.ok) {
-        const text = await resp.text();
-        try {
-          result.error = JSON.parse(text);
-        } catch {
-          result.error = text;
-        }
-      }
-      return result;
-    }
-    /**
-     * 
-     * 
-     * 
-     * 
-     * @param {apiDszDomainSelectReq} req
-     * @returns {Promise<apiDszDomainSelectResp>}
-     */
-    async dszDomainSelect(req) {
-      const resp = await this._services.invoker().invoke({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/solution-domain`,
-        json: req.payload
-      });
-      const result = { status: resp.status, ok: resp.ok };
-      if (resp.ok) {
-        result.body = await resp.json();
-      }
-      if (!resp.ok) {
-        const text = await resp.text();
-        try {
-          result.error = JSON.parse(text);
-        } catch {
-          result.error = text;
-        }
-      }
-      return result;
-    }
-    /**
-     * 
-     * 
-     * 
-     * 
-     * @param {apiDszDomainGetReq} req
-     * @returns {Promise<apiDszDomainGetResp>}
-     */
-    async dszDomainGet(req) {
-      const resp = await this._services.invoker().invoke({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/solution-domain`,
-        query: req.query
-      });
-      const result = { status: resp.status, ok: resp.ok };
-      if (resp.ok) {
-        result.payload = await resp.json();
-      }
-      if (!resp.ok) {
-        const text = await resp.text();
-        try {
-          result.error = JSON.parse(text);
-        } catch {
-          result.error = text;
-        }
-      }
-      return result;
-    }
-    /**
-     * 
-     * 
-     * 
-     * 
-     * @param {apiDszListStoresReq} req
-     * @returns {Promise<apiDszListStoresResp>}
-     */
-    async dszListStores(req) {
-      const resp = await this._services.invoker().invoke({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/list`
-      });
-      const result = { status: resp.status, ok: resp.ok };
-      if (resp.ok) {
-        result.payload = await resp.json();
-      }
-      if (!resp.ok) {
-        const text = await resp.text();
-        try {
-          result.error = JSON.parse(text);
-        } catch {
-          result.error = text;
-        }
-      }
-      return result;
-    }
-    /**
-     * 
-     * 
-     * 
-     * 
-     * @param {apiDszCreateIngestionTokenReq} req
-     * @returns {Promise<apiDszCreateIngestionTokenResp>}
-     */
-    async dszCreateIngestionToken(req) {
-      const resp = await this._services.invoker().invoke({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/ingestiontoken/create`,
-        json: req.payload
-      });
-      const result = { status: resp.status, ok: resp.ok };
-      if (resp.ok) {
-        result.payload = await resp.json();
       }
       if (!resp.ok) {
         const text = await resp.text();
@@ -4553,33 +4608,6 @@
       const result = { status: resp.status, ok: resp.ok };
       if (resp.ok) {
         result.body = await resp.json();
-      }
-      if (!resp.ok) {
-        const text = await resp.text();
-        try {
-          result.error = JSON.parse(text);
-        } catch {
-          result.error = text;
-        }
-      }
-      return result;
-    }
-    /**
-     * 
-     * 
-     * 
-     * 
-     * @param {apiDszListIngestionTokensReq} req
-     * @returns {Promise<apiDszListIngestionTokensResp>}
-     */
-    async dszListIngestionTokens(req) {
-      const resp = await this._services.invoker().invoke({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/ingestiontoken/list`
-      });
-      const result = { status: resp.status, ok: resp.ok };
-      if (resp.ok) {
-        result.payload = await resp.json();
       }
       if (!resp.ok) {
         const text = await resp.text();
@@ -4647,34 +4675,6 @@
       }
       return result;
     }
-    /**
-     * 
-     * 
-     * 
-     * 
-     * @param {apiPipezStartReq} req
-     * @returns {Promise<apiPipezStartResp>}
-     */
-    async pipezStart(req) {
-      const resp = await this._services.invoker().invoke({
-        method: "POST",
-        path: `api/pipe/start/dataset/${encodeURIComponent(String(req.params.dataset))}`,
-        json: req.payload
-      });
-      const result = { status: resp.status, ok: resp.ok };
-      if (resp.ok) {
-        result.payload = await resp.json();
-      }
-      if (!resp.ok) {
-        const text = await resp.text();
-        try {
-          result.error = JSON.parse(text);
-        } catch {
-          result.error = text;
-        }
-      }
-      return result;
-    }
   };
   var SdkFuncs = class {
     /**
@@ -4688,13 +4688,13 @@
      * @param {sdkFuncProductRelevanceFashionFbtReq} req
      * @returns {Promise<sdkFuncProductRelevanceFashionFbtResp>}
      */
-    async productRelevanceFashionFbt(req) {
+    async productRelevanceFashionFbtV1(req) {
       const infer = this._services.infer();
       const ret = await infer.run({
         dataset: req.input.dataset,
         modelName: "relevance-fashion-fbt",
         params: req.input,
-        partitions: req.partitions
+        partitions: { "version": "v1", ...req.partitions }
       });
       return ret;
     }
@@ -4702,7 +4702,7 @@
      * @param {sdkFuncProductRelevanceFashionDashFunnelReq} req
      * @returns {Promise<sdkFuncProductRelevanceFashionDashFunnelResp>}
      */
-    async productRelevanceFashionDashFunnel(req) {
+    async productRelevanceFashionDashFunnelV1(req) {
       console.log(req);
       return {};
     }
