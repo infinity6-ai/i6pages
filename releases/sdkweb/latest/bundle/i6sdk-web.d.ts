@@ -2353,6 +2353,9 @@ export type sdkFuncProductRelevanceFashionFbtOutput = {
 };
 export type sdkFuncProductRelevanceFashionFbtOutputResultsElement = {
     rating: string;
+    skus: Array<sdkFuncProductRelevanceFashionFbtOutputResultsElementSkusElement>;
+};
+export type sdkFuncProductRelevanceFashionFbtOutputResultsElementSkusElement = {
     sku_id: string;
 };
 export type sdkFuncProductRelevanceFashionFbtPartitions = {
@@ -3017,6 +3020,10 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * @typedef {object} sdkFuncProductRelevanceFashionFbtOutputResultsElement
  * @property {string} rating
+ * @property {Array<sdkFuncProductRelevanceFashionFbtOutputResultsElementSkusElement>} skus
+ */
+/**
+ * @typedef {object} sdkFuncProductRelevanceFashionFbtOutputResultsElementSkusElement
  * @property {string} sku_id
  */
 /**
@@ -3047,14 +3054,14 @@ declare class Apis {
      */
     constructor(services: Services);
     /**
-     * Stream Ingestion
+     * Get Ingestion Upload URLs
      *
-     * Ingests stream data into a target dataset table.
+     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
      *
-     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
-     * @returns {Promise<apiIngestzStreamRelevanceFashionCatalogResp>}
+     * @param {apiIngestzGetUrlReq} req
+     * @returns {Promise<apiIngestzGetUrlResp>}
      */
-    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<apiIngestzStreamRelevanceFashionCatalogResp>;
+    ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<apiIngestzGetUrlResp>;
     /**
      * Stream Ingestion
      *
@@ -3064,42 +3071,6 @@ declare class Apis {
      * @returns {Promise<apiIngestzStreamRelevanceFashionEventResp>}
      */
     ingestzStreamRelevanceFashionEvent(req: apiIngestzStreamRelevanceFashionEventReq): Promise<apiIngestzStreamRelevanceFashionEventResp>;
-    /**
-     * Get Dataset Signed URLs
-     *
-     * Generates presigned URLs for accessing or mutating files in the specified dataset.
-     *
-     * @param {apiDszSignedUrlReq} req
-     * @returns {Promise<apiDszSignedUrlResp>}
-     */
-    dszSignedUrl(req: apiDszSignedUrlReq): Promise<apiDszSignedUrlResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListStoresReq} req
-     * @returns {Promise<apiDszListStoresResp>}
-     */
-    dszListStores(req: apiDszListStoresReq): Promise<apiDszListStoresResp>;
-    /**
-     * List Dataset Tables
-     *
-     * Lists files and tables in the specified dataset.
-     *
-     * @param {apiDszTableListReq} req
-     * @returns {Promise<apiDszTableListResp>}
-     */
-    dszTableList(req: apiDszTableListReq): Promise<apiDszTableListResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateStoreReq} req
-     * @returns {Promise<apiDszCreateStoreResp>}
-     */
-    dszCreateStore(req: apiDszCreateStoreReq): Promise<apiDszCreateStoreResp>;
     /**
      *
      *
@@ -3119,6 +3090,60 @@ declare class Apis {
      */
     dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq): Promise<apiDszCreateIngestionTokenResp>;
     /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListRecsysTokensReq} req
+     * @returns {Promise<apiDszListRecsysTokensResp>}
+     */
+    dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<apiDszListRecsysTokensResp>;
+    /**
+     * Sample Fraction
+     *
+     * Sample API that performs a fraction operation
+     *
+     * @param {apiSampleFractionReq} req
+     * @returns {Promise<apiSampleFractionResp>}
+     */
+    sampleFraction(req: apiSampleFractionReq): Promise<apiSampleFractionResp>;
+    /**
+     * Get Dataset Signed URLs
+     *
+     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     *
+     * @param {apiDszSignedUrlReq} req
+     * @returns {Promise<apiDszSignedUrlResp>}
+     */
+    dszSignedUrl(req: apiDszSignedUrlReq): Promise<apiDszSignedUrlResp>;
+    /**
+     * List Dataset Tables
+     *
+     * Lists files and tables in the specified dataset.
+     *
+     * @param {apiDszTableListReq} req
+     * @returns {Promise<apiDszTableListResp>}
+     */
+    dszTableList(req: apiDszTableListReq): Promise<apiDszTableListResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateStoreReq} req
+     * @returns {Promise<apiDszCreateStoreResp>}
+     */
+    dszCreateStore(req: apiDszCreateStoreReq): Promise<apiDszCreateStoreResp>;
+    /**
+     * Stream Ingestion
+     *
+     * Ingests stream data into a target dataset table.
+     *
+     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
+     * @returns {Promise<apiIngestzStreamRelevanceFashionCatalogResp>}
+     */
+    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<apiIngestzStreamRelevanceFashionCatalogResp>;
+    /**
      * Get Dataset Table File
      *
      * Get table file by redirecting to its signed URL.
@@ -3127,15 +3152,6 @@ declare class Apis {
      * @returns {Promise<apiDszTableGetResp>}
      */
     dszTableGet(req: apiDszTableGetReq): Promise<apiDszTableGetResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiPipezStartReq} req
-     * @returns {Promise<apiPipezStartResp>}
-     */
-    pipezStart(req: apiPipezStartReq): Promise<apiPipezStartResp>;
     /**
      *
      *
@@ -3150,55 +3166,10 @@ declare class Apis {
      *
      *
      *
-     * @param {apiDszListRecsysTokensReq} req
-     * @returns {Promise<apiDszListRecsysTokensResp>}
+     * @param {apiDszListStoresReq} req
+     * @returns {Promise<apiDszListStoresResp>}
      */
-    dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<apiDszListRecsysTokensResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateRecsysTokenReq} req
-     * @returns {Promise<apiDszCreateRecsysTokenResp>}
-     */
-    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<apiDszCreateRecsysTokenResp>;
-    /**
-     * Get Model Signed URLs
-     *
-     * Generates presigned URLs for accessing model files in the specified dataset.
-     *
-     * @param {apiDszModelGetReq} req
-     * @returns {Promise<apiDszModelGetResp>}
-     */
-    dszModelGet(req: apiDszModelGetReq): Promise<apiDszModelGetResp>;
-    /**
-     * Sample Fraction
-     *
-     * Sample API that performs a fraction operation
-     *
-     * @param {apiSampleFractionReq} req
-     * @returns {Promise<apiSampleFractionResp>}
-     */
-    sampleFraction(req: apiSampleFractionReq): Promise<apiSampleFractionResp>;
-    /**
-     * Get Ingestion Upload URLs
-     *
-     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
-     *
-     * @param {apiIngestzGetUrlReq} req
-     * @returns {Promise<apiIngestzGetUrlResp>}
-     */
-    ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<apiIngestzGetUrlResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDomainSelectReq} req
-     * @returns {Promise<apiDszDomainSelectResp>}
-     */
-    dszDomainSelect(req: apiDszDomainSelectReq): Promise<apiDszDomainSelectResp>;
+    dszListStores(req: apiDszListStoresReq): Promise<apiDszListStoresResp>;
     /**
      *
      *
@@ -3213,10 +3184,46 @@ declare class Apis {
      *
      *
      *
+     * @param {apiPipezStartReq} req
+     * @returns {Promise<apiPipezStartResp>}
+     */
+    pipezStart(req: apiPipezStartReq): Promise<apiPipezStartResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszDomainSelectReq} req
+     * @returns {Promise<apiDszDomainSelectResp>}
+     */
+    dszDomainSelect(req: apiDszDomainSelectReq): Promise<apiDszDomainSelectResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateRecsysTokenReq} req
+     * @returns {Promise<apiDszCreateRecsysTokenResp>}
+     */
+    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<apiDszCreateRecsysTokenResp>;
+    /**
+     *
+     *
+     *
+     *
      * @param {apiDszDeleteTokenReq} req
      * @returns {Promise<apiDszDeleteTokenResp>}
      */
     dszDeleteToken(req: apiDszDeleteTokenReq): Promise<apiDszDeleteTokenResp>;
+    /**
+     * Get Model Signed URLs
+     *
+     * Generates presigned URLs for accessing model files in the specified dataset.
+     *
+     * @param {apiDszModelGetReq} req
+     * @returns {Promise<apiDszModelGetResp>}
+     */
+    dszModelGet(req: apiDszModelGetReq): Promise<apiDszModelGetResp>;
 }
 export { Apis };
 declare class SdkFuncs {
