@@ -28,7 +28,7 @@ export type InferOptions = {
      */
     dataset: string;
     /**
-     * - Model input, any JSON (e.g. `{ cart_skus: [...] }`). Bound as `?1` of the input query.
+     * - Model input, any JSON (e.g. `{ skus: [...] }`). Bound as `?1` of the input query.
      */
     params: any;
     /**
