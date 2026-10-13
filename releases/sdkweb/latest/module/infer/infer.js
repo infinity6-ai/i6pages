@@ -42,8 +42,9 @@ class Infer {
       if (!inputs || typeof inputs !== "object") throw new I6Error(`infer: ${queryName("input")} returned no model inputs`, { code: "query" });
       debug("input query returned", Object.keys(inputs), "model", describeModel(compiled));
       const outputs = await runModel(compiled, inputs);
+      debug("output returned (before namedJsonQuery)", outputs);
       const result = await conn.namedJsonQuery({ name: queryName("output"), params: outputQueryParams(outputs, opts) });
-      debug("output query returned", result);
+      debug("output query returned (after namedJsonQuery)", result);
       return result;
     } finally {
       await conn.close();

@@ -3,6 +3,9 @@
  */
 export type Services = import("../services/services.js").Services;
 export type apiDszCreateIngestionTokenParams = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
 };
 export type apiDszCreateIngestionTokenReq = {
@@ -10,23 +13,56 @@ export type apiDszCreateIngestionTokenReq = {
     payload: apiDszCreateIngestionTokenReqPayload;
 };
 export type apiDszCreateIngestionTokenReqPayload = {
+    /**
+     * - [Go: string]
+     */
     annotation: string;
 };
 export type apiDszCreateIngestionTokenResp = {
     payload: apiDszCreateIngestionTokenRespPayload;
 };
 export type apiDszCreateIngestionTokenRespPayload = {
+    /**
+     * - [Go: string]
+     */
     id: string;
+    /**
+     * - [Go: string]
+     */
     jti: string;
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
+    /**
+     * - [Go: string]
+     */
     annotation: string;
+    /**
+     * - [Go: int64]
+     */
     expiration_date: number;
+    /**
+     * - [Go: string]
+     */
     audience: string;
+    /**
+     * - [Go: []string]
+     */
     grants: Array<string>;
+    /**
+     * - [Go: string]
+     */
     channel: string;
+    /**
+     * - [Go: string]
+     */
     token: string;
 };
 export type apiDszCreateRecsysTokenParams = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
 };
 export type apiDszCreateRecsysTokenReq = {
@@ -34,24 +70,60 @@ export type apiDszCreateRecsysTokenReq = {
     payload: apiDszCreateRecsysTokenReqPayload;
 };
 export type apiDszCreateRecsysTokenReqPayload = {
+    /**
+     * - [Go: string]
+     */
     annotation: string;
+    /**
+     * - [Go: string]
+     */
     channel: string;
 };
 export type apiDszCreateRecsysTokenResp = {
     payload: apiDszCreateRecsysTokenRespPayload;
 };
 export type apiDszCreateRecsysTokenRespPayload = {
+    /**
+     * - [Go: string]
+     */
     id: string;
+    /**
+     * - [Go: string]
+     */
     jti: string;
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
+    /**
+     * - [Go: string]
+     */
     annotation: string;
+    /**
+     * - [Go: int64]
+     */
     expiration_date: number;
+    /**
+     * - [Go: string]
+     */
     audience: string;
+    /**
+     * - [Go: []string]
+     */
     grants: Array<string>;
+    /**
+     * - [Go: string]
+     */
     channel: string;
+    /**
+     * - [Go: string]
+     */
     token: string;
 };
 export type apiDszCreateStoreParams = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
 };
 export type apiDszCreateStoreReq = {
@@ -59,13 +131,32 @@ export type apiDszCreateStoreReq = {
     payload: apiDszCreateStoreReqPayload;
 };
 export type apiDszCreateStoreReqPayload = {
-    store_id: object;
+    /**
+     * - [Go: dszstore.DszStore]
+     */
+    store_id: apiDszCreateStoreReqPayloadStoreId;
+};
+export type apiDszCreateStoreReqPayloadStoreId = {
+    /**
+     * - [Go: string]
+     */
+    id: string;
+    /**
+     * - [Go: string]
+     */
+    name: string;
 };
 export type apiDszCreateStoreResp = object;
 export type apiDszDeleteTokenParams = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
 };
 export type apiDszDeleteTokenQuery = {
+    /**
+     * - [Go: string]
+     */
     token: string;
 };
 export type apiDszDeleteTokenReq = {
@@ -74,9 +165,15 @@ export type apiDszDeleteTokenReq = {
 };
 export type apiDszDeleteTokenResp = object;
 export type apiDszDomainGetParams = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
 };
 export type apiDszDomainGetQuery = {
+    /**
+     * - [Go: string]
+     */
     store_id: string;
 };
 export type apiDszDomainGetReq = {
@@ -87,15 +184,30 @@ export type apiDszDomainGetResp = {
     payload: apiDszDomainGetRespPayload;
 };
 export type apiDszDomainGetRespPayload = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
     solutions: Array<apiDszDomainGetRespPayloadSolutionsElement>;
+    /**
+     * - [Go: string]
+     */
     store_id: string;
 };
 export type apiDszDomainGetRespPayloadSolutionsElement = {
+    /**
+     * - [Go: solution.Solution]
+     */
     solution: string;
+    /**
+     * - [Go: domain.Domain]
+     */
     domain: string;
 };
 export type apiDszDomainSelectParams = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
 };
 export type apiDszDomainSelectReq = {
@@ -103,12 +215,24 @@ export type apiDszDomainSelectReq = {
     payload: apiDszDomainSelectReqPayload;
 };
 export type apiDszDomainSelectReqPayload = {
+    /**
+     * - [Go: domain.Domain]
+     */
     domain: string;
+    /**
+     * - [Go: solution.Solution]
+     */
     solution: string;
+    /**
+     * - [Go: string]
+     */
     store_id: string;
 };
 export type apiDszDomainSelectResp = object;
 export type apiDszListDatasetsQuery = {
+    /**
+     * - [Go: string]
+     */
     user: string;
 };
 export type apiDszListDatasetsReq = {
@@ -122,11 +246,20 @@ export type apiDszListDatasetsRespPayload = {
 };
 export type apiDszListDatasetsRespPayloadDatasetsElement = {
     grants: Array<apiDszListDatasetsRespPayloadDatasetsElementGrantsElement>;
+    /**
+     * - [Go: string]
+     */
     id: string;
+    /**
+     * - [Go: string]
+     */
     name: string;
 };
 export type apiDszListDatasetsRespPayloadDatasetsElementGrantsElement = string;
 export type apiDszListIngestionTokensParams = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
 };
 export type apiDszListIngestionTokensReq = {
@@ -137,6 +270,9 @@ export type apiDszListIngestionTokensResp = {
 };
 export type apiDszListIngestionTokensRespPayload = object;
 export type apiDszListRecsysTokensParams = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
 };
 export type apiDszListRecsysTokensReq = {
@@ -147,6 +283,9 @@ export type apiDszListRecsysTokensResp = {
 };
 export type apiDszListRecsysTokensRespPayload = object;
 export type apiDszListStoresParams = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
 };
 export type apiDszListStoresReq = {
@@ -156,20 +295,29 @@ export type apiDszListStoresResp = {
     payload: apiDszListStoresRespPayload;
 };
 export type apiDszListStoresRespPayload = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
     stores: Array<apiDszListStoresRespPayloadStoresElement>;
 };
 export type apiDszListStoresRespPayloadStoresElement = {
+    /**
+     * - [Go: string]
+     */
     id: string;
+    /**
+     * - [Go: string]
+     */
     name: string;
 };
 export type apiDszModelGetParams = {
     /**
-     * - Name of the dataset to generate signed URLs for.
+     * - [Go: lakedsz.Dataset] Name of the dataset to generate signed URLs for.
      */
     dataset: string;
     /**
-     * - Model name
+     * - [Go: string] Model name
      */
     model_name: string;
 };
@@ -183,7 +331,7 @@ export type apiDszModelGetReqPayload = {
      */
     model_partitions: Record<apiDszModelGetReqPayloadModelPartitionsKey, apiDszModelGetReqPayloadModelPartitionsValue>;
     /**
-     * - Model version
+     * - [Go: string] Model version
      */
     model_version: string;
 };
@@ -200,17 +348,17 @@ export type apiDszModelGetRespPayload = {
 };
 export type apiDszModelGetRespPayloadUrlsElement = {
     /**
-     * - File Name
+     * - [Go: string] File Name
      */
     name: string;
     /**
-     * - signed URL.
+     * - [Go: string] signed URL.
      */
     url: string;
 };
 export type apiDszSignedUrlParams = {
     /**
-     * - Name of the dataset to generate signed URLs for.
+     * - [Go: lakedsz.Dataset] Name of the dataset to generate signed URLs for.
      */
     dataset: string;
 };
@@ -226,11 +374,11 @@ export type apiDszSignedUrlReqPayload = {
 };
 export type apiDszSignedUrlReqPayloadPathsElement = {
     /**
-     * - HTTP method (e.g. GET, PUT) for the signed URL.
+     * - [Go: fszsignmethod.SignMethod] HTTP method (e.g. GET, PUT) for the signed URL.
      */
     method: string;
     /**
-     * - File path within the dataset.
+     * - [Go: laketbpathz.Path] File path within the dataset.
      */
     path: string;
 };
@@ -245,17 +393,17 @@ export type apiDszSignedUrlRespPayload = {
 };
 export type apiDszSignedUrlRespPayloadUrlsElement = {
     /**
-     * - signed URL.
+     * - [Go: string] signed URL.
      */
     url: string;
 };
 export type apiDszTableGetParams = {
     /**
-     * - Name of the dataset.
+     * - [Go: lakedsz.Dataset] Name of the dataset.
      */
     dataset: string;
     /**
-     * - Path to the file without schema.
+     * - [Go: string] Path to the file without schema.
      */
     path: string;
 };
@@ -267,39 +415,39 @@ export type apiDszTableGetResp = {
 };
 export type apiDszTableGetRespHeaders = {
     /**
-     * - Redirect URL for the file.
+     * - [Go: string] Redirect URL for the file.
      */
     location: string;
 };
 export type apiDszTableListParams = {
     /**
-     * - Name of the dataset to list tables from.
+     * - [Go: lakedsz.Dataset] Name of the dataset to list tables from.
      */
     dataset: string;
 };
 export type apiDszTableListQuery = {
     /**
-     * - Pagination cursor.
+     * - [Go: string] Pagination cursor.
      */
     from_cursor: string;
     /**
-     * - Limit the number of results.
+     * - [Go: int] Limit the number of results.
      */
     limist: number;
     /**
-     * - Path to list.
+     * - [Go: laketbpathz.Path] Path to list.
      */
     path: string;
     /**
-     * - Whether to list recursively.
+     * - [Go: bool] Whether to list recursively.
      */
     recursive: boolean;
     /**
-     * - Whether to return signed URLs.
+     * - [Go: fszsignmethod.SignMethod] Whether to return signed URLs.
      */
     sign_method: string;
     /**
-     * - Whether to include file stats.
+     * - [Go: bool] Whether to include file stats.
      */
     stat: boolean;
 };
@@ -313,27 +461,27 @@ export type apiDszTableListResp = {
 export type apiDszTableListRespPayload = {
     files: Array<apiDszTableListRespPayloadFilesElement>;
     /**
-     * - Cursor for the next page of results.
+     * - [Go: string] Cursor for the next page of results.
      */
     next_cursor: string;
 };
 export type apiDszTableListRespPayloadFilesElement = {
     /**
-     * - write it
+     * - [Go: laketbpathz.Path] write it
      */
     path: string;
     /**
-     * - write it
+     * - [Go: string] write it
      */
     signed_url: string;
     /**
-     * - write it
+     * - [Go: fsz.FileStat] write it
      */
     stat: dszFileStat;
 };
 export type apiIngestzGetUrlParams = {
     /**
-     * - Name of the dataset that receives the uploaded files.
+     * - [Go: lakedsz.Dataset] Name of the dataset that receives the uploaded files.
      */
     dataset: string;
 };
@@ -343,7 +491,7 @@ export type apiIngestzGetUrlReq = {
 };
 export type apiIngestzGetUrlReqPayload = {
     /**
-     * - Number of presigned upload URLs to generate.
+     * - [Go: int] Number of presigned upload URLs to generate.
      */
     amount: number;
     /**
@@ -351,7 +499,7 @@ export type apiIngestzGetUrlReqPayload = {
      */
     partitions: Record<apiIngestzGetUrlReqPayloadPartitionsKey, apiIngestzGetUrlReqPayloadPartitionsValue>;
     /**
-     * - Name of the table, inside the dataset, that receives the uploaded files.
+     * - [Go: laketbnamez.TableName] Name of the table, inside the dataset, that receives the uploaded files.
      */
     table: string;
 };
@@ -362,7 +510,7 @@ export type apiIngestzGetUrlResp = {
 };
 export type apiIngestzGetUrlRespPayload = {
     /**
-     * - Ingestion token that identifies this ingestion and ties the uploaded files together.
+     * - [Go: string] Ingestion token that identifies this ingestion and ties the uploaded files together.
      */
     ingest_id: string;
     /**
@@ -373,7 +521,7 @@ export type apiIngestzGetUrlRespPayload = {
 export type apiIngestzGetUrlRespPayloadUploadsElement = string;
 export type apiIngestzStreamRelevanceFashionCatalogParams = {
     /**
-     * - Name of the dataset that receives the stream data.
+     * - [Go: lakedsz.Dataset] Name of the dataset that receives the stream data.
      */
     dataset: string;
 };
@@ -388,17 +536,35 @@ export type apiIngestzStreamRelevanceFashionCatalogReqPayload = {
     data: Array<apiIngestzStreamRelevanceFashionCatalogReqPayloadDataElement>;
 };
 export type apiIngestzStreamRelevanceFashionCatalogReqPayloadDataElement = {
+    /**
+     * - [Go: string]
+     */
     id: string;
+    /**
+     * - [Go: bool]
+     */
     inactive: boolean;
+    /**
+     * - [Go: string]
+     */
     product_id: string;
+    /**
+     * - [Go: string]
+     */
     sku_ds: string;
+    /**
+     * - [Go: string]
+     */
     sku_id: string;
+    /**
+     * - [Go: string]
+     */
     store_id: string;
 };
 export type apiIngestzStreamRelevanceFashionCatalogResp = object;
 export type apiIngestzStreamRelevanceFashionEventParams = {
     /**
-     * - Name of the dataset that receives the stream data.
+     * - [Go: lakedsz.Dataset] Name of the dataset that receives the stream data.
      */
     dataset: string;
 };
@@ -413,27 +579,160 @@ export type apiIngestzStreamRelevanceFashionEventReqPayload = {
     data: Array<apiIngestzStreamRelevanceFashionEventReqPayloadDataElement>;
 };
 export type apiIngestzStreamRelevanceFashionEventReqPayloadDataElement = {
-    add_to_cart: object;
-    click: object;
+    add_to_cart: apiIngestzStreamRelevanceFashionEventReqPayloadDataElementAddToCart;
+    click: apiIngestzStreamRelevanceFashionEventReqPayloadDataElementClick;
+    /**
+     * - [Go: time.Time]
+     */
     created_at: dszTime;
+    /**
+     * - [Go: string]
+     */
     id: string;
-    p: string;
-    purchase: object;
-    recraw: object;
-    recshow: object;
-    remove_from_cart: object;
-    search: object;
+    /**
+     * - [Go: string]
+     */
+    ingested_at: string;
+    purchase: apiIngestzStreamRelevanceFashionEventReqPayloadDataElementPurchase;
+    recraw: apiIngestzStreamRelevanceFashionEventReqPayloadDataElementRecraw;
+    recshow: apiIngestzStreamRelevanceFashionEventReqPayloadDataElementRecshow;
+    remove_from_cart: apiIngestzStreamRelevanceFashionEventReqPayloadDataElementRemoveFromCart;
+    search: apiIngestzStreamRelevanceFashionEventReqPayloadDataElementSearch;
+    /**
+     * - [Go: string]
+     */
     session_id: string;
+    /**
+     * - [Go: string]
+     */
     store_id: string;
+    /**
+     * - [Go: string]
+     */
     user_id: string;
 };
-export type apiIngestzStreamRelevanceFashionEventReqPayloadDataElementPurchaseSkusElement = {
-    qtty: number;
+export type apiIngestzStreamRelevanceFashionEventReqPayloadDataElementAddToCart = {
+    /**
+     * - [Go: float64]
+     */
+    price: number;
+    /**
+     * - [Go: string]
+     */
     sku_id: string;
+};
+export type apiIngestzStreamRelevanceFashionEventReqPayloadDataElementClick = {
+    /**
+     * - [Go: float64]
+     */
+    price: number;
+    /**
+     * - [Go: string]
+     */
+    sku_id: string;
+};
+export type apiIngestzStreamRelevanceFashionEventReqPayloadDataElementPurchase = {
+    /**
+     * - [Go: string]
+     */
+    order_id: string;
+    skus: Array<apiIngestzStreamRelevanceFashionEventReqPayloadDataElementPurchaseSkusElement>;
+};
+export type apiIngestzStreamRelevanceFashionEventReqPayloadDataElementPurchaseSkusElement = {
+    /**
+     * - [Go: int64]
+     */
+    qtty: number;
+    /**
+     * - [Go: string]
+     */
+    sku_id: string;
+    /**
+     * - [Go: float64]
+     */
     unit_price: number;
 };
+export type apiIngestzStreamRelevanceFashionEventReqPayloadDataElementRecraw = {
+    /**
+     * - [Go: string]
+     */
+    model_id: string;
+    /**
+     * - [Go: string]
+     */
+    payload: string;
+    /**
+     * - [Go: string]
+     */
+    rec_id: string;
+};
+export type apiIngestzStreamRelevanceFashionEventReqPayloadDataElementRecshow = {
+    /**
+     * - [Go: string]
+     */
+    payload: string;
+    /**
+     * - [Go: string]
+     */
+    rec_id: string;
+};
+export type apiIngestzStreamRelevanceFashionEventReqPayloadDataElementRemoveFromCart = {
+    /**
+     * - [Go: float64]
+     */
+    price: number;
+    /**
+     * - [Go: string]
+     */
+    sku_id: string;
+};
+export type apiIngestzStreamRelevanceFashionEventReqPayloadDataElementSearch = {
+    /**
+     * - [Go: string]
+     */
+    text: string;
+};
 export type apiIngestzStreamRelevanceFashionEventResp = object;
+export type apiPipezListParams = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
+    dataset: string;
+};
+export type apiPipezListQuery = {
+    /**
+     * - [Go: string]
+     */
+    cursor: string;
+    /**
+     * - [Go: int]
+     */
+    limit: number;
+    /**
+     * - [Go: string]
+     */
+    name: string;
+    /**
+     * - [Go: solutiondomain.SolutionDomain]
+     */
+    solution_domain: string;
+    /**
+     * - [Go: string]
+     */
+    status: string;
+};
+export type apiPipezListReq = {
+    params: apiPipezListParams;
+    query: apiPipezListQuery;
+};
+export type apiPipezListResp = {
+    payload: apiPipezListRespPayload;
+};
+export type apiPipezListRespPayload = object;
 export type apiPipezStartParams = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
 };
 export type apiPipezStartReq = {
@@ -442,7 +741,13 @@ export type apiPipezStartReq = {
 };
 export type apiPipezStartReqPayload = {
     params: Array<apiPipezStartReqPayloadParamsElement>;
+    /**
+     * - [Go: string]
+     */
     pipename: string;
+    /**
+     * - [Go: solutiondomain.SolutionDomain]
+     */
     solution_domain: string;
 };
 export type apiPipezStartReqPayloadParamsElement = object;
@@ -452,17 +757,17 @@ export type apiPipezStartResp = {
 export type apiPipezStartRespPayload = object;
 export type apiSampleFractionParams = {
     /**
-     * - Fraction Denominator
+     * - [Go: float64] Fraction Denominator
      */
     denominator: number;
     /**
-     * - Fraction Numerator
+     * - [Go: float64] Fraction Numerator
      */
     numerator: number;
 };
 export type apiSampleFractionQuery = {
     /**
-     * - Fraction max precision
+     * - [Go: int] Fraction max precision
      */
     precision: number;
 };
@@ -474,20 +779,20 @@ export type apiSampleFractionReq = {
 };
 export type apiSampleFractionReqHeaders = {
     /**
-     * - Sample of Trace Id
+     * - [Go: string] Sample of Trace Id
      */
     x_i6_trace_id: string;
 };
 export type apiSampleFractionReqPayload = {
     messages: Array<apiSampleFractionReqPayloadMessagesElement>;
     /**
-     * - Sample reason of this fraction
+     * - [Go: string] Sample reason of this fraction
      */
     reason: string;
 };
 export type apiSampleFractionReqPayloadMessagesElement = {
     /**
-     * - message string
+     * - [Go: string] message string
      */
     message: string;
 };
@@ -497,13 +802,13 @@ export type apiSampleFractionResp = {
 };
 export type apiSampleFractionRespHeaders = {
     /**
-     * - Sample of any trace message
+     * - [Go: string] Sample of any trace message
      */
     x_i6_trace_message: string;
 };
 export type apiSampleFractionRespPayload = {
     /**
-     * - Human Fraction Representation
+     * - [Go: string] Human Fraction Representation
      */
     display: string;
     /**
@@ -511,7 +816,7 @@ export type apiSampleFractionRespPayload = {
      */
     messages: Array<apiSampleFractionRespPayloadMessagesElement>;
     /**
-     * - Fraction Result
+     * - [Go: string] Fraction Result
      */
     result: string;
 };
@@ -547,19 +852,95 @@ export type dszFileStat = {
     updated_at: dszTime;
 };
 export type dszTime = string;
-export type sdkFuncProductRelevanceFashionDashFunnelInput = {
+export type sdkFuncProductRelevanceFashionDashAttachedRevenueInput = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
-    params: object;
+    params: sdkFuncProductRelevanceFashionDashAttachedRevenueInputParams;
+};
+export type sdkFuncProductRelevanceFashionDashAttachedRevenueInputParams = {
+    /**
+     * - [Go: string]
+     */
+    max_year_month: string;
+    /**
+     * - [Go: string]
+     */
+    min_year_month: string;
+};
+export type sdkFuncProductRelevanceFashionDashAttachedRevenueOutput = {
+    rows: Array<sdkFuncProductRelevanceFashionDashAttachedRevenueOutputRowsElement>;
+};
+export type sdkFuncProductRelevanceFashionDashAttachedRevenueOutputRowsElement = {
+    /**
+     * - [Go: float64]
+     */
+    attached_purchases: number;
+    /**
+     * - [Go: float64]
+     */
+    attached_revenue: number;
+    /**
+     * - [Go: float64]
+     */
+    attached_skus: number;
+    /**
+     * - [Go: float64]
+     */
+    avg_ticket: number;
+};
+export type sdkFuncProductRelevanceFashionDashAttachedRevenuePartitions = {
+    /**
+     * - [Go: string]
+     */
+    store_id: string;
+};
+export type sdkFuncProductRelevanceFashionDashAttachedRevenueReq = {
+    input: sdkFuncProductRelevanceFashionDashAttachedRevenueInput;
+    partitions: sdkFuncProductRelevanceFashionDashAttachedRevenuePartitions;
+};
+export type sdkFuncProductRelevanceFashionDashAttachedRevenueResp = {
+    output: sdkFuncProductRelevanceFashionDashAttachedRevenueOutput;
+};
+export type sdkFuncProductRelevanceFashionDashFunnelInput = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
+    dataset: string;
+    params: sdkFuncProductRelevanceFashionDashFunnelInputParams;
+};
+export type sdkFuncProductRelevanceFashionDashFunnelInputParams = {
+    /**
+     * - [Go: string]
+     */
+    max_year_month: string;
+    /**
+     * - [Go: string]
+     */
+    min_year_month: string;
 };
 export type sdkFuncProductRelevanceFashionDashFunnelOutput = {
-    results: object;
+    rows: Array<sdkFuncProductRelevanceFashionDashFunnelOutputRowsElement>;
 };
-export type sdkFuncProductRelevanceFashionDashFunnelOutputResultsRowsElement = {
+export type sdkFuncProductRelevanceFashionDashFunnelOutputRowsElement = {
+    /**
+     * - [Go: string]
+     */
     event_type: string;
+    /**
+     * - [Go: string]
+     */
     from_rec: string;
+    /**
+     * - [Go: string]
+     */
     qt_events: string;
 };
 export type sdkFuncProductRelevanceFashionDashFunnelPartitions = {
+    /**
+     * - [Go: string]
+     */
     store_id: string;
 };
 export type sdkFuncProductRelevanceFashionDashFunnelReq = {
@@ -570,23 +951,38 @@ export type sdkFuncProductRelevanceFashionDashFunnelResp = {
     output: sdkFuncProductRelevanceFashionDashFunnelOutput;
 };
 export type sdkFuncProductRelevanceFashionFbtInput = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
     dataset: string;
     skus: Array<sdkFuncProductRelevanceFashionFbtInputSkusElement>;
 };
 export type sdkFuncProductRelevanceFashionFbtInputSkusElement = {
+    /**
+     * - [Go: string]
+     */
     sku_id: string;
 };
 export type sdkFuncProductRelevanceFashionFbtOutput = {
     results: Array<sdkFuncProductRelevanceFashionFbtOutputResultsElement>;
 };
 export type sdkFuncProductRelevanceFashionFbtOutputResultsElement = {
+    /**
+     * - [Go: float64]
+     */
     rating: number;
     skus: Array<sdkFuncProductRelevanceFashionFbtOutputResultsElementSkusElement>;
 };
 export type sdkFuncProductRelevanceFashionFbtOutputResultsElementSkusElement = {
+    /**
+     * - [Go: string]
+     */
     sku_id: string;
 };
 export type sdkFuncProductRelevanceFashionFbtPartitions = {
+    /**
+     * - [Go: string]
+     */
     store_id: string;
 };
 export type sdkFuncProductRelevanceFashionFbtReq = {
@@ -599,7 +995,7 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiDszCreateIngestionToken params
  * @typedef {object} apiDszCreateIngestionTokenParams
- * @property {string} dataset
+ * @property {string} dataset - [Go: lakedsz.Dataset]
  */
 /**
  * apiDszCreateIngestionToken Request
@@ -610,7 +1006,7 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiDszCreateIngestionToken reqPayload
  * @typedef {object} apiDszCreateIngestionTokenReqPayload
- * @property {string} annotation
+ * @property {string} annotation - [Go: string]
  */
 /**
  * apiDszCreateIngestionToken Response
@@ -618,22 +1014,22 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  * @property {apiDszCreateIngestionTokenRespPayload} payload
  */
 /**
- * apiDszCreateIngestionToken respPayload
+ * [Go: dsztoken.DatasetToken] apiDszCreateIngestionToken respPayload
  * @typedef {object} apiDszCreateIngestionTokenRespPayload
- * @property {string} id
- * @property {string} jti
- * @property {string} dataset
- * @property {string} annotation
- * @property {number} expiration_date
- * @property {string} audience
- * @property {Array<string>} grants
- * @property {string} channel
- * @property {string} token
+ * @property {string} id - [Go: string]
+ * @property {string} jti - [Go: string]
+ * @property {string} dataset - [Go: lakedsz.Dataset]
+ * @property {string} annotation - [Go: string]
+ * @property {number} expiration_date - [Go: int64]
+ * @property {string} audience - [Go: string]
+ * @property {Array<string>} grants - [Go: []string]
+ * @property {string} channel - [Go: string]
+ * @property {string} token - [Go: string]
  */
 /**
  * apiDszCreateRecsysToken params
  * @typedef {object} apiDszCreateRecsysTokenParams
- * @property {string} dataset
+ * @property {string} dataset - [Go: lakedsz.Dataset]
  */
 /**
  * apiDszCreateRecsysToken Request
@@ -644,8 +1040,8 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiDszCreateRecsysToken reqPayload
  * @typedef {object} apiDszCreateRecsysTokenReqPayload
- * @property {string} annotation
- * @property {string} channel
+ * @property {string} annotation - [Go: string]
+ * @property {string} channel - [Go: string]
  */
 /**
  * apiDszCreateRecsysToken Response
@@ -653,22 +1049,22 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  * @property {apiDszCreateRecsysTokenRespPayload} payload
  */
 /**
- * apiDszCreateRecsysToken respPayload
+ * [Go: dsztoken.DatasetToken] apiDszCreateRecsysToken respPayload
  * @typedef {object} apiDszCreateRecsysTokenRespPayload
- * @property {string} id
- * @property {string} jti
- * @property {string} dataset
- * @property {string} annotation
- * @property {number} expiration_date
- * @property {string} audience
- * @property {Array<string>} grants
- * @property {string} channel
- * @property {string} token
+ * @property {string} id - [Go: string]
+ * @property {string} jti - [Go: string]
+ * @property {string} dataset - [Go: lakedsz.Dataset]
+ * @property {string} annotation - [Go: string]
+ * @property {number} expiration_date - [Go: int64]
+ * @property {string} audience - [Go: string]
+ * @property {Array<string>} grants - [Go: []string]
+ * @property {string} channel - [Go: string]
+ * @property {string} token - [Go: string]
  */
 /**
  * apiDszCreateStore params
  * @typedef {object} apiDszCreateStoreParams
- * @property {string} dataset
+ * @property {string} dataset - [Go: lakedsz.Dataset]
  */
 /**
  * apiDszCreateStore Request
@@ -679,7 +1075,13 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiDszCreateStore reqPayload
  * @typedef {object} apiDszCreateStoreReqPayload
- * @property {object} store_id
+ * @property {apiDszCreateStoreReqPayloadStoreId} store_id - [Go: dszstore.DszStore]
+ */
+/**
+ * [Go: dszstore.DszStore]
+ * @typedef {object} apiDszCreateStoreReqPayloadStoreId
+ * @property {string} id - [Go: string]
+ * @property {string} name - [Go: string]
  */
 /**
  * apiDszCreateStore Response
@@ -688,12 +1090,12 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiDszDeleteToken params
  * @typedef {object} apiDszDeleteTokenParams
- * @property {string} dataset
+ * @property {string} dataset - [Go: lakedsz.Dataset]
  */
 /**
  * apiDszDeleteToken query
  * @typedef {object} apiDszDeleteTokenQuery
- * @property {string} token
+ * @property {string} token - [Go: string]
  */
 /**
  * apiDszDeleteToken Request
@@ -708,12 +1110,12 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiDszDomainGet params
  * @typedef {object} apiDszDomainGetParams
- * @property {string} dataset
+ * @property {string} dataset - [Go: lakedsz.Dataset]
  */
 /**
  * apiDszDomainGet query
  * @typedef {object} apiDszDomainGetQuery
- * @property {string} store_id
+ * @property {string} store_id - [Go: string]
  */
 /**
  * apiDszDomainGet Request
@@ -729,19 +1131,20 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiDszDomainGet respPayload
  * @typedef {object} apiDszDomainGetRespPayload
- * @property {string} dataset
+ * @property {string} dataset - [Go: lakedsz.Dataset]
  * @property {Array<apiDszDomainGetRespPayloadSolutionsElement>} solutions
- * @property {string} store_id
+ * @property {string} store_id - [Go: string]
  */
 /**
+ * [Go: dszapidomainsolutionget.SolutionDomain]
  * @typedef {object} apiDszDomainGetRespPayloadSolutionsElement
- * @property {string} solution
- * @property {string} domain
+ * @property {string} solution - [Go: solution.Solution]
+ * @property {string} domain - [Go: domain.Domain]
  */
 /**
  * apiDszDomainSelect params
  * @typedef {object} apiDszDomainSelectParams
- * @property {string} dataset
+ * @property {string} dataset - [Go: lakedsz.Dataset]
  */
 /**
  * apiDszDomainSelect Request
@@ -752,9 +1155,9 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiDszDomainSelect reqPayload
  * @typedef {object} apiDszDomainSelectReqPayload
- * @property {string} domain
- * @property {string} solution
- * @property {string} store_id
+ * @property {string} domain - [Go: domain.Domain]
+ * @property {string} solution - [Go: solution.Solution]
+ * @property {string} store_id - [Go: string]
  */
 /**
  * apiDszDomainSelect Response
@@ -763,7 +1166,7 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiDszListDatasets query
  * @typedef {object} apiDszListDatasetsQuery
- * @property {string} user
+ * @property {string} user - [Go: string]
  */
 /**
  * apiDszListDatasets Request
@@ -783,16 +1186,17 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * @typedef {object} apiDszListDatasetsRespPayloadDatasetsElement
  * @property {Array<apiDszListDatasetsRespPayloadDatasetsElementGrantsElement>} grants
- * @property {string} id
- * @property {string} name
+ * @property {string} id - [Go: string]
+ * @property {string} name - [Go: string]
  */
 /**
+ * [Go: string]
  * @typedef {string} apiDszListDatasetsRespPayloadDatasetsElementGrantsElement
  */
 /**
  * apiDszListIngestionTokens params
  * @typedef {object} apiDszListIngestionTokensParams
- * @property {string} dataset
+ * @property {string} dataset - [Go: lakedsz.Dataset]
  */
 /**
  * apiDszListIngestionTokens Request
@@ -805,13 +1209,13 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  * @property {apiDszListIngestionTokensRespPayload} payload
  */
 /**
- * apiDszListIngestionTokens respPayload
+ * [Go: dszapiingestiontokenslist.DszListIngestionTokensResp] apiDszListIngestionTokens respPayload
  * @typedef {object} apiDszListIngestionTokensRespPayload
  */
 /**
  * apiDszListRecsysTokens params
  * @typedef {object} apiDszListRecsysTokensParams
- * @property {string} dataset
+ * @property {string} dataset - [Go: lakedsz.Dataset]
  */
 /**
  * apiDszListRecsysTokens Request
@@ -824,13 +1228,13 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  * @property {apiDszListRecsysTokensRespPayload} payload
  */
 /**
- * apiDszListRecsysTokens respPayload
+ * [Go: dszapirecsystokenslist.DszListRecsysTokensResp] apiDszListRecsysTokens respPayload
  * @typedef {object} apiDszListRecsysTokensRespPayload
  */
 /**
  * apiDszListStores params
  * @typedef {object} apiDszListStoresParams
- * @property {string} dataset
+ * @property {string} dataset - [Go: lakedsz.Dataset]
  */
 /**
  * apiDszListStores Request
@@ -845,19 +1249,20 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiDszListStores respPayload
  * @typedef {object} apiDszListStoresRespPayload
- * @property {string} dataset
+ * @property {string} dataset - [Go: lakedsz.Dataset]
  * @property {Array<apiDszListStoresRespPayloadStoresElement>} stores
  */
 /**
+ * [Go: dszstore.DszStore]
  * @typedef {object} apiDszListStoresRespPayloadStoresElement
- * @property {string} id
- * @property {string} name
+ * @property {string} id - [Go: string]
+ * @property {string} name - [Go: string]
  */
 /**
  * apiDszModelGet params
  * @typedef {object} apiDszModelGetParams
- * @property {string} dataset - Name of the dataset to generate signed URLs for.
- * @property {string} model_name - Model name
+ * @property {string} dataset - [Go: lakedsz.Dataset] Name of the dataset to generate signed URLs for.
+ * @property {string} model_name - [Go: string] Model name
  */
 /**
  * apiDszModelGet Request
@@ -869,12 +1274,14 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  * apiDszModelGet reqPayload
  * @typedef {object} apiDszModelGetReqPayload
  * @property {Record<apiDszModelGetReqPayloadModelPartitionsKey, apiDszModelGetReqPayloadModelPartitionsValue>} model_partitions - Model partition key/value pairs
- * @property {string} model_version - Model version
+ * @property {string} model_version - [Go: string] Model version
  */
 /**
+ * [Go: string]
  * @typedef {string} apiDszModelGetReqPayloadModelPartitionsKey
  */
 /**
+ * [Go: string]
  * @typedef {string} apiDszModelGetReqPayloadModelPartitionsValue
  */
 /**
@@ -889,13 +1296,13 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  */
 /**
  * @typedef {object} apiDszModelGetRespPayloadUrlsElement
- * @property {string} name - File Name
- * @property {string} url - signed URL.
+ * @property {string} name - [Go: string] File Name
+ * @property {string} url - [Go: string] signed URL.
  */
 /**
  * apiDszSignedUrl params
  * @typedef {object} apiDszSignedUrlParams
- * @property {string} dataset - Name of the dataset to generate signed URLs for.
+ * @property {string} dataset - [Go: lakedsz.Dataset] Name of the dataset to generate signed URLs for.
  */
 /**
  * apiDszSignedUrl Request
@@ -911,8 +1318,8 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * Path and HTTP method specification for a signed URL.
  * @typedef {object} apiDszSignedUrlReqPayloadPathsElement
- * @property {string} method - HTTP method (e.g. GET, PUT) for the signed URL.
- * @property {string} path - File path within the dataset.
+ * @property {string} method - [Go: fszsignmethod.SignMethod] HTTP method (e.g. GET, PUT) for the signed URL.
+ * @property {string} path - [Go: laketbpathz.Path] File path within the dataset.
  */
 /**
  * apiDszSignedUrl Response
@@ -926,13 +1333,13 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  */
 /**
  * @typedef {object} apiDszSignedUrlRespPayloadUrlsElement
- * @property {string} url - signed URL.
+ * @property {string} url - [Go: string] signed URL.
  */
 /**
  * apiDszTableGet params
  * @typedef {object} apiDszTableGetParams
- * @property {string} dataset - Name of the dataset.
- * @property {string} path - Path to the file without schema.
+ * @property {string} dataset - [Go: lakedsz.Dataset] Name of the dataset.
+ * @property {string} path - [Go: string] Path to the file without schema.
  */
 /**
  * apiDszTableGet Request
@@ -947,22 +1354,22 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiDszTableGet respHeaders
  * @typedef {object} apiDszTableGetRespHeaders
- * @property {string} location - Redirect URL for the file.
+ * @property {string} location - [Go: string] Redirect URL for the file.
  */
 /**
  * apiDszTableList params
  * @typedef {object} apiDszTableListParams
- * @property {string} dataset - Name of the dataset to list tables from.
+ * @property {string} dataset - [Go: lakedsz.Dataset] Name of the dataset to list tables from.
  */
 /**
  * apiDszTableList query
  * @typedef {object} apiDszTableListQuery
- * @property {string} from_cursor - Pagination cursor.
- * @property {number} limist - Limit the number of results.
- * @property {string} path - Path to list.
- * @property {boolean} recursive - Whether to list recursively.
- * @property {string} sign_method - Whether to return signed URLs.
- * @property {boolean} stat - Whether to include file stats.
+ * @property {string} from_cursor - [Go: string] Pagination cursor.
+ * @property {number} limist - [Go: int] Limit the number of results.
+ * @property {string} path - [Go: laketbpathz.Path] Path to list.
+ * @property {boolean} recursive - [Go: bool] Whether to list recursively.
+ * @property {string} sign_method - [Go: fszsignmethod.SignMethod] Whether to return signed URLs.
+ * @property {boolean} stat - [Go: bool] Whether to include file stats.
  */
 /**
  * apiDszTableList Request
@@ -979,19 +1386,19 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  * apiDszTableList respPayload
  * @typedef {object} apiDszTableListRespPayload
  * @property {Array<apiDszTableListRespPayloadFilesElement>} files
- * @property {string} next_cursor - Cursor for the next page of results.
+ * @property {string} next_cursor - [Go: string] Cursor for the next page of results.
  */
 /**
  * File entry
  * @typedef {object} apiDszTableListRespPayloadFilesElement
- * @property {string} path - write it
- * @property {string} signed_url - write it
- * @property {dszFileStat} stat - write it
+ * @property {string} path - [Go: laketbpathz.Path] write it
+ * @property {string} signed_url - [Go: string] write it
+ * @property {dszFileStat} stat - [Go: fsz.FileStat] write it
  */
 /**
  * apiIngestzGetUrl params
  * @typedef {object} apiIngestzGetUrlParams
- * @property {string} dataset - Name of the dataset that receives the uploaded files.
+ * @property {string} dataset - [Go: lakedsz.Dataset] Name of the dataset that receives the uploaded files.
  */
 /**
  * apiIngestzGetUrl Request
@@ -1002,14 +1409,16 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiIngestzGetUrl reqPayload
  * @typedef {object} apiIngestzGetUrlReqPayload
- * @property {number} amount - Number of presigned upload URLs to generate.
+ * @property {number} amount - [Go: int] Number of presigned upload URLs to generate.
  * @property {Record<apiIngestzGetUrlReqPayloadPartitionsKey, apiIngestzGetUrlReqPayloadPartitionsValue>} partitions - Partition key/value pairs that select the table partition the files are ingested into.
- * @property {string} table - Name of the table, inside the dataset, that receives the uploaded files.
+ * @property {string} table - [Go: laketbnamez.TableName] Name of the table, inside the dataset, that receives the uploaded files.
  */
 /**
+ * [Go: string]
  * @typedef {string} apiIngestzGetUrlReqPayloadPartitionsKey
  */
 /**
+ * [Go: string]
  * @typedef {string} apiIngestzGetUrlReqPayloadPartitionsValue
  */
 /**
@@ -1020,16 +1429,17 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiIngestzGetUrl respPayload
  * @typedef {object} apiIngestzGetUrlRespPayload
- * @property {string} ingest_id - Ingestion token that identifies this ingestion and ties the uploaded files together.
+ * @property {string} ingest_id - [Go: string] Ingestion token that identifies this ingestion and ties the uploaded files together.
  * @property {Array<apiIngestzGetUrlRespPayloadUploadsElement>} uploads - Presigned PUT URLs, one per requested file; upload each file to its URL.
  */
 /**
+ * [Go: string]
  * @typedef {string} apiIngestzGetUrlRespPayloadUploadsElement
  */
 /**
  * apiIngestzStreamRelevanceFashionCatalog params
  * @typedef {object} apiIngestzStreamRelevanceFashionCatalogParams
- * @property {string} dataset - Name of the dataset that receives the stream data.
+ * @property {string} dataset - [Go: lakedsz.Dataset] Name of the dataset that receives the stream data.
  */
 /**
  * apiIngestzStreamRelevanceFashionCatalog Request
@@ -1044,12 +1454,12 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  */
 /**
  * @typedef {object} apiIngestzStreamRelevanceFashionCatalogReqPayloadDataElement
- * @property {string} id
- * @property {boolean} inactive
- * @property {string} product_id
- * @property {string} sku_ds
- * @property {string} sku_id
- * @property {string} store_id
+ * @property {string} id - [Go: string]
+ * @property {boolean} inactive - [Go: bool]
+ * @property {string} product_id - [Go: string]
+ * @property {string} sku_ds - [Go: string]
+ * @property {string} sku_id - [Go: string]
+ * @property {string} store_id - [Go: string]
  */
 /**
  * apiIngestzStreamRelevanceFashionCatalog Response
@@ -1058,7 +1468,7 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiIngestzStreamRelevanceFashionEvent params
  * @typedef {object} apiIngestzStreamRelevanceFashionEventParams
- * @property {string} dataset - Name of the dataset that receives the stream data.
+ * @property {string} dataset - [Go: lakedsz.Dataset] Name of the dataset that receives the stream data.
  */
 /**
  * apiIngestzStreamRelevanceFashionEvent Request
@@ -1073,34 +1483,98 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  */
 /**
  * @typedef {object} apiIngestzStreamRelevanceFashionEventReqPayloadDataElement
- * @property {object} add_to_cart
- * @property {object} click
- * @property {dszTime} created_at
- * @property {string} id
- * @property {string} p
- * @property {object} purchase
- * @property {object} recraw
- * @property {object} recshow
- * @property {object} remove_from_cart
- * @property {object} search
- * @property {string} session_id
- * @property {string} store_id
- * @property {string} user_id
+ * @property {apiIngestzStreamRelevanceFashionEventReqPayloadDataElementAddToCart} add_to_cart
+ * @property {apiIngestzStreamRelevanceFashionEventReqPayloadDataElementClick} click
+ * @property {dszTime} created_at - [Go: time.Time]
+ * @property {string} id - [Go: string]
+ * @property {string} ingested_at - [Go: string]
+ * @property {apiIngestzStreamRelevanceFashionEventReqPayloadDataElementPurchase} purchase
+ * @property {apiIngestzStreamRelevanceFashionEventReqPayloadDataElementRecraw} recraw
+ * @property {apiIngestzStreamRelevanceFashionEventReqPayloadDataElementRecshow} recshow
+ * @property {apiIngestzStreamRelevanceFashionEventReqPayloadDataElementRemoveFromCart} remove_from_cart
+ * @property {apiIngestzStreamRelevanceFashionEventReqPayloadDataElementSearch} search
+ * @property {string} session_id - [Go: string]
+ * @property {string} store_id - [Go: string]
+ * @property {string} user_id - [Go: string]
+ */
+/**
+ * @typedef {object} apiIngestzStreamRelevanceFashionEventReqPayloadDataElementAddToCart
+ * @property {number} price - [Go: float64]
+ * @property {string} sku_id - [Go: string]
+ */
+/**
+ * @typedef {object} apiIngestzStreamRelevanceFashionEventReqPayloadDataElementClick
+ * @property {number} price - [Go: float64]
+ * @property {string} sku_id - [Go: string]
+ */
+/**
+ * @typedef {object} apiIngestzStreamRelevanceFashionEventReqPayloadDataElementPurchase
+ * @property {string} order_id - [Go: string]
+ * @property {Array<apiIngestzStreamRelevanceFashionEventReqPayloadDataElementPurchaseSkusElement>} skus
  */
 /**
  * @typedef {object} apiIngestzStreamRelevanceFashionEventReqPayloadDataElementPurchaseSkusElement
- * @property {number} qtty
- * @property {string} sku_id
- * @property {number} unit_price
+ * @property {number} qtty - [Go: int64]
+ * @property {string} sku_id - [Go: string]
+ * @property {number} unit_price - [Go: float64]
+ */
+/**
+ * @typedef {object} apiIngestzStreamRelevanceFashionEventReqPayloadDataElementRecraw
+ * @property {string} model_id - [Go: string]
+ * @property {string} payload - [Go: string]
+ * @property {string} rec_id - [Go: string]
+ */
+/**
+ * @typedef {object} apiIngestzStreamRelevanceFashionEventReqPayloadDataElementRecshow
+ * @property {string} payload - [Go: string]
+ * @property {string} rec_id - [Go: string]
+ */
+/**
+ * @typedef {object} apiIngestzStreamRelevanceFashionEventReqPayloadDataElementRemoveFromCart
+ * @property {number} price - [Go: float64]
+ * @property {string} sku_id - [Go: string]
+ */
+/**
+ * @typedef {object} apiIngestzStreamRelevanceFashionEventReqPayloadDataElementSearch
+ * @property {string} text - [Go: string]
  */
 /**
  * apiIngestzStreamRelevanceFashionEvent Response
  * @typedef {object} apiIngestzStreamRelevanceFashionEventResp
  */
 /**
+ * apiPipezList params
+ * @typedef {object} apiPipezListParams
+ * @property {string} dataset - [Go: lakedsz.Dataset]
+ */
+/**
+ * apiPipezList query
+ * @typedef {object} apiPipezListQuery
+ * @property {string} cursor - [Go: string]
+ * @property {number} limit - [Go: int]
+ * @property {string} name - [Go: string]
+ * @property {string} solution_domain - [Go: solutiondomain.SolutionDomain]
+ * @property {string} status - [Go: string]
+ */
+/**
+ * apiPipezList Request
+ * @typedef {object} apiPipezListReq
+ * @property {apiPipezListParams} params
+ * @property {apiPipezListQuery} query
+ */
+/**
+ * apiPipezList Response
+ * @typedef {object} apiPipezListResp
+ * @property {apiPipezListRespPayload} payload
+ */
+/**
+ * [Go: pipezlist.PipezListResp] apiPipezList respPayload
+ * @typedef {object} apiPipezListRespPayload
+ */
+/**
  * apiPipezStart params
  * @typedef {object} apiPipezStartParams
- * @property {string} dataset
+ * @property {string} dataset - [Go: lakedsz.Dataset]
  */
 /**
  * apiPipezStart Request
@@ -1112,10 +1586,11 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  * apiPipezStart reqPayload
  * @typedef {object} apiPipezStartReqPayload
  * @property {Array<apiPipezStartReqPayloadParamsElement>} params
- * @property {string} pipename
- * @property {string} solution_domain
+ * @property {string} pipename - [Go: string]
+ * @property {string} solution_domain - [Go: solutiondomain.SolutionDomain]
  */
 /**
+ * [Go: pipezstart.PipeParam]
  * @typedef {object} apiPipezStartReqPayloadParamsElement
  */
 /**
@@ -1124,19 +1599,19 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  * @property {apiPipezStartRespPayload} payload
  */
 /**
- * apiPipezStart respPayload
+ * [Go: pipezstart.PipezStartResp] apiPipezStart respPayload
  * @typedef {object} apiPipezStartRespPayload
  */
 /**
  * apiSampleFraction params
  * @typedef {object} apiSampleFractionParams
- * @property {number} denominator - Fraction Denominator
- * @property {number} numerator - Fraction Numerator
+ * @property {number} denominator - [Go: float64] Fraction Denominator
+ * @property {number} numerator - [Go: float64] Fraction Numerator
  */
 /**
  * apiSampleFraction query
  * @typedef {object} apiSampleFractionQuery
- * @property {number} precision - Fraction max precision
+ * @property {number} precision - [Go: int] Fraction max precision
  */
 /**
  * apiSampleFraction Request
@@ -1149,18 +1624,18 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiSampleFraction reqHeaders
  * @typedef {object} apiSampleFractionReqHeaders
- * @property {string} x_i6_trace_id - Sample of Trace Id
+ * @property {string} x_i6_trace_id - [Go: string] Sample of Trace Id
  */
 /**
  * apiSampleFraction reqPayload
  * @typedef {object} apiSampleFractionReqPayload
  * @property {Array<apiSampleFractionReqPayloadMessagesElement>} messages
- * @property {string} reason - Sample reason of this fraction
+ * @property {string} reason - [Go: string] Sample reason of this fraction
  */
 /**
  * message
  * @typedef {object} apiSampleFractionReqPayloadMessagesElement
- * @property {string} message - message string
+ * @property {string} message - [Go: string] message string
  */
 /**
  * apiSampleFraction Response
@@ -1171,16 +1646,17 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * apiSampleFraction respHeaders
  * @typedef {object} apiSampleFractionRespHeaders
- * @property {string} x_i6_trace_message - Sample of any trace message
+ * @property {string} x_i6_trace_message - [Go: string] Sample of any trace message
  */
 /**
  * apiSampleFraction respPayload
  * @typedef {object} apiSampleFractionRespPayload
- * @property {string} display - Human Fraction Representation
+ * @property {string} display - [Go: string] Human Fraction Representation
  * @property {Array<apiSampleFractionRespPayloadMessagesElement>} messages - Output Messages
- * @property {string} result - Fraction Result
+ * @property {string} result - [Go: string] Fraction Result
  */
 /**
+ * [Go: string]
  * @typedef {string} apiSampleFractionRespPayloadMessagesElement
  */
 /**
@@ -1198,26 +1674,70 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  * @typedef {string} dszTime
  */
 /**
+ * sdkFuncProductRelevanceFashionDashAttachedRevenue input
+ * @typedef {object} sdkFuncProductRelevanceFashionDashAttachedRevenueInput
+ * @property {string} dataset - [Go: lakedsz.Dataset]
+ * @property {sdkFuncProductRelevanceFashionDashAttachedRevenueInputParams} params
+ */
+/**
+ * @typedef {object} sdkFuncProductRelevanceFashionDashAttachedRevenueInputParams
+ * @property {string} max_year_month - [Go: string]
+ * @property {string} min_year_month - [Go: string]
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashAttachedRevenue output
+ * @typedef {object} sdkFuncProductRelevanceFashionDashAttachedRevenueOutput
+ * @property {Array<sdkFuncProductRelevanceFashionDashAttachedRevenueOutputRowsElement>} rows
+ */
+/**
+ * @typedef {object} sdkFuncProductRelevanceFashionDashAttachedRevenueOutputRowsElement
+ * @property {number} attached_purchases - [Go: float64]
+ * @property {number} attached_revenue - [Go: float64]
+ * @property {number} attached_skus - [Go: float64]
+ * @property {number} avg_ticket - [Go: float64]
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashAttachedRevenue partitions
+ * @typedef {object} sdkFuncProductRelevanceFashionDashAttachedRevenuePartitions
+ * @property {string} store_id - [Go: string]
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashAttachedRevenue Request
+ * @typedef {object} sdkFuncProductRelevanceFashionDashAttachedRevenueReq
+ * @property {sdkFuncProductRelevanceFashionDashAttachedRevenueInput} input
+ * @property {sdkFuncProductRelevanceFashionDashAttachedRevenuePartitions} partitions
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashAttachedRevenue Response
+ * @typedef {object} sdkFuncProductRelevanceFashionDashAttachedRevenueResp
+ * @property {sdkFuncProductRelevanceFashionDashAttachedRevenueOutput} output
+ */
+/**
  * sdkFuncProductRelevanceFashionDashFunnel input
  * @typedef {object} sdkFuncProductRelevanceFashionDashFunnelInput
- * @property {string} dataset
- * @property {object} params
+ * @property {string} dataset - [Go: lakedsz.Dataset]
+ * @property {sdkFuncProductRelevanceFashionDashFunnelInputParams} params
+ */
+/**
+ * @typedef {object} sdkFuncProductRelevanceFashionDashFunnelInputParams
+ * @property {string} max_year_month - [Go: string]
+ * @property {string} min_year_month - [Go: string]
  */
 /**
  * sdkFuncProductRelevanceFashionDashFunnel output
  * @typedef {object} sdkFuncProductRelevanceFashionDashFunnelOutput
- * @property {object} results
+ * @property {Array<sdkFuncProductRelevanceFashionDashFunnelOutputRowsElement>} rows
  */
 /**
- * @typedef {object} sdkFuncProductRelevanceFashionDashFunnelOutputResultsRowsElement
- * @property {string} event_type
- * @property {string} from_rec
- * @property {string} qt_events
+ * @typedef {object} sdkFuncProductRelevanceFashionDashFunnelOutputRowsElement
+ * @property {string} event_type - [Go: string]
+ * @property {string} from_rec - [Go: string]
+ * @property {string} qt_events - [Go: string]
  */
 /**
  * sdkFuncProductRelevanceFashionDashFunnel partitions
  * @typedef {object} sdkFuncProductRelevanceFashionDashFunnelPartitions
- * @property {string} store_id
+ * @property {string} store_id - [Go: string]
  */
 /**
  * sdkFuncProductRelevanceFashionDashFunnel Request
@@ -1233,12 +1753,12 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
 /**
  * sdkFuncProductRelevanceFashionFbt input
  * @typedef {object} sdkFuncProductRelevanceFashionFbtInput
- * @property {string} dataset
+ * @property {string} dataset - [Go: lakedsz.Dataset]
  * @property {Array<sdkFuncProductRelevanceFashionFbtInputSkusElement>} skus
  */
 /**
  * @typedef {object} sdkFuncProductRelevanceFashionFbtInputSkusElement
- * @property {string} sku_id
+ * @property {string} sku_id - [Go: string]
  */
 /**
  * sdkFuncProductRelevanceFashionFbt output
@@ -1247,17 +1767,17 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  */
 /**
  * @typedef {object} sdkFuncProductRelevanceFashionFbtOutputResultsElement
- * @property {number} rating
+ * @property {number} rating - [Go: float64]
  * @property {Array<sdkFuncProductRelevanceFashionFbtOutputResultsElementSkusElement>} skus
  */
 /**
  * @typedef {object} sdkFuncProductRelevanceFashionFbtOutputResultsElementSkusElement
- * @property {string} sku_id
+ * @property {string} sku_id - [Go: string]
  */
 /**
  * sdkFuncProductRelevanceFashionFbt partitions
  * @typedef {object} sdkFuncProductRelevanceFashionFbtPartitions
- * @property {string} store_id
+ * @property {string} store_id - [Go: string]
  */
 /**
  * sdkFuncProductRelevanceFashionFbt Request
@@ -1282,50 +1802,23 @@ declare class Apis {
      */
     constructor(services: Services);
     /**
+     * Sample Fraction
      *
+     * Sample API that performs a fraction operation
      *
-     *
-     *
-     * @param {apiDszCreateIngestionTokenReq} req
-     * @returns {Promise<apiDszCreateIngestionTokenResp>}
+     * @param {apiSampleFractionReq} req
+     * @returns {Promise<apiSampleFractionResp>}
      */
-    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq): Promise<apiDszCreateIngestionTokenResp>;
+    sampleFraction(req: apiSampleFractionReq): Promise<apiSampleFractionResp>;
     /**
      *
      *
      *
      *
-     * @param {apiDszDeleteTokenReq} req
-     * @returns {Promise<apiDszDeleteTokenResp>}
+     * @param {apiPipezStartReq} req
+     * @returns {Promise<apiPipezStartResp>}
      */
-    dszDeleteToken(req: apiDszDeleteTokenReq): Promise<apiDszDeleteTokenResp>;
-    /**
-     * Get Model Signed URLs
-     *
-     * Generates presigned URLs for accessing model files in the specified dataset.
-     *
-     * @param {apiDszModelGetReq} req
-     * @returns {Promise<apiDszModelGetResp>}
-     */
-    dszModelGet(req: apiDszModelGetReq): Promise<apiDszModelGetResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListDatasetsReq} req
-     * @returns {Promise<apiDszListDatasetsResp>}
-     */
-    dszListDatasets(req: apiDszListDatasetsReq): Promise<apiDszListDatasetsResp>;
-    /**
-     * Stream Ingestion
-     *
-     * Ingests stream data into a target dataset table.
-     *
-     * @param {apiIngestzStreamRelevanceFashionEventReq} req
-     * @returns {Promise<apiIngestzStreamRelevanceFashionEventResp>}
-     */
-    ingestzStreamRelevanceFashionEvent(req: apiIngestzStreamRelevanceFashionEventReq): Promise<apiIngestzStreamRelevanceFashionEventResp>;
+    pipezStart(req: apiPipezStartReq): Promise<apiPipezStartResp>;
     /**
      *
      *
@@ -1340,10 +1833,28 @@ declare class Apis {
      *
      *
      *
-     * @param {apiDszDomainGetReq} req
-     * @returns {Promise<apiDszDomainGetResp>}
+     * @param {apiDszListDatasetsReq} req
+     * @returns {Promise<apiDszListDatasetsResp>}
      */
-    dszDomainGet(req: apiDszDomainGetReq): Promise<apiDszDomainGetResp>;
+    dszListDatasets(req: apiDszListDatasetsReq): Promise<apiDszListDatasetsResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateRecsysTokenReq} req
+     * @returns {Promise<apiDszCreateRecsysTokenResp>}
+     */
+    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<apiDszCreateRecsysTokenResp>;
+    /**
+     * Get Model Signed URLs
+     *
+     * Generates presigned URLs for accessing model files in the specified dataset.
+     *
+     * @param {apiDszModelGetReq} req
+     * @returns {Promise<apiDszModelGetResp>}
+     */
+    dszModelGet(req: apiDszModelGetReq): Promise<apiDszModelGetResp>;
     /**
      *
      *
@@ -1354,23 +1865,32 @@ declare class Apis {
      */
     dszListStores(req: apiDszListStoresReq): Promise<apiDszListStoresResp>;
     /**
-     * Get Ingestion Upload URLs
      *
-     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
      *
-     * @param {apiIngestzGetUrlReq} req
-     * @returns {Promise<apiIngestzGetUrlResp>}
+     *
+     *
+     * @param {apiDszListIngestionTokensReq} req
+     * @returns {Promise<apiDszListIngestionTokensResp>}
      */
-    ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<apiIngestzGetUrlResp>;
+    dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<apiDszListIngestionTokensResp>;
     /**
-     * Get Dataset Signed URLs
      *
-     * Generates presigned URLs for accessing or mutating files in the specified dataset.
      *
-     * @param {apiDszSignedUrlReq} req
-     * @returns {Promise<apiDszSignedUrlResp>}
+     *
+     *
+     * @param {apiDszCreateIngestionTokenReq} req
+     * @returns {Promise<apiDszCreateIngestionTokenResp>}
      */
-    dszSignedUrl(req: apiDszSignedUrlReq): Promise<apiDszSignedUrlResp>;
+    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq): Promise<apiDszCreateIngestionTokenResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezListReq} req
+     * @returns {Promise<apiPipezListResp>}
+     */
+    pipezList(req: apiPipezListReq): Promise<apiPipezListResp>;
     /**
      *
      *
@@ -1385,19 +1905,46 @@ declare class Apis {
      *
      *
      *
-     * @param {apiDszListIngestionTokensReq} req
-     * @returns {Promise<apiDszListIngestionTokensResp>}
+     * @param {apiDszDeleteTokenReq} req
+     * @returns {Promise<apiDszDeleteTokenResp>}
      */
-    dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<apiDszListIngestionTokensResp>;
+    dszDeleteToken(req: apiDszDeleteTokenReq): Promise<apiDszDeleteTokenResp>;
     /**
-     * Sample Fraction
+     * Get Ingestion Upload URLs
      *
-     * Sample API that performs a fraction operation
+     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
      *
-     * @param {apiSampleFractionReq} req
-     * @returns {Promise<apiSampleFractionResp>}
+     * @param {apiIngestzGetUrlReq} req
+     * @returns {Promise<apiIngestzGetUrlResp>}
      */
-    sampleFraction(req: apiSampleFractionReq): Promise<apiSampleFractionResp>;
+    ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<apiIngestzGetUrlResp>;
+    /**
+     * Stream Ingestion
+     *
+     * Ingests stream data into a target dataset table.
+     *
+     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
+     * @returns {Promise<apiIngestzStreamRelevanceFashionCatalogResp>}
+     */
+    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<apiIngestzStreamRelevanceFashionCatalogResp>;
+    /**
+     * Stream Ingestion
+     *
+     * Ingests stream data into a target dataset table.
+     *
+     * @param {apiIngestzStreamRelevanceFashionEventReq} req
+     * @returns {Promise<apiIngestzStreamRelevanceFashionEventResp>}
+     */
+    ingestzStreamRelevanceFashionEvent(req: apiIngestzStreamRelevanceFashionEventReq): Promise<apiIngestzStreamRelevanceFashionEventResp>;
+    /**
+     * Get Dataset Signed URLs
+     *
+     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     *
+     * @param {apiDszSignedUrlReq} req
+     * @returns {Promise<apiDszSignedUrlResp>}
+     */
+    dszSignedUrl(req: apiDszSignedUrlReq): Promise<apiDszSignedUrlResp>;
     /**
      * Get Dataset Table File
      *
@@ -1421,37 +1968,19 @@ declare class Apis {
      *
      *
      *
+     * @param {apiDszDomainGetReq} req
+     * @returns {Promise<apiDszDomainGetResp>}
+     */
+    dszDomainGet(req: apiDszDomainGetReq): Promise<apiDszDomainGetResp>;
+    /**
+     *
+     *
+     *
+     *
      * @param {apiDszCreateStoreReq} req
      * @returns {Promise<apiDszCreateStoreResp>}
      */
     dszCreateStore(req: apiDszCreateStoreReq): Promise<apiDszCreateStoreResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateRecsysTokenReq} req
-     * @returns {Promise<apiDszCreateRecsysTokenResp>}
-     */
-    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<apiDszCreateRecsysTokenResp>;
-    /**
-     * Stream Ingestion
-     *
-     * Ingests stream data into a target dataset table.
-     *
-     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
-     * @returns {Promise<apiIngestzStreamRelevanceFashionCatalogResp>}
-     */
-    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<apiIngestzStreamRelevanceFashionCatalogResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiPipezStartReq} req
-     * @returns {Promise<apiPipezStartResp>}
-     */
-    pipezStart(req: apiPipezStartReq): Promise<apiPipezStartResp>;
 }
 export { Apis };
 declare class SdkFuncs {
@@ -1470,6 +1999,11 @@ declare class SdkFuncs {
      * @returns {Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>}
      */
     productRelevanceFashionDashFunnelV1(req: sdkFuncProductRelevanceFashionDashFunnelReq): Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>;
+    /**
+     * @param {sdkFuncProductRelevanceFashionDashAttachedRevenueReq} req
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>}
+     */
+    productRelevanceFashionDashAttachedRevenueV1(req: sdkFuncProductRelevanceFashionDashAttachedRevenueReq): Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>;
     /**
      * @param {sdkFuncProductRelevanceFashionFbtReq} req
      * @returns {Promise<sdkFuncProductRelevanceFashionFbtOutput>}

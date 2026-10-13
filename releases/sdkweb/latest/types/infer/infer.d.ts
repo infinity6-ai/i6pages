@@ -16,11 +16,7 @@ export type InferOptions = {
      */
     modelName: string;
     /**
-     * - Model version (e.g. "v1").
-     */
-    modelVersion: string;
-    /**
-     * - Partitions of the model, name -> value (e.g. `{ store_id: "s1" }`). Any partitions.
+     * - Partitions of the model, name -> value (e.g. `{ version: "v1", store_id: "s1" }`). Any partitions.
      */
     partitions: Record<string, string>;
     /**
