@@ -698,25 +698,9 @@ export type apiDszListPendingPaymentsRespPayload = {
 };
 export type apiDszListPendingPaymentsRespPayloadPendingPaymentsElement = {
     /**
-     * - [Go: string] Id of the dataset that is going to be created after the payment
+     * - [Go: lakedsz.Dataset] Id of the dataset that is going to be created after the payment
      */
     dataset: string;
-    /**
-     * - [Go: string] Name of the dataset
-     */
-    dataset_name: string;
-    /**
-     * - [Go: string] Id of the payment on the payment provider
-     */
-    payment_id: string;
-    /**
-     * - [Go: string] Payment provider
-     */
-    payment_type: string;
-    /**
-     * - [Go: string] User that is buying
-     */
-    user_id: string;
 };
 export type apiDszListRecsysTokensParams = {
     /**
@@ -1830,11 +1814,7 @@ export type sdkFuncProductRelevanceFashionFbtResp = {
  */
 /**
  * @typedef {object} apiDszListPendingPaymentsRespPayloadPendingPaymentsElement
- * @property {string} dataset - [Go: string] Id of the dataset that is going to be created after the payment
- * @property {string} dataset_name - [Go: string] Name of the dataset
- * @property {string} payment_id - [Go: string] Id of the payment on the payment provider
- * @property {string} payment_type - [Go: string] Payment provider
- * @property {string} user_id - [Go: string] User that is buying
+ * @property {string} dataset - [Go: lakedsz.Dataset] Id of the dataset that is going to be created after the payment
  */
 /**
  * apiDszListRecsysTokens params
@@ -2513,19 +2493,46 @@ declare class Apis {
      *
      *
      *
-     * @param {apiPipezGetReq} req
-     * @returns {Promise<apiPipezGetResp>}
+     * @param {apiDszDomainGetReq} req
+     * @returns {Promise<apiDszDomainGetResp>}
      */
-    pipezGet(req: apiPipezGetReq): Promise<apiPipezGetResp>;
+    dszDomainGet(req: apiDszDomainGetReq): Promise<apiDszDomainGetResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListDatasetsReq} req
+     * @returns {Promise<apiDszListDatasetsResp>}
+     */
+    dszListDatasets(req: apiDszListDatasetsReq): Promise<apiDszListDatasetsResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateRecsysTokenReq} req
+     * @returns {Promise<apiDszCreateRecsysTokenResp>}
+     */
+    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<apiDszCreateRecsysTokenResp>;
+    /**
+     * Get Payment Status
+     *
+     * Checks the payment of a dataset. When it is paid the dataset is created and granted to the user.
+     *
+     * @param {apiDszGetPaymentStatusReq} req
+     * @returns {Promise<apiDszGetPaymentStatusResp>}
+     */
+    dszGetPaymentStatus(req: apiDszGetPaymentStatusReq): Promise<apiDszGetPaymentStatusResp>;
     /**
      * Stream Ingestion
      *
      * Ingests stream data into a target dataset table.
      *
-     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
-     * @returns {Promise<apiIngestzStreamRelevanceFashionCatalogResp>}
+     * @param {apiIngestzStreamRelevanceFashionEventReq} req
+     * @returns {Promise<apiIngestzStreamRelevanceFashionEventResp>}
      */
-    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<apiIngestzStreamRelevanceFashionCatalogResp>;
+    ingestzStreamRelevanceFashionEvent(req: apiIngestzStreamRelevanceFashionEventReq): Promise<apiIngestzStreamRelevanceFashionEventResp>;
     /**
      * Get Dataset Signed URLs
      *
@@ -2540,37 +2547,10 @@ declare class Apis {
      *
      *
      *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
-     * @returns {Promise<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>}
+     * @param {apiPipezGetReq} req
+     * @returns {Promise<apiPipezGetResp>}
      */
-    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq): Promise<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListIngestionTokensReq} req
-     * @returns {Promise<apiDszListIngestionTokensResp>}
-     */
-    dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<apiDszListIngestionTokensResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListRecsysTokensReq} req
-     * @returns {Promise<apiDszListRecsysTokensResp>}
-     */
-    dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<apiDszListRecsysTokensResp>;
-    /**
-     * Get Payment Status
-     *
-     * Checks the payment of a dataset. When it is paid the dataset is created and granted to the user.
-     *
-     * @param {apiDszGetPaymentStatusReq} req
-     * @returns {Promise<apiDszGetPaymentStatusResp>}
-     */
-    dszGetPaymentStatus(req: apiDszGetPaymentStatusReq): Promise<apiDszGetPaymentStatusResp>;
+    pipezGet(req: apiPipezGetReq): Promise<apiPipezGetResp>;
     /**
      *
      *
@@ -2585,10 +2565,46 @@ declare class Apis {
      *
      *
      *
-     * @param {apiDszCreateRecsysTokenReq} req
-     * @returns {Promise<apiDszCreateRecsysTokenResp>}
+     * @param {apiDszCreateIngestionTokenReq} req
+     * @returns {Promise<apiDszCreateIngestionTokenResp>}
      */
-    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<apiDszCreateRecsysTokenResp>;
+    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq): Promise<apiDszCreateIngestionTokenResp>;
+    /**
+     * Sample Fraction
+     *
+     * Sample API that performs a fraction operation
+     *
+     * @param {apiSampleFractionReq} req
+     * @returns {Promise<apiSampleFractionResp>}
+     */
+    sampleFraction(req: apiSampleFractionReq): Promise<apiSampleFractionResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
+     * @returns {Promise<apiPipezStartRelevanceFashionRelevanceFashionMainResp>}
+     */
+    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq): Promise<apiPipezStartRelevanceFashionRelevanceFashionMainResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszDomainSelectReq} req
+     * @returns {Promise<apiDszDomainSelectResp>}
+     */
+    dszDomainSelect(req: apiDszDomainSelectReq): Promise<apiDszDomainSelectResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListStoresReq} req
+     * @returns {Promise<apiDszListStoresResp>}
+     */
+    dszListStores(req: apiDszListStoresReq): Promise<apiDszListStoresResp>;
     /**
      * Get Model Signed URLs
      *
@@ -2607,15 +2623,6 @@ declare class Apis {
      * @returns {Promise<apiDszStripeCheckoutResp>}
      */
     dszStripeCheckout(req: apiDszStripeCheckoutReq): Promise<apiDszStripeCheckoutResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDomainGetReq} req
-     * @returns {Promise<apiDszDomainGetResp>}
-     */
-    dszDomainGet(req: apiDszDomainGetReq): Promise<apiDszDomainGetResp>;
     /**
      * Get Ingestion Upload URLs
      *
@@ -2648,73 +2655,19 @@ declare class Apis {
      *
      *
      *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
-     * @returns {Promise<apiPipezStartRelevanceFashionRelevanceFashionMainResp>}
+     * @param {apiDszListIngestionTokensReq} req
+     * @returns {Promise<apiDszListIngestionTokensResp>}
      */
-    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq): Promise<apiPipezStartRelevanceFashionRelevanceFashionMainResp>;
+    dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<apiDszListIngestionTokensResp>;
     /**
      *
      *
      *
      *
-     * @param {apiPipezListReq} req
-     * @returns {Promise<apiPipezListResp>}
+     * @param {apiDszListRecsysTokensReq} req
+     * @returns {Promise<apiDszListRecsysTokensResp>}
      */
-    pipezList(req: apiPipezListReq): Promise<apiPipezListResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListStoresReq} req
-     * @returns {Promise<apiDszListStoresResp>}
-     */
-    dszListStores(req: apiDszListStoresReq): Promise<apiDszListStoresResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListDatasetsReq} req
-     * @returns {Promise<apiDszListDatasetsResp>}
-     */
-    dszListDatasets(req: apiDszListDatasetsReq): Promise<apiDszListDatasetsResp>;
-    /**
-     * Sample Fraction
-     *
-     * Sample API that performs a fraction operation
-     *
-     * @param {apiSampleFractionReq} req
-     * @returns {Promise<apiSampleFractionResp>}
-     */
-    sampleFraction(req: apiSampleFractionReq): Promise<apiSampleFractionResp>;
-    /**
-     * Stream Ingestion
-     *
-     * Ingests stream data into a target dataset table.
-     *
-     * @param {apiIngestzStreamRelevanceFashionEventReq} req
-     * @returns {Promise<apiIngestzStreamRelevanceFashionEventResp>}
-     */
-    ingestzStreamRelevanceFashionEvent(req: apiIngestzStreamRelevanceFashionEventReq): Promise<apiIngestzStreamRelevanceFashionEventResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDomainSelectReq} req
-     * @returns {Promise<apiDszDomainSelectResp>}
-     */
-    dszDomainSelect(req: apiDszDomainSelectReq): Promise<apiDszDomainSelectResp>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateIngestionTokenReq} req
-     * @returns {Promise<apiDszCreateIngestionTokenResp>}
-     */
-    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq): Promise<apiDszCreateIngestionTokenResp>;
+    dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<apiDszListRecsysTokensResp>;
     /**
      *
      *
@@ -2733,6 +2686,33 @@ declare class Apis {
      * @returns {Promise<apiDszListPendingPaymentsResp>}
      */
     dszListPendingPayments(req: apiDszListPendingPaymentsReq): Promise<apiDszListPendingPaymentsResp>;
+    /**
+     * Stream Ingestion
+     *
+     * Ingests stream data into a target dataset table.
+     *
+     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
+     * @returns {Promise<apiIngestzStreamRelevanceFashionCatalogResp>}
+     */
+    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<apiIngestzStreamRelevanceFashionCatalogResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
+     * @returns {Promise<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>}
+     */
+    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq): Promise<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezListReq} req
+     * @returns {Promise<apiPipezListResp>}
+     */
+    pipezList(req: apiPipezListReq): Promise<apiPipezListResp>;
 }
 export { Apis };
 declare class SdkFuncs {
@@ -2747,11 +2727,6 @@ declare class SdkFuncs {
      */
     constructor(services: Services);
     /**
-     * @param {sdkFuncProductRelevanceFashionDashFunnelReq} req
-     * @returns {Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>}
-     */
-    productRelevanceFashionDashFunnelV1(req: sdkFuncProductRelevanceFashionDashFunnelReq): Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>;
-    /**
      * @param {sdkFuncProductRelevanceFashionDashAttachedRevenueReq} req
      * @returns {Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>}
      */
@@ -2761,6 +2736,11 @@ declare class SdkFuncs {
      * @returns {Promise<sdkFuncProductRelevanceFashionFbtOutput>}
      */
     productRelevanceFashionFbtV1(req: sdkFuncProductRelevanceFashionFbtReq): Promise<sdkFuncProductRelevanceFashionFbtOutput>;
+    /**
+     * @param {sdkFuncProductRelevanceFashionDashFunnelReq} req
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>}
+     */
+    productRelevanceFashionDashFunnelV1(req: sdkFuncProductRelevanceFashionDashFunnelReq): Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>;
 }
 export { SdkFuncs };
 /**
