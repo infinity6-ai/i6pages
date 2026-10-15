@@ -4,9 +4,6 @@
  */
 export type FileRef = import('../fs/fs.js').FileRef;
 /**
- * @typedef {import('../fs/fs.js').FileRef} FileRef
- */
-/**
  * Downloads remote files into the versioned file store. Use the `downloader` singleton.
  */
 declare class Downloader {
@@ -20,6 +17,7 @@ declare class Downloader {
      * @returns {Promise<FileRef>} the FileRef of the up-to-date file (basically to get the version)
      * @throws {TypeError} If name or url is missing.
      * @throws {Error} If the HEAD or GET request fails, or the HEAD response has no etag.
+     *   When the server answered, the error has `status` (the HTTP status code).
     */
     update(opts: {
         name: string;

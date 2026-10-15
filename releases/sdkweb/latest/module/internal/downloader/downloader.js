@@ -1,4 +1,7 @@
 import { fs } from "../fs/fs.js";
+function httpError(message, status) {
+  return Object.assign(new Error(message), { status });
+}
 class Downloader {
   /**
    * Downloads the file by name if necessary (checking etag): sends a HEAD request, and
@@ -10,12 +13,13 @@ class Downloader {
    * @returns {Promise<FileRef>} the FileRef of the up-to-date file (basically to get the version)
    * @throws {TypeError} If name or url is missing.
    * @throws {Error} If the HEAD or GET request fails, or the HEAD response has no etag.
+   *   When the server answered, the error has `status` (the HTTP status code).
   */
   async update(opts) {
     if (!opts || !opts.name) throw new TypeError("downloader: opts.name is required");
     if (!opts.url) throw new TypeError("downloader: opts.url is required");
     const head = await fetch(opts.url, { method: "HEAD" });
-    if (!head.ok) throw new Error(`downloader: HEAD ${opts.url} failed (${head.status})`);
+    if (!head.ok) throw httpError(`downloader: HEAD ${opts.url} failed (${head.status})`, head.status);
     const etag = head.headers.get("etag");
     if (!etag) throw new Error("downloader: no etag in HEAD response");
     const current = await fs.get({ name: opts.name });
@@ -24,7 +28,7 @@ class Downloader {
     let success = false;
     try {
       const response = await fetch(opts.url);
-      if (!response.ok) throw new Error(`downloader: GET ${opts.url} failed (${response.status})`);
+      if (!response.ok) throw httpError(`downloader: GET ${opts.url} failed (${response.status})`, response.status);
       let dir = await navigator.storage.getDirectory();
       for (const segment of (await fs.resolve(ref)).split("/")) {
         dir = segment === "blob.bin" ? await dir.getFileHandle(segment, { create: true }) : await dir.getDirectoryHandle(segment);

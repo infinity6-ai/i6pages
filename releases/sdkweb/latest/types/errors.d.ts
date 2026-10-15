@@ -9,7 +9,8 @@ export type I6ErrorCode = "http" | "network" | "invalid_argument" | "no_upload_u
  * Error thrown by the SDK when a call fails.
  *
  * `code` tells what kind of failure it was, so callers can branch on it instead of parsing
- * the message. `status` and `body` are set for `"http"` failures.
+ * the message. `status` and `body` are set for `"http"` failures. `"asset"` failures also have `status`
+ * when a file download was answered with an error (404: the file does not exist), and always `cause`.
  */
 declare class I6Error extends Error {
     /** @type {I6ErrorCode|undefined} */

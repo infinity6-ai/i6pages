@@ -12,7 +12,7 @@ async function downloadFile(name, url) {
     if (globalThis.I6_DEBUG) console.log(`assets: ${name} is ready`, ref);
     return ref;
   } catch (cause) {
-    throw new I6Error(`could not get ${url}: ${cause.message}`, { code: "asset", cause });
+    throw new I6Error(`could not get ${url}: ${cause.message}`, { code: "asset", status: cause.status, cause });
   }
 }
 export { partitionsKey, isPartitions, downloadFile };

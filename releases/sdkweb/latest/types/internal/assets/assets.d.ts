@@ -20,7 +20,8 @@ declare function isPartitions(partitions: any): boolean;
  * @param {string} name - Name of the cached file.
  * @param {string} url - URL of the file.
  * @returns {Promise<FileRef>} The cached file.
- * @throws {I6Error} With code "asset" if the download fails.
+ * @throws {I6Error} With code "asset" if the download fails; `status` is the HTTP status when the server answered
+ *   (404 when the file does not exist, e.g. a store or month without data) and `cause` is the underlying error.
  */
 declare function downloadFile(name: string, url: string): Promise<FileRef>;
 export { partitionsKey, isPartitions, downloadFile };
