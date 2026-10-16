@@ -7,6 +7,14 @@ export type I6SdkConfig = {
      * - Base URL of the i6 server. Defaults to the sandbox environment.
      */
     baseUrl?: string;
+    /**
+     * - Id of the user session; sent in the recommendation events (required by `funcs()` inference).
+     */
+    sessionId?: string;
+    /**
+     * - Id of the user; sent in the recommendation events (required by `funcs()` inference).
+     */
+    userId?: string;
 };
 /**
  * Main SDK class providing access to i6 services.
@@ -17,14 +25,23 @@ declare class I6Sdk {
      * @type {Services}
      */
     _service;
-    _config: {
-        baseUrl?: string;
-    };
     /**
      * Constructs an instance of the i6 SDK.
      * @param {I6SdkConfig} [config] - Configuration options for the SDK.
      */
     constructor(config?: I6SdkConfig);
+    /**
+     * Returns a copy of the configuration the SDK is running with.
+     * @returns {I6SdkConfig} The current configuration.
+     */
+    config(): I6SdkConfig;
+    /**
+     * Overwrites the given keys of the configuration (e.g. `{ sessionId, userId }`); the other keys are kept.
+     * Can be called at any time, the next call of the SDK uses the new values.
+     * @param {Partial<I6SdkConfig>} config - The keys to overwrite.
+     * @returns {void}
+     */
+    setConfig(config: Partial<I6SdkConfig>): void;
     /**
      * Returns an Ingest service instance.
      * @returns {Ingest} An instance of the Ingest client.

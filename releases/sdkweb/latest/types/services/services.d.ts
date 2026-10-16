@@ -33,6 +33,13 @@ declare class Services {
      */
     config(): I6SdkConfig;
     /**
+     * Overwrites the given keys of the SDK configuration; the other keys are kept.
+     * Clients read the config on every call, so the change is seen by every client of this container at once.
+     * @param {Partial<I6SdkConfig>} config - The keys to overwrite.
+     * @returns {void}
+     */
+    setConfig(config: Partial<I6SdkConfig>): void;
+    /**
      * Registers an event listener on the internal event dispatcher.
      * @param {string} evt - The event type or name to listen for.
      * @param {EventListenerOrEventListenerObject|Function} fn - The callback function or event listener object invoked when the event occurs.

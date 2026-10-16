@@ -44,10 +44,45 @@ export type InferOptions = {
      */
     litertWasm?: string;
 };
+export type SelectResultsOptions = {
+    /**
+     * - Dataset that receives the `recraw` and `recshow` events.
+     */
+    dataset: string;
+    /**
+     * - Model that made the recommendation (e.g. "relevance-fashion-fbt").
+     */
+    modelName: string;
+    /**
+     * - Version of that model.
+     */
+    modelVersion: string;
+    /**
+     * - Store of the event.
+     */
+    storeId: string;
+    /**
+     * - What the caller asked for; given as is to `selectResults`.
+     */
+    req: any;
+    /**
+     * - What `run` returned (its `rec_id` is the id of the recommendation); given as is to `selectResults`.
+     */
+    results: any;
+    /**
+     * - Id of the recommendation, the `rec_id` that `run` returned. Same as in the `recraw` event that `run` sent; sent in the `recshow` event.
+     */
+    recId: string;
+    /**
+     * - Picks which of the recommended skus are shown.
+     */
+    selectResults: (req: any, results: any) => Promise<any>;
+};
 /**
  * Inference client.
  */
 declare class Infer {
+    #private;
     /**
      * @private
      * @type {Services}
@@ -61,11 +96,38 @@ declare class Infer {
     /**
      * Runs the model for the given params and returns what the output query gives.
      * @param {InferOptions} opts - Inference options.
-     * @returns {Promise<*>} The `ret` of the named query `model-${modelName}-output`.
-     * @throws {I6Error} With code "invalid_argument" if opts is malformed or the model inputs do not fit the model,
+     * @returns {Promise<*>} The `ret` of the named query `model-${modelName}-output`, plus a generated `rec_id` (uuid). Sends the `recraw` event with that id.
+     * @throws {I6Error} With code "invalid_argument" if opts is malformed, the sdk has no `sessionId` and `userId` or the model inputs do not fit the model,
      *   "asset" if a download fails, "model" if loading or running the model fails, "query" if the sqlite fails.
      */
     run(opts: InferOptions): Promise<any>;
+    /**
+     * Asks `selectResults` which of the recommended skus are shown and sends those as the `recshow` event.
+     * @param {SelectResultsOptions} opts - Select options.
+     * @returns {Promise<*>} What `selectResults` returned.
+     * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing or the sdk has no `sessionId` and
+     *   `userId`, "event" if an event is not accepted.
+     */
+    selectResults(opts: SelectResultsOptions): Promise<any>;
+    /**
+     * The session and user the sdk was created with (`new I6Sdk({ sessionId, userId })`).
+     * @private
+     * @returns {{sessionId: string, userId: string}}
+     * @throws {I6Error} With code "invalid_argument" if one of them is missing.
+     */
+    private #sdkIds;
+    /**
+     * Sends one recommendation event.
+     * @private
+     * @param {{dataset: string, modelName: string, modelVersion: string, storeId: string}} opts - Event options.
+     * @param {{sessionId: string, userId: string}} ids - Session and user of the sdk.
+     * @param {string} recId - Id of the recommendation, the same in the recraw and recshow events.
+     * @param {"recraw"|"recshow"} kind - Which event.
+     * @param {*} payload - What the event carries, any JSON.
+     * @returns {Promise<void>}
+     * @throws {I6Error} With code "event" if the event is not accepted.
+     */
+    private #sendRecEvent;
     /**
      * Finds where the model files are: the signed URLs of the model API, unless opts has both URLs (tests).
      * @private

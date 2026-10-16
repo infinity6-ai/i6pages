@@ -19,12 +19,13 @@ class Infer {
   /**
    * Runs the model for the given params and returns what the output query gives.
    * @param {InferOptions} opts - Inference options.
-   * @returns {Promise<*>} The `ret` of the named query `model-${modelName}-output`.
-   * @throws {I6Error} With code "invalid_argument" if opts is malformed or the model inputs do not fit the model,
+   * @returns {Promise<*>} The `ret` of the named query `model-${modelName}-output`, plus a generated `rec_id` (uuid). Sends the `recraw` event with that id.
+   * @throws {I6Error} With code "invalid_argument" if opts is malformed, the sdk has no `sessionId` and `userId` or the model inputs do not fit the model,
    *   "asset" if a download fails, "model" if loading or running the model fails, "query" if the sqlite fails.
    */
   async run(opts) {
     validate(opts);
+    const ids = this.#sdkIds();
     const { modelName, params } = opts;
     const queryName = (kind) => `model-${modelName}-${kind}`;
     const urls = await this._assetUrls(opts);
@@ -45,10 +46,78 @@ class Infer {
       debug("output returned (before namedJsonQuery)", outputs);
       const result = await conn.namedJsonQuery({ name: queryName("output"), params: outputQueryParams(outputs, opts) });
       debug("output query returned (after namedJsonQuery)", result);
-      return result;
+      const recId = crypto.randomUUID();
+      const results = { ...result, rec_id: recId };
+      const eventOpts = { dataset: opts.dataset, modelName, modelVersion: opts.partitions.version, storeId: opts.partitions.store_id };
+      await this.#sendRecEvent(eventOpts, ids, recId, "recraw", results);
+      return results;
     } finally {
       await conn.close();
     }
+  }
+  /**
+   * Asks `selectResults` which of the recommended skus are shown and sends those as the `recshow` event.
+   * @param {SelectResultsOptions} opts - Select options.
+   * @returns {Promise<*>} What `selectResults` returned.
+   * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing or the sdk has no `sessionId` and
+   *   `userId`, "event" if an event is not accepted.
+   */
+  async selectResults(opts) {
+    if (typeof opts?.selectResults !== "function") {
+      throw new I6Error("infer: opts.selectResults must be a function", { code: "invalid_argument" });
+    }
+    const { req, results } = opts;
+    const { recId } = opts;
+    if (!recId) throw new I6Error("infer: opts.recId is required", { code: "invalid_argument" });
+    const ids = this.#sdkIds();
+    const selected = await opts.selectResults(req, results);
+    await this.#sendRecEvent(opts, ids, recId, "recshow", selected);
+    return selected;
+  }
+  /**
+   * The session and user the sdk was created with (`new I6Sdk({ sessionId, userId })`).
+   * @private
+   * @returns {{sessionId: string, userId: string}}
+   * @throws {I6Error} With code "invalid_argument" if one of them is missing.
+   */
+  #sdkIds() {
+    const { sessionId, userId } = this._services?.config?.() ?? {};
+    if (!sessionId || !userId) {
+      throw new I6Error("infer: the sdk needs sessionId and userId, e.g. new I6Sdk({ sessionId, userId })", { code: "invalid_argument" });
+    }
+    return { sessionId, userId };
+  }
+  /**
+   * Sends one recommendation event.
+   * @private
+   * @param {{dataset: string, modelName: string, modelVersion: string, storeId: string}} opts - Event options.
+   * @param {{sessionId: string, userId: string}} ids - Session and user of the sdk.
+   * @param {string} recId - Id of the recommendation, the same in the recraw and recshow events.
+   * @param {"recraw"|"recshow"} kind - Which event.
+   * @param {*} payload - What the event carries, any JSON.
+   * @returns {Promise<void>}
+   * @throws {I6Error} With code "event" if the event is not accepted.
+   */
+  async #sendRecEvent(opts, ids, recId, kind, payload) {
+    await this._services.apis().ingestzStreamRelevanceFashionEvent({
+      params: { dataset: opts.dataset },
+      payload: {
+        data: [{
+          id: crypto.randomUUID(),
+          store_id: opts.storeId,
+          session_id: ids.sessionId,
+          user_id: ids.userId,
+          dataset: opts.dataset,
+          created_at: (/* @__PURE__ */ new Date()).toISOString().split(".")[0] + "Z",
+          [kind]: {
+            rec_id: recId,
+            model_id: opts.modelName,
+            model_version: opts.modelVersion,
+            payload: JSON.stringify(payload)
+          }
+        }]
+      }
+    });
   }
   /**
    * Finds where the model files are: the signed URLs of the model API, unless opts has both URLs (tests).
