@@ -24,8 +24,22 @@ class I6Error extends Error {
     return new I6Error(`${message} with status ${result.status}`, {
       code: "http",
       status: result.status,
-      body: result.error
+      body: result.error?.message,
+      cause: result.error
     });
   }
 }
-export { I6Error };
+function codeFromStatus(status) {
+  if (status === 401) return "unauthenticated";
+  if (status === 403) return "forbidden";
+  if (status === 404) return "not_found";
+  if (status >= 500) return "unavailable";
+  return "bad_request";
+}
+function apiErrorFromResponse(status, text) {
+  return { status, code: codeFromStatus(status), message: text || `HTTP ${status}`, cause: text };
+}
+function apiErrorFromNetwork(cause) {
+  return { status: 0, code: "network", message: cause?.message || "network error", cause };
+}
+export { I6Error, apiErrorFromResponse, apiErrorFromNetwork };

@@ -90,5 +90,17 @@ declare class Invoker {
      * @throws {TypeError} If the network request fails (from fetch).
      */
     invoke(opts: InvokeOptions): Promise<Response>;
+    /**
+     * Like `invoke`, but never throws: resolves with `{status, ok, <key>}` on success and with
+     * `{status, ok: false, error}` (see `I6ApiError`) on an HTTP error or a network failure.
+     * @param {InvokeOptions} opts - Same as `invoke`.
+     * @param {"payload"|"body"} [key] - Where the parsed JSON of a success is put.
+     * @returns {Promise<{status: number, ok: boolean, error?: import("../errors.js").I6ApiError} & Record<string, any>>}
+     */
+    invokeResult(opts: InvokeOptions, key?: "payload" | "body"): Promise<{
+        status: number;
+        ok: boolean;
+        error?: import("../errors.js").I6ApiError;
+    } & Record<string, any>>;
 }
 export { Invoker };

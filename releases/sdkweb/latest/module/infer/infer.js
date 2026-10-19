@@ -136,7 +136,7 @@ class Infer {
     const byName = Object.fromEntries((resp.payload?.urls ?? []).map((file) => [file.name, file.url]));
     const missing = Object.values(FILES).find((name) => !byName[name]);
     if (missing) {
-      throw new I6Error(`infer: the model api gave no "${missing}" file: ${JSON.stringify(resp.error ?? Object.keys(byName))}`, { code: "asset" });
+      throw new I6Error(`infer: the model api gave no "${missing}" file: ${resp.error?.message ?? JSON.stringify(Object.keys(byName))}`, { code: "asset", status: resp.error?.status, cause: resp.error });
     }
     return { sqlite: byName[FILES.sqlite], tflite: byName[FILES.tflite] };
   }
