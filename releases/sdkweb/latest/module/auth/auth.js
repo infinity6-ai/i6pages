@@ -20,6 +20,19 @@ class Auth {
     location = loginUrl;
   }
   /**
+   * Redirects the browser to the logout page, passing the given URL (encoded)
+   * as `backurl` so the user returns to it after signing out.
+   * Navigates away from the page; code after the call may not run.
+   * @private
+   * @param {string} backurl - The URL to return to after logging out.
+   * @returns {void}
+   */
+  #redirectToLogout(backurl) {
+    const encoded = encodeURIComponent(backurl);
+    const logoutUrl = `${this._services.config().baseUrl}/api/decsuite/auth/logout?backurl=${encoded}`;
+    location = logoutUrl;
+  }
+  /**
    * Fetches the current authenticated user profile (`GET api/auth/me`).
    * Does not redirect; use {@link Auth#requireUser} to force a login.
    * @returns {Promise<AuthPayload|null>} The user profile data, or null if the
@@ -48,6 +61,17 @@ class Auth {
       return null;
     }
     return user;
+  }
+  /**
+   * Logs out the current user by redirecting the browser to the logout endpoint.
+   * The server clears the session and redirects the browser back to `backurl`.
+   * Navigates away from the page; code after the call may not run.
+   * @param {string} [backurl=location.href] - The URL to return to after logging out.
+   *   Defaults to the current page URL.
+   * @returns {Promise<void>}
+   */
+  async logout(backurl = location.href) {
+    this.#redirectToLogout(backurl);
   }
 }
 export { Auth };

@@ -53,6 +53,15 @@ declare class Auth {
      */
     private #redirectToLogin;
     /**
+     * Redirects the browser to the logout page, passing the given URL (encoded)
+     * as `backurl` so the user returns to it after signing out.
+     * Navigates away from the page; code after the call may not run.
+     * @private
+     * @param {string} backurl - The URL to return to after logging out.
+     * @returns {void}
+     */
+    private #redirectToLogout;
+    /**
      * Fetches the current authenticated user profile (`GET api/auth/me`).
      * Does not redirect; use {@link Auth#requireUser} to force a login.
      * @returns {Promise<AuthPayload|null>} The user profile data, or null if the
@@ -69,5 +78,14 @@ declare class Auth {
      * @throws {Error} If the network request fails or the response body is not valid JSON.
      */
     requireUser(): Promise<AuthPayload | null>;
+    /**
+     * Logs out the current user by redirecting the browser to the logout endpoint.
+     * The server clears the session and redirects the browser back to `backurl`.
+     * Navigates away from the page; code after the call may not run.
+     * @param {string} [backurl=location.href] - The URL to return to after logging out.
+     *   Defaults to the current page URL.
+     * @returns {Promise<void>}
+     */
+    logout(backurl?: string): Promise<void>;
 }
 export { Auth };

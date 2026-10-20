@@ -1888,40 +1888,38 @@ export type apiDszCreateIngestionTokenRespPayload = {
     /**
      * - [Go: string]
      */
+    annotation: string;
+    /**
+     * - [Go: string]
+     */
+    audience: string;
+    /**
+     * - [Go: string]
+     */
+    channel: string;
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
+    dataset: string;
+    /**
+     * - [Go: int64]
+     */
+    expiration_date: number;
+    grants: Array<apiDszCreateIngestionTokenRespPayloadGrantsElement>;
+    /**
+     * - [Go: string]
+     */
     id: string;
     /**
      * - [Go: string]
      */
     jti: string;
     /**
-     * - [Go: lakedsz.Dataset]
-     */
-    dataset: string;
-    /**
-     * - [Go: string]
-     */
-    annotation: string;
-    /**
-     * - [Go: int64]
-     */
-    expiration_date: number;
-    /**
-     * - [Go: string]
-     */
-    audience: string;
-    /**
-     * - [Go: []string]
-     */
-    grants: Array<string>;
-    /**
-     * - [Go: string]
-     */
-    channel: string;
-    /**
      * - [Go: string]
      */
     token: string;
 };
+export type apiDszCreateIngestionTokenRespPayloadGrantsElement = string;
 export type apiDszCreateRecsysTokenParams = {
     /**
      * - [Go: lakedsz.Dataset]
@@ -1949,40 +1947,38 @@ export type apiDszCreateRecsysTokenRespPayload = {
     /**
      * - [Go: string]
      */
+    annotation: string;
+    /**
+     * - [Go: string]
+     */
+    audience: string;
+    /**
+     * - [Go: string]
+     */
+    channel: string;
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
+    dataset: string;
+    /**
+     * - [Go: int64]
+     */
+    expiration_date: number;
+    grants: Array<apiDszCreateRecsysTokenRespPayloadGrantsElement>;
+    /**
+     * - [Go: string]
+     */
     id: string;
     /**
      * - [Go: string]
      */
     jti: string;
     /**
-     * - [Go: lakedsz.Dataset]
-     */
-    dataset: string;
-    /**
-     * - [Go: string]
-     */
-    annotation: string;
-    /**
-     * - [Go: int64]
-     */
-    expiration_date: number;
-    /**
-     * - [Go: string]
-     */
-    audience: string;
-    /**
-     * - [Go: []string]
-     */
-    grants: Array<string>;
-    /**
-     * - [Go: string]
-     */
-    channel: string;
-    /**
      * - [Go: string]
      */
     token: string;
 };
+export type apiDszCreateRecsysTokenRespPayloadGrantsElement = string;
 export type apiDszCreateStoreParams = {
     /**
      * - [Go: lakedsz.Dataset]
@@ -1994,9 +1990,6 @@ export type apiDszCreateStoreReq = {
     payload: apiDszCreateStoreReqPayload;
 };
 export type apiDszCreateStoreReqPayload = {
-    /**
-     * - [Go: dszstore.DszStore]
-     */
     store_id: apiDszCreateStoreReqPayloadStoreId;
 };
 export type apiDszCreateStoreReqPayloadStoreId = {
@@ -2079,13 +2072,13 @@ export type apiDszDomainGetRespPayload = {
 };
 export type apiDszDomainGetRespPayloadSolutionsElement = {
     /**
-     * - [Go: solution.Solution]
-     */
-    solution: string;
-    /**
      * - [Go: domain.Domain]
      */
     domain: string;
+    /**
+     * - [Go: solution.Solution]
+     */
+    solution: string;
 };
 export type apiDszDomainSelectParams = {
     /**
@@ -2350,6 +2343,89 @@ export type apiDszSignedUrlRespPayloadUrlsElement = {
      */
     url: string;
 };
+export type apiDszStoreDisplayCreateParams = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
+    dataset: string;
+};
+export type apiDszStoreDisplayCreateReq = {
+    params: apiDszStoreDisplayCreateParams;
+    payload: apiDszStoreDisplayCreateReqPayload;
+};
+export type apiDszStoreDisplayCreateReqPayload = {
+    display: apiDszStoreDisplayCreateReqPayloadDisplay;
+    /**
+     * - [Go: string]
+     */
+    store_id: string;
+};
+export type apiDszStoreDisplayCreateReqPayloadDisplay = {
+    /**
+     * - [Go: string]
+     */
+    id: string;
+    /**
+     * - [Go: string]
+     */
+    name: string;
+};
+export type apiDszStoreDisplayCreateResp = {
+    payload: apiDszStoreDisplayCreateRespPayload;
+};
+export type apiDszStoreDisplayCreateRespPayload = {
+    display: apiDszStoreDisplayCreateRespPayloadDisplay;
+};
+export type apiDszStoreDisplayCreateRespPayloadDisplay = {
+    /**
+     * - [Go: string]
+     */
+    id: string;
+    /**
+     * - [Go: string]
+     */
+    name: string;
+};
+export type apiDszStoreDisplayListParams = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
+    dataset: string;
+};
+export type apiDszStoreDisplayListQuery = {
+    /**
+     * - [Go: string]
+     */
+    store_id: string;
+};
+export type apiDszStoreDisplayListReq = {
+    params: apiDszStoreDisplayListParams;
+    query: apiDszStoreDisplayListQuery;
+};
+export type apiDszStoreDisplayListResp = {
+    payload: apiDszStoreDisplayListRespPayload;
+};
+export type apiDszStoreDisplayListRespPayload = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
+    dataset: string;
+    displays: Array<apiDszStoreDisplayListRespPayloadDisplaysElement>;
+    /**
+     * - [Go: string]
+     */
+    store_id: string;
+};
+export type apiDszStoreDisplayListRespPayloadDisplaysElement = {
+    /**
+     * - [Go: string]
+     */
+    id: string;
+    /**
+     * - [Go: string]
+     */
+    name: string;
+};
 export type apiDszStripeCheckoutReq = {
     payload: apiDszStripeCheckoutReqPayload;
 };
@@ -2359,76 +2435,42 @@ export type apiDszStripeCheckoutReqPayload = {
      */
     cancel_url: string;
     /**
-     * - [Go: string]
-     */
-    cnpj_hub: string;
-    /**
-     * - [Go: string]
-     */
-    contract_version: string;
-    /**
-     * - [Go: string] Customer email
-     */
-    customer_email: string;
-    /**
      * - [Go: string] Dataset name
      */
     dataset_name: string;
     /**
-     * - [Go: string]
+     * - [Go: string] Document of the buyer
      */
-    id_campanha_hub: string;
+    document: string;
     /**
-     * - [Go: string]
+     * - [Go: string] Email of the buyer used in Stripe
      */
-    id_solution_hub: string;
+    payment_email: string;
     /**
-     * - Items being bought
+     * - [Go: string] Phone of the buyer
      */
-    line_items: Array<apiDszStripeCheckoutReqPayloadLineItemsElement>;
+    payment_phone: string;
     /**
-     * - [Go: string]
+     * - [Go: string] Lookup key of the Stripe price of the plan to buy; the service gets the price id from the Stripe prices api
      */
-    responsible_email_hub: string;
+    plan: string;
     /**
-     * - [Go: string]
+     * - [Go: string] Base64 state token with the trial days and the metadata of the checkout; the service parses it
      */
-    responsible_name_hub: string;
-    /**
-     * - [Go: int] Trial period in days
-     */
-    subscription_data_trial_period_days: number;
+    state: string;
     /**
      * - [Go: string] Url to go after a successful checkout
      */
     success_url: string;
-    /**
-     * - [Go: string]
-     */
-    terms_accepted_at: string;
-    /**
-     * - [Go: string]
-     */
-    terms_version: string;
-    /**
-     * - [Go: string] User that is buying
-     */
-    user: string;
-};
-export type apiDszStripeCheckoutReqPayloadLineItemsElement = {
-    /**
-     * - [Go: string] Price id
-     */
-    price: string;
-    /**
-     * - [Go: int] Quantity
-     */
-    quantity: number;
 };
 export type apiDszStripeCheckoutResp = {
     payload: apiDszStripeCheckoutRespPayload;
 };
 export type apiDszStripeCheckoutRespPayload = {
+    /**
+     * - [Go: lakedsz.Dataset] Id of the dataset that is going to be created after the payment (starts with ds)
+     */
+    dataset: string;
     /**
      * - [Go: string] Checkout session id
      */
@@ -2903,7 +2945,49 @@ export type apiPipezListReq = {
 export type apiPipezListResp = {
     payload: apiPipezListRespPayload;
 };
-export type apiPipezListRespPayload = object;
+export type apiPipezListRespPayload = {
+    /**
+     * - [Go: string]
+     */
+    cursor: string;
+    pipelines: Array<apiPipezListRespPayloadPipelinesElement>;
+};
+export type apiPipezListRespPayloadPipelinesElement = {
+    /**
+     * - [Go: string]
+     */
+    concurrent_id: string;
+    /**
+     * - [Go: string]
+     */
+    dataset: string;
+    /**
+     * - [Go: string]
+     */
+    id: string;
+    /**
+     * - [Go: string]
+     */
+    name: string;
+    /**
+     * - [Go: solutiondomain.SolutionDomain]
+     */
+    solution_domain: string;
+    states: Array<apiPipezListRespPayloadPipelinesElementStatesElement>;
+};
+export type apiPipezListRespPayloadPipelinesElementStatesElement = {
+    /**
+     * - [Go: string]
+     */
+    created_at: string;
+    params: Record<apiPipezListRespPayloadPipelinesElementStatesElementParamsKey, apiPipezListRespPayloadPipelinesElementStatesElementParamsValue>;
+    /**
+     * - [Go: string]
+     */
+    status: string;
+};
+export type apiPipezListRespPayloadPipelinesElementStatesElementParamsKey = string;
+export type apiPipezListRespPayloadPipelinesElementStatesElementParamsValue = any;
 export type apiPipezStartRelevanceFashionRelevanceFashionBatchIngestParams = {
     /**
      * - [Go: lakedsz.Dataset]
@@ -3222,17 +3306,21 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {apiDszCreateIngestionTokenRespPayload} payload
  */
 /**
- * [Go: dsztoken.DatasetToken] apiDszCreateIngestionToken respPayload
+ * apiDszCreateIngestionToken respPayload
  * @typedef {object} apiDszCreateIngestionTokenRespPayload
+ * @property {string} annotation - [Go: string]
+ * @property {string} audience - [Go: string]
+ * @property {string} channel - [Go: string]
+ * @property {string} dataset - [Go: lakedsz.Dataset]
+ * @property {number} expiration_date - [Go: int64]
+ * @property {Array<apiDszCreateIngestionTokenRespPayloadGrantsElement>} grants
  * @property {string} id - [Go: string]
  * @property {string} jti - [Go: string]
- * @property {string} dataset - [Go: lakedsz.Dataset]
- * @property {string} annotation - [Go: string]
- * @property {number} expiration_date - [Go: int64]
- * @property {string} audience - [Go: string]
- * @property {Array<string>} grants - [Go: []string]
- * @property {string} channel - [Go: string]
  * @property {string} token - [Go: string]
+ */
+/**
+ * [Go: string]
+ * @typedef {string} apiDszCreateIngestionTokenRespPayloadGrantsElement
  */
 /**
  * apiDszCreateRecsysToken params
@@ -3257,17 +3345,21 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {apiDszCreateRecsysTokenRespPayload} payload
  */
 /**
- * [Go: dsztoken.DatasetToken] apiDszCreateRecsysToken respPayload
+ * apiDszCreateRecsysToken respPayload
  * @typedef {object} apiDszCreateRecsysTokenRespPayload
+ * @property {string} annotation - [Go: string]
+ * @property {string} audience - [Go: string]
+ * @property {string} channel - [Go: string]
+ * @property {string} dataset - [Go: lakedsz.Dataset]
+ * @property {number} expiration_date - [Go: int64]
+ * @property {Array<apiDszCreateRecsysTokenRespPayloadGrantsElement>} grants
  * @property {string} id - [Go: string]
  * @property {string} jti - [Go: string]
- * @property {string} dataset - [Go: lakedsz.Dataset]
- * @property {string} annotation - [Go: string]
- * @property {number} expiration_date - [Go: int64]
- * @property {string} audience - [Go: string]
- * @property {Array<string>} grants - [Go: []string]
- * @property {string} channel - [Go: string]
  * @property {string} token - [Go: string]
+ */
+/**
+ * [Go: string]
+ * @typedef {string} apiDszCreateRecsysTokenRespPayloadGrantsElement
  */
 /**
  * apiDszCreateStore params
@@ -3283,10 +3375,9 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
 /**
  * apiDszCreateStore reqPayload
  * @typedef {object} apiDszCreateStoreReqPayload
- * @property {apiDszCreateStoreReqPayloadStoreId} store_id - [Go: dszstore.DszStore]
+ * @property {apiDszCreateStoreReqPayloadStoreId} store_id
  */
 /**
- * [Go: dszstore.DszStore]
  * @typedef {object} apiDszCreateStoreReqPayloadStoreId
  * @property {string} id - [Go: string]
  * @property {string} name - [Go: string]
@@ -3369,10 +3460,9 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {string} store_id - [Go: string]
  */
 /**
- * [Go: dszapidomainsolutionget.SolutionDomain]
  * @typedef {object} apiDszDomainGetRespPayloadSolutionsElement
- * @property {string} solution - [Go: solution.Solution]
  * @property {string} domain - [Go: domain.Domain]
+ * @property {string} solution - [Go: solution.Solution]
  */
 /**
  * apiDszDomainSelect params
@@ -3537,7 +3627,6 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {Array<apiDszListStoresRespPayloadStoresElement>} stores
  */
 /**
- * [Go: dszstore.DszStore]
  * @typedef {object} apiDszListStoresRespPayloadStoresElement
  * @property {string} id - [Go: string]
  * @property {string} name - [Go: string]
@@ -3620,6 +3709,76 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {string} url - [Go: string] signed URL.
  */
 /**
+ * apiDszStoreDisplayCreate params
+ * @typedef {object} apiDszStoreDisplayCreateParams
+ * @property {string} dataset - [Go: lakedsz.Dataset]
+ */
+/**
+ * apiDszStoreDisplayCreate Request
+ * @typedef {object} apiDszStoreDisplayCreateReq
+ * @property {apiDszStoreDisplayCreateParams} params
+ * @property {apiDszStoreDisplayCreateReqPayload} payload
+ */
+/**
+ * apiDszStoreDisplayCreate reqPayload
+ * @typedef {object} apiDszStoreDisplayCreateReqPayload
+ * @property {apiDszStoreDisplayCreateReqPayloadDisplay} display
+ * @property {string} store_id - [Go: string]
+ */
+/**
+ * @typedef {object} apiDszStoreDisplayCreateReqPayloadDisplay
+ * @property {string} id - [Go: string]
+ * @property {string} name - [Go: string]
+ */
+/**
+ * apiDszStoreDisplayCreate Response
+ * @typedef {object} apiDszStoreDisplayCreateResp
+ * @property {apiDszStoreDisplayCreateRespPayload} payload
+ */
+/**
+ * apiDszStoreDisplayCreate respPayload
+ * @typedef {object} apiDszStoreDisplayCreateRespPayload
+ * @property {apiDszStoreDisplayCreateRespPayloadDisplay} display
+ */
+/**
+ * @typedef {object} apiDszStoreDisplayCreateRespPayloadDisplay
+ * @property {string} id - [Go: string]
+ * @property {string} name - [Go: string]
+ */
+/**
+ * apiDszStoreDisplayList params
+ * @typedef {object} apiDszStoreDisplayListParams
+ * @property {string} dataset - [Go: lakedsz.Dataset]
+ */
+/**
+ * apiDszStoreDisplayList query
+ * @typedef {object} apiDszStoreDisplayListQuery
+ * @property {string} store_id - [Go: string]
+ */
+/**
+ * apiDszStoreDisplayList Request
+ * @typedef {object} apiDszStoreDisplayListReq
+ * @property {apiDszStoreDisplayListParams} params
+ * @property {apiDszStoreDisplayListQuery} query
+ */
+/**
+ * apiDszStoreDisplayList Response
+ * @typedef {object} apiDszStoreDisplayListResp
+ * @property {apiDszStoreDisplayListRespPayload} payload
+ */
+/**
+ * apiDszStoreDisplayList respPayload
+ * @typedef {object} apiDszStoreDisplayListRespPayload
+ * @property {string} dataset - [Go: lakedsz.Dataset]
+ * @property {Array<apiDszStoreDisplayListRespPayloadDisplaysElement>} displays
+ * @property {string} store_id - [Go: string]
+ */
+/**
+ * @typedef {object} apiDszStoreDisplayListRespPayloadDisplaysElement
+ * @property {string} id - [Go: string]
+ * @property {string} name - [Go: string]
+ */
+/**
  * apiDszStripeCheckout Request
  * @typedef {object} apiDszStripeCheckoutReq
  * @property {apiDszStripeCheckoutReqPayload} payload
@@ -3628,25 +3787,13 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * apiDszStripeCheckout reqPayload
  * @typedef {object} apiDszStripeCheckoutReqPayload
  * @property {string} cancel_url - [Go: string] Url to go after a canceled checkout
- * @property {string} cnpj_hub - [Go: string]
- * @property {string} contract_version - [Go: string]
- * @property {string} customer_email - [Go: string] Customer email
  * @property {string} dataset_name - [Go: string] Dataset name
- * @property {string} id_campanha_hub - [Go: string]
- * @property {string} id_solution_hub - [Go: string]
- * @property {Array<apiDszStripeCheckoutReqPayloadLineItemsElement>} line_items - Items being bought
- * @property {string} responsible_email_hub - [Go: string]
- * @property {string} responsible_name_hub - [Go: string]
- * @property {number} subscription_data_trial_period_days - [Go: int] Trial period in days
+ * @property {string} document - [Go: string] Document of the buyer
+ * @property {string} payment_email - [Go: string] Email of the buyer used in Stripe
+ * @property {string} payment_phone - [Go: string] Phone of the buyer
+ * @property {string} plan - [Go: string] Lookup key of the Stripe price of the plan to buy; the service gets the price id from the Stripe prices api
+ * @property {string} state - [Go: string] Base64 state token with the trial days and the metadata of the checkout; the service parses it
  * @property {string} success_url - [Go: string] Url to go after a successful checkout
- * @property {string} terms_accepted_at - [Go: string]
- * @property {string} terms_version - [Go: string]
- * @property {string} user - [Go: string] User that is buying
- */
-/**
- * @typedef {object} apiDszStripeCheckoutReqPayloadLineItemsElement
- * @property {string} price - [Go: string] Price id
- * @property {number} quantity - [Go: int] Quantity
  */
 /**
  * apiDszStripeCheckout Response
@@ -3656,6 +3803,7 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
 /**
  * apiDszStripeCheckout respPayload
  * @typedef {object} apiDszStripeCheckoutRespPayload
+ * @property {string} dataset - [Go: lakedsz.Dataset] Id of the dataset that is going to be created after the payment (starts with ds)
  * @property {string} id - [Go: string] Checkout session id
  * @property {string} url - [Go: string] Checkout session url
  */
@@ -3986,8 +4134,33 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {apiPipezListRespPayload} payload
  */
 /**
- * [Go: pipezlist.PipezListResp] apiPipezList respPayload
+ * apiPipezList respPayload
  * @typedef {object} apiPipezListRespPayload
+ * @property {string} cursor - [Go: string]
+ * @property {Array<apiPipezListRespPayloadPipelinesElement>} pipelines
+ */
+/**
+ * @typedef {object} apiPipezListRespPayloadPipelinesElement
+ * @property {string} concurrent_id - [Go: string]
+ * @property {string} dataset - [Go: string]
+ * @property {string} id - [Go: string]
+ * @property {string} name - [Go: string]
+ * @property {string} solution_domain - [Go: solutiondomain.SolutionDomain]
+ * @property {Array<apiPipezListRespPayloadPipelinesElementStatesElement>} states
+ */
+/**
+ * @typedef {object} apiPipezListRespPayloadPipelinesElementStatesElement
+ * @property {string} created_at - [Go: string]
+ * @property {Record<apiPipezListRespPayloadPipelinesElementStatesElementParamsKey, apiPipezListRespPayloadPipelinesElementStatesElementParamsValue>} params
+ * @property {string} status - [Go: string]
+ */
+/**
+ * [Go: string]
+ * @typedef {string} apiPipezListRespPayloadPipelinesElementStatesElementParamsKey
+ */
+/**
+ * [Go: any]
+ * @typedef {any} apiPipezListRespPayloadPipelinesElementStatesElementParamsValue
  */
 /**
  * apiPipezStartRelevanceFashionRelevanceFashionBatchIngest params
@@ -4255,41 +4428,41 @@ declare class Apis {
      */
     constructor(services: Services);
     /**
+     * Stream Ingestion
      *
+     * Ingests stream data into a target dataset table.
      *
-     *
-     *
-     * @param {apiDszCreateStoreReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
+     * @param {apiIngestzStreamRelevanceFashionEventReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionEventResp>>}
      */
-    dszCreateStore(req: apiDszCreateStoreReq): Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>;
+    ingestzStreamRelevanceFashionEvent(req: apiIngestzStreamRelevanceFashionEventReq): Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionEventResp>>;
     /**
-     * Create Stripe Checkout
+     * Get Dataset Signed URLs
      *
-     * Creates a Stripe checkout session for a subscription and returns its id and url.
+     * Generates presigned URLs for accessing or mutating files in the specified dataset.
      *
-     * @param {apiDszStripeCheckoutReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>}
+     * @param {apiDszSignedUrlReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
      */
-    dszStripeCheckout(req: apiDszStripeCheckoutReq): Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>;
+    dszSignedUrl(req: apiDszSignedUrlReq): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
     /**
-     * List Pending Payments
      *
-     * Lists the datasets of a user that are waiting for a payment.
      *
-     * @param {apiDszListPendingPaymentsReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListPendingPaymentsResp>>}
+     *
+     *
+     * @param {apiDszDomainGetReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDomainGetResp>>}
      */
-    dszListPendingPayments(req: apiDszListPendingPaymentsReq): Promise<import("../errors.js").I6Result<apiDszListPendingPaymentsResp>>;
+    dszDomainGet(req: apiDszDomainGetReq): Promise<import("../errors.js").I6Result<apiDszDomainGetResp>>;
     /**
-     * Get Payment Status
      *
-     * Checks the payment of a dataset. When it is paid the dataset is created and granted to the user.
      *
-     * @param {apiDszGetPaymentStatusReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszGetPaymentStatusResp>>}
+     *
+     *
+     * @param {apiDszStoreDisplayCreateReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
      */
-    dszGetPaymentStatus(req: apiDszGetPaymentStatusReq): Promise<import("../errors.js").I6Result<apiDszGetPaymentStatusResp>>;
+    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq): Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>;
     /**
      * Sample Fraction
      *
@@ -4300,14 +4473,14 @@ declare class Apis {
      */
     sampleFraction(req: apiSampleFractionReq): Promise<import("../errors.js").I6Result<apiSampleFractionResp>>;
     /**
-     * List Dataset Tables
+     * Get Dataset Table File
      *
-     * Lists files and tables in the specified dataset.
+     * Get table file by redirecting to its signed URL.
      *
-     * @param {apiDszTableListReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
+     * @param {apiDszTableGetReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
      */
-    dszTableList(req: apiDszTableListReq): Promise<import("../errors.js").I6Result<apiDszTableListResp>>;
+    dszTableGet(req: apiDszTableGetReq): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
     /**
      *
      *
@@ -4317,114 +4490,6 @@ declare class Apis {
      * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
      */
     pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDomainSelectReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDomainSelectResp>>}
-     */
-    dszDomainSelect(req: apiDszDomainSelectReq): Promise<import("../errors.js").I6Result<apiDszDomainSelectResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListDatasetsReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
-     */
-    dszListDatasets(req: apiDszListDatasetsReq): Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateIngestionTokenReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>}
-     */
-    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq): Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDeleteTokenReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
-     */
-    dszDeleteToken(req: apiDszDeleteTokenReq): Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>;
-    /**
-     * Get Model Signed URLs
-     *
-     * Generates presigned URLs for accessing model files in the specified dataset.
-     *
-     * @param {apiDszModelGetReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
-     */
-    dszModelGet(req: apiDszModelGetReq): Promise<import("../errors.js").I6Result<apiDszModelGetResp>>;
-    /**
-     * Stream Ingestion
-     *
-     * Ingests stream data into a target dataset table.
-     *
-     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>}
-     */
-    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>;
-    /**
-     * Stream Ingestion
-     *
-     * Ingests stream data into a target dataset table.
-     *
-     * @param {apiIngestzStreamRelevanceFashionEventReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionEventResp>>}
-     */
-    ingestzStreamRelevanceFashionEvent(req: apiIngestzStreamRelevanceFashionEventReq): Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionEventResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiPipezListReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezListResp>>}
-     */
-    pipezList(req: apiPipezListReq): Promise<import("../errors.js").I6Result<apiPipezListResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListStoresReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
-     */
-    dszListStores(req: apiDszListStoresReq): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDatasetSolutionsReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
-     */
-    dszDatasetSolutions(req: apiDszDatasetSolutionsReq): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListIngestionTokensReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
-     */
-    dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListRecsysTokensReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
-     */
-    dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
     /**
      *
      *
@@ -4444,14 +4509,41 @@ declare class Apis {
      */
     ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
     /**
-     * Get Dataset Table File
+     * Stream Ingestion
      *
-     * Get table file by redirecting to its signed URL.
+     * Ingests stream data into a target dataset table.
      *
-     * @param {apiDszTableGetReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
+     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>}
      */
-    dszTableGet(req: apiDszTableGetReq): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
+    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>;
+    /**
+     * Get Last Successful Ingestion Data Summary
+     *
+     * Returns the date of ingestion, rows count and distinct and null columns count
+     *
+     * @param {apiIngestzLastBatchSummaryReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>}
+     */
+    ingestzLastBatchSummary(req: apiIngestzLastBatchSummaryReq): Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>;
+    /**
+     * List Dataset Tables
+     *
+     * Lists files and tables in the specified dataset.
+     *
+     * @param {apiDszTableListReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
+     */
+    dszTableList(req: apiDszTableListReq): Promise<import("../errors.js").I6Result<apiDszTableListResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezListReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezListResp>>}
+     */
+    pipezList(req: apiPipezListReq): Promise<import("../errors.js").I6Result<apiPipezListResp>>;
     /**
      *
      *
@@ -4466,28 +4558,37 @@ declare class Apis {
      *
      *
      *
-     * @param {apiDszDomainGetReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDomainGetResp>>}
+     * @param {apiDszDatasetSolutionsReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
      */
-    dszDomainGet(req: apiDszDomainGetReq): Promise<import("../errors.js").I6Result<apiDszDomainGetResp>>;
+    dszDatasetSolutions(req: apiDszDatasetSolutionsReq): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
     /**
-     * Get Last Successful Ingestion Data Summary
      *
-     * Returns the date of ingestion, rows count and distinct and null columns count
      *
-     * @param {apiIngestzLastBatchSummaryReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>}
+     *
+     *
+     * @param {apiDszListIngestionTokensReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
      */
-    ingestzLastBatchSummary(req: apiIngestzLastBatchSummaryReq): Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>;
+    dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
     /**
-     * Get Dataset Signed URLs
+     * List Pending Payments
      *
-     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     * Lists the datasets of a user that are waiting for a payment.
      *
-     * @param {apiDszSignedUrlReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
+     * @param {apiDszListPendingPaymentsReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListPendingPaymentsResp>>}
      */
-    dszSignedUrl(req: apiDszSignedUrlReq): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
+    dszListPendingPayments(req: apiDszListPendingPaymentsReq): Promise<import("../errors.js").I6Result<apiDszListPendingPaymentsResp>>;
+    /**
+     * Get Payment Status
+     *
+     * Checks the payment of a dataset. When it is paid the dataset is created and granted to the user.
+     *
+     * @param {apiDszGetPaymentStatusReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszGetPaymentStatusResp>>}
+     */
+    dszGetPaymentStatus(req: apiDszGetPaymentStatusReq): Promise<import("../errors.js").I6Result<apiDszGetPaymentStatusResp>>;
     /**
      *
      *
@@ -4497,6 +4598,96 @@ declare class Apis {
      * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
      */
     pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateStoreReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
+     */
+    dszCreateStore(req: apiDszCreateStoreReq): Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateIngestionTokenReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>}
+     */
+    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq): Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListRecsysTokensReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
+     */
+    dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
+    /**
+     * Create Stripe Checkout
+     *
+     * Creates a Stripe checkout session for a subscription and returns its id and url.
+     *
+     * @param {apiDszStripeCheckoutReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>}
+     */
+    dszStripeCheckout(req: apiDszStripeCheckoutReq): Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszDomainSelectReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDomainSelectResp>>}
+     */
+    dszDomainSelect(req: apiDszDomainSelectReq): Promise<import("../errors.js").I6Result<apiDszDomainSelectResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListStoresReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
+     */
+    dszListStores(req: apiDszListStoresReq): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
+    /**
+     * Get Model Signed URLs
+     *
+     * Generates presigned URLs for accessing model files in the specified dataset.
+     *
+     * @param {apiDszModelGetReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
+     */
+    dszModelGet(req: apiDszModelGetReq): Promise<import("../errors.js").I6Result<apiDszModelGetResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszStoreDisplayListReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>}
+     */
+    dszStoreDisplayList(req: apiDszStoreDisplayListReq): Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListDatasetsReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
+     */
+    dszListDatasets(req: apiDszListDatasetsReq): Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszDeleteTokenReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
+     */
+    dszDeleteToken(req: apiDszDeleteTokenReq): Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>;
 }
 export { Apis };
 declare class SdkFuncs {
@@ -4668,6 +4859,15 @@ declare class Auth {
      */
     private #redirectToLogin;
     /**
+     * Redirects the browser to the logout page, passing the given URL (encoded)
+     * as `backurl` so the user returns to it after signing out.
+     * Navigates away from the page; code after the call may not run.
+     * @private
+     * @param {string} backurl - The URL to return to after logging out.
+     * @returns {void}
+     */
+    private #redirectToLogout;
+    /**
      * Fetches the current authenticated user profile (`GET api/auth/me`).
      * Does not redirect; use {@link Auth#requireUser} to force a login.
      * @returns {Promise<AuthPayload|null>} The user profile data, or null if the
@@ -4684,6 +4884,15 @@ declare class Auth {
      * @throws {Error} If the network request fails or the response body is not valid JSON.
      */
     requireUser(): Promise<AuthPayload | null>;
+    /**
+     * Logs out the current user by redirecting the browser to the logout endpoint.
+     * The server clears the session and redirects the browser back to `backurl`.
+     * Navigates away from the page; code after the call may not run.
+     * @param {string} [backurl=location.href] - The URL to return to after logging out.
+     *   Defaults to the current page URL.
+     * @returns {Promise<void>}
+     */
+    logout(backurl?: string): Promise<void>;
 }
 export { Auth };
 /**
