@@ -4311,19 +4311,172 @@ declare class Apis {
      *
      *
      *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
+     * @param {apiDszDatasetSolutionsReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
      */
-    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
+    dszDatasetSolutions(req: apiDszDatasetSolutionsReq): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
+    /**
+     * Get Dataset Signed URLs
+     *
+     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     *
+     * @param {apiDszSignedUrlReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
+     */
+    dszSignedUrl(req: apiDszSignedUrlReq): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
     /**
      *
      *
      *
      *
-     * @param {apiPipezListReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezListResp>>}
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
      */
-    pipezList(req: apiPipezListReq): Promise<import("../errors.js").I6Result<apiPipezListResp>>;
+    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszStoreDisplayCreateReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
+     */
+    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq): Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszStoreDisplayListReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>}
+     */
+    dszStoreDisplayList(req: apiDszStoreDisplayListReq): Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListIngestionTokensReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
+     */
+    dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListRecsysTokensReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
+     */
+    dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateRecsysTokenReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
+     */
+    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszDeleteTokenReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
+     */
+    dszDeleteToken(req: apiDszDeleteTokenReq): Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>;
+    /**
+     * Stream Ingestion
+     *
+     * Ingests stream data into a target dataset table.
+     *
+     * @param {apiIngestzStreamRelevanceFashionEventReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionEventResp>>}
+     */
+    ingestzStreamRelevanceFashionEvent(req: apiIngestzStreamRelevanceFashionEventReq): Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionEventResp>>;
+    /**
+     * Get Last Successful Ingestion Data Summary
+     *
+     * Returns the date of ingestion, rows count and distinct and null columns count
+     *
+     * @param {apiIngestzLastBatchSummaryReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>}
+     */
+    ingestzLastBatchSummary(req: apiIngestzLastBatchSummaryReq): Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszDomainGetReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDomainGetResp>>}
+     */
+    dszDomainGet(req: apiDszDomainGetReq): Promise<import("../errors.js").I6Result<apiDszDomainGetResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateStoreReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
+     */
+    dszCreateStore(req: apiDszCreateStoreReq): Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListStoresReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
+     */
+    dszListStores(req: apiDszListStoresReq): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
+    /**
+     * Get Model Signed URLs
+     *
+     * Generates presigned URLs for accessing model files in the specified dataset.
+     *
+     * @param {apiDszModelGetReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
+     */
+    dszModelGet(req: apiDszModelGetReq): Promise<import("../errors.js").I6Result<apiDszModelGetResp>>;
+    /**
+     * Get Ingestion Upload URLs
+     *
+     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
+     *
+     * @param {apiIngestzGetUrlReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
+     */
+    ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
+    /**
+     * Stream Ingestion
+     *
+     * Ingests stream data into a target dataset table.
+     *
+     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>}
+     */
+    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>;
+    /**
+     * Get Dataset Table File
+     *
+     * Get table file by redirecting to its signed URL.
+     *
+     * @param {apiDszTableGetReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
+     */
+    dszTableGet(req: apiDszTableGetReq): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezGetReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezGetResp>>}
+     */
+    pipezGet(req: apiPipezGetReq): Promise<import("../errors.js").I6Result<apiPipezGetResp>>;
     /**
      *
      *
@@ -4352,78 +4505,6 @@ declare class Apis {
      */
     dszStripeCheckout(req: apiDszStripeCheckoutReq): Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>;
     /**
-     * Stream Ingestion
-     *
-     * Ingests stream data into a target dataset table.
-     *
-     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>}
-     */
-    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiPipezGetReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezGetResp>>}
-     */
-    pipezGet(req: apiPipezGetReq): Promise<import("../errors.js").I6Result<apiPipezGetResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDomainGetReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDomainGetResp>>}
-     */
-    dszDomainGet(req: apiDszDomainGetReq): Promise<import("../errors.js").I6Result<apiDszDomainGetResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListDatasetsReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
-     */
-    dszListDatasets(req: apiDszListDatasetsReq): Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDatasetSolutionsReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
-     */
-    dszDatasetSolutions(req: apiDszDatasetSolutionsReq): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListIngestionTokensReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
-     */
-    dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListRecsysTokensReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
-     */
-    dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDeleteTokenReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
-     */
-    dszDeleteToken(req: apiDszDeleteTokenReq): Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>;
-    /**
      * Sample Fraction
      *
      * Sample API that performs a fraction operation
@@ -4432,87 +4513,6 @@ declare class Apis {
      * @returns {Promise<import("../errors.js").I6Result<apiSampleFractionResp>>}
      */
     sampleFraction(req: apiSampleFractionReq): Promise<import("../errors.js").I6Result<apiSampleFractionResp>>;
-    /**
-     * Get Ingestion Upload URLs
-     *
-     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
-     *
-     * @param {apiIngestzGetUrlReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
-     */
-    ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszStoreDisplayCreateReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
-     */
-    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq): Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszStoreDisplayListReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>}
-     */
-    dszStoreDisplayList(req: apiDszStoreDisplayListReq): Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListStoresReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
-     */
-    dszListStores(req: apiDszListStoresReq): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateRecsysTokenReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
-     */
-    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>;
-    /**
-     * Get Model Signed URLs
-     *
-     * Generates presigned URLs for accessing model files in the specified dataset.
-     *
-     * @param {apiDszModelGetReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
-     */
-    dszModelGet(req: apiDszModelGetReq): Promise<import("../errors.js").I6Result<apiDszModelGetResp>>;
-    /**
-     * Stream Ingestion
-     *
-     * Ingests stream data into a target dataset table.
-     *
-     * @param {apiIngestzStreamRelevanceFashionEventReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionEventResp>>}
-     */
-    ingestzStreamRelevanceFashionEvent(req: apiIngestzStreamRelevanceFashionEventReq): Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionEventResp>>;
-    /**
-     * Get Last Successful Ingestion Data Summary
-     *
-     * Returns the date of ingestion, rows count and distinct and null columns count
-     *
-     * @param {apiIngestzLastBatchSummaryReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>}
-     */
-    ingestzLastBatchSummary(req: apiIngestzLastBatchSummaryReq): Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>;
-    /**
-     * Get Dataset Table File
-     *
-     * Get table file by redirecting to its signed URL.
-     *
-     * @param {apiDszTableGetReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
-     */
-    dszTableGet(req: apiDszTableGetReq): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
     /**
      * List Dataset Tables
      *
@@ -4527,28 +4527,28 @@ declare class Apis {
      *
      *
      *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
      */
-    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
+    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
     /**
      *
      *
      *
      *
-     * @param {apiDszCreateStoreReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
+     * @param {apiPipezListReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezListResp>>}
      */
-    dszCreateStore(req: apiDszCreateStoreReq): Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>;
+    pipezList(req: apiPipezListReq): Promise<import("../errors.js").I6Result<apiPipezListResp>>;
     /**
-     * Get Dataset Signed URLs
      *
-     * Generates presigned URLs for accessing or mutating files in the specified dataset.
      *
-     * @param {apiDszSignedUrlReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
+     *
+     *
+     * @param {apiDszListDatasetsReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
      */
-    dszSignedUrl(req: apiDszSignedUrlReq): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
+    dszListDatasets(req: apiDszListDatasetsReq): Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>;
 }
 export { Apis };
 declare class SdkFuncs {
