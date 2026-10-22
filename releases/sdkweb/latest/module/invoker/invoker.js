@@ -30,7 +30,8 @@ class Invoker {
           continue;
         }
         for (const item of Array.isArray(value) ? value : [value]) {
-          search.append(key, String(item));
+          const serializedValue = typeof item === "object" && item !== null ? JSON.stringify(item) : String(item);
+          search.append(key, serializedValue);
         }
       }
       const queryString = search.toString();
