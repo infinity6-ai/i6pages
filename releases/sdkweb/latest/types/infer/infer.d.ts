@@ -74,9 +74,10 @@ export type SelectResultsOptions = {
      */
     recId: string;
     /**
-     * - Picks which of the recommended skus are shown.
+     * - Picks which of the recommended skus are shown: returns
+     * `{ results: [{ sku_id, ... }] }`. Default: one random sku of the results, with the rating of the result it was picked from.
      */
-    selectResults: (req: any, results: any) => Promise<any>;
+    selectResults?: (req: any, results: any) => Promise<any>;
 };
 /**
  * Inference client.
@@ -102,11 +103,12 @@ declare class Infer {
      */
     run(opts: InferOptions): Promise<any>;
     /**
-     * Asks `selectResults` which of the recommended skus are shown and sends those as the `recshow` event.
+     * Asks `selectResults` which of the recommended skus are shown and sends their sku ids as the `recshow` event.
      * @param {SelectResultsOptions} opts - Select options.
-     * @returns {Promise<*>} What `selectResults` returned.
-     * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing or the sdk has no `sessionId` and
-     *   `userId`, "event" if an event is not accepted.
+     * @returns {Promise<*>} What `selectResults` returned, with the `rating` of each sku added to its item (its best rating; with the
+     *   default, the rating of the result it was picked from).
+     * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing, the sdk has no `sessionId` and
+     *   `userId`, or `selectResults` returned an item with no `sku_id` or a sku not in the results; "event" if an event is not accepted.
      */
     selectResults(opts: SelectResultsOptions): Promise<any>;
     /**

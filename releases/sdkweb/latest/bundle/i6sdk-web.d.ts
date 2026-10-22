@@ -1109,6 +1109,10 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElement = {
      */
     created_at: dszTime;
     /**
+     * - [Go: bigquery.NullString]
+     */
+    display_id: string;
+    /**
      * - [Go: string]
      */
     id: string;
@@ -1126,7 +1130,7 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElement = {
      */
     store_id: string;
     /**
-     * - [Go: string]
+     * - [Go: bigquery.NullString]
      */
     user_id: string;
 };
@@ -1406,6 +1410,10 @@ export type apiIngestzStreamRelevanceFashionEventReqPayloadDataElement = {
      */
     created_at: dszTime;
     /**
+     * - [Go: bigquery.NullString]
+     */
+    display_id: string;
+    /**
      * - [Go: string]
      */
     id: string;
@@ -1423,7 +1431,7 @@ export type apiIngestzStreamRelevanceFashionEventReqPayloadDataElement = {
      */
     store_id: string;
     /**
-     * - [Go: string]
+     * - [Go: bigquery.NullString]
      */
     user_id: string;
 };
@@ -1939,7 +1947,8 @@ export type sdkFuncProductRelevanceFashionFbtOutputResultsElementSkusElement = {
     sku_id: string;
 };
 export type sdkFuncProductRelevanceFashionFbtOutputResultsElementSkusElementEnriched = {
-    sku: sdkFuncProductRelevanceFashionFbtOutputResultsElementSkusElement;
+    sku_id: string;
+    rating: number;
     enriched: any;
 };
 export type sdkFuncProductRelevanceFashionFbtPartitions = {
@@ -2538,6 +2547,7 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {apiIngestzEventRelevanceFashionEventQueryPayloadDataElementAddToCart} add_to_cart
  * @property {apiIngestzEventRelevanceFashionEventQueryPayloadDataElementClick} click
  * @property {dszTime} created_at - [Go: time.Time]
+ * @property {string} display_id - [Go: bigquery.NullString]
  * @property {string} id - [Go: string]
  * @property {apiIngestzEventRelevanceFashionEventQueryPayloadDataElementPurchase} purchase
  * @property {apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRecraw} recraw
@@ -2546,7 +2556,7 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {apiIngestzEventRelevanceFashionEventQueryPayloadDataElementSearch} search
  * @property {string} session_id - [Go: string]
  * @property {string} store_id - [Go: string]
- * @property {string} user_id - [Go: string]
+ * @property {string} user_id - [Go: bigquery.NullString]
  */
 /**
  * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadDataElementAddToCart
@@ -2741,6 +2751,7 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {apiIngestzStreamRelevanceFashionEventReqPayloadDataElementAddToCart} add_to_cart
  * @property {apiIngestzStreamRelevanceFashionEventReqPayloadDataElementClick} click
  * @property {dszTime} created_at - [Go: time.Time]
+ * @property {string} display_id - [Go: bigquery.NullString]
  * @property {string} id - [Go: string]
  * @property {apiIngestzStreamRelevanceFashionEventReqPayloadDataElementPurchase} purchase
  * @property {apiIngestzStreamRelevanceFashionEventReqPayloadDataElementRecraw} recraw
@@ -2749,7 +2760,7 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {apiIngestzStreamRelevanceFashionEventReqPayloadDataElementSearch} search
  * @property {string} session_id - [Go: string]
  * @property {string} store_id - [Go: string]
- * @property {string} user_id - [Go: string]
+ * @property {string} user_id - [Go: bigquery.NullString]
  */
 /**
  * @typedef {object} apiIngestzStreamRelevanceFashionEventReqPayloadDataElementAddToCart
@@ -3133,7 +3144,8 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  */
 /**
  * @typedef {object} sdkFuncProductRelevanceFashionFbtOutputResultsElementSkusElementEnriched
- * @property {sdkFuncProductRelevanceFashionFbtOutputResultsElementSkusElement} sku
+ * @property {string} sku_id
+ * @property {number} rating
  * @property {*} enriched
  */
 /**
@@ -3178,41 +3190,14 @@ declare class Apis {
      */
     ingestzLastBatchSummary(req: apiIngestzLastBatchSummaryReq): Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>;
     /**
+     * Get Dataset Table File
      *
+     * Get table file by redirecting to its signed URL.
      *
-     *
-     *
-     * @param {apiPipezListReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezListResp>>}
+     * @param {apiDszTableGetReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
      */
-    pipezList(req: apiPipezListReq): Promise<import("../errors.js").I6Result<apiPipezListResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListDatasetsReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
-     */
-    dszListDatasets(req: apiDszListDatasetsReq): Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDatasetSolutionsReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
-     */
-    dszDatasetSolutions(req: apiDszDatasetSolutionsReq): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
-    /**
-     * Create Stripe Checkout
-     *
-     * Creates a Stripe checkout session for a subscription and returns its id and url.
-     *
-     * @param {apiDszStripeCheckoutReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>}
-     */
-    dszStripeCheckout(req: apiDszStripeCheckoutReq): Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>;
+    dszTableGet(req: apiDszTableGetReq): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
     /**
      *
      *
@@ -3227,87 +3212,6 @@ declare class Apis {
      *
      *
      *
-     * @param {apiDszListRecsysTokensReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
-     */
-    dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateRecsysTokenReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
-     */
-    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDeleteTokenReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
-     */
-    dszDeleteToken(req: apiDszDeleteTokenReq): Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>;
-    /**
-     * Get Model Signed URLs
-     *
-     * Generates presigned URLs for accessing model files in the specified dataset.
-     *
-     * @param {apiDszModelGetReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
-     */
-    dszModelGet(req: apiDszModelGetReq): Promise<import("../errors.js").I6Result<apiDszModelGetResp>>;
-    /**
-     * Get Ingestion Upload URLs
-     *
-     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
-     *
-     * @param {apiIngestzGetUrlReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
-     */
-    ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
-    /**
-     * Stream Ingestion
-     *
-     * Ingests stream data into a target dataset table.
-     *
-     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>}
-     */
-    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>;
-    /**
-     * List Dataset Tables
-     *
-     * Lists files and tables in the specified dataset.
-     *
-     * @param {apiDszTableListReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
-     */
-    dszTableList(req: apiDszTableListReq): Promise<import("../errors.js").I6Result<apiDszTableListResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
-     */
-    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszStoreDisplayListReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>}
-     */
-    dszStoreDisplayList(req: apiDszStoreDisplayListReq): Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>;
-    /**
-     *
-     *
-     *
-     *
      * @param {apiDszCreateStoreReq} req
      * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
      */
@@ -3317,28 +3221,10 @@ declare class Apis {
      *
      *
      *
-     * @param {apiDszListIngestionTokensReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
+     * @param {apiDszDatasetSolutionsReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
      */
-    dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateIngestionTokenReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>}
-     */
-    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq): Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>;
-    /**
-     * Sample Fraction
-     *
-     * Sample API that performs a fraction operation
-     *
-     * @param {apiSampleFractionReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiSampleFractionResp>>}
-     */
-    sampleFraction(req: apiSampleFractionReq): Promise<import("../errors.js").I6Result<apiSampleFractionResp>>;
+    dszDatasetSolutions(req: apiDszDatasetSolutionsReq): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
     /**
      * Stream Ingestion
      *
@@ -3358,23 +3244,23 @@ declare class Apis {
      */
     ingestzEventRelevanceFashionCatalog(req: apiIngestzEventRelevanceFashionCatalogReq): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>;
     /**
-     * Get Dataset Signed URLs
+     * Event Ingestion
      *
-     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     * Ingests events data into a target dataset table.
      *
-     * @param {apiDszSignedUrlReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
+     * @param {apiIngestzEventRelevanceFashionEventReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>}
      */
-    dszSignedUrl(req: apiDszSignedUrlReq): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
+    ingestzEventRelevanceFashionEvent(req: apiIngestzEventRelevanceFashionEventReq): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>;
     /**
-     * Get Dataset Table File
+     * List Dataset Tables
      *
-     * Get table file by redirecting to its signed URL.
+     * Lists files and tables in the specified dataset.
      *
-     * @param {apiDszTableGetReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
+     * @param {apiDszTableListReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
      */
-    dszTableGet(req: apiDszTableGetReq): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
+    dszTableList(req: apiDszTableListReq): Promise<import("../errors.js").I6Result<apiDszTableListResp>>;
     /**
      *
      *
@@ -3398,19 +3284,145 @@ declare class Apis {
      *
      *
      *
+     * @param {apiDszStoreDisplayListReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>}
+     */
+    dszStoreDisplayList(req: apiDszStoreDisplayListReq): Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListDatasetsReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
+     */
+    dszListDatasets(req: apiDszListDatasetsReq): Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>;
+    /**
+     * Get Dataset Signed URLs
+     *
+     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     *
+     * @param {apiDszSignedUrlReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
+     */
+    dszSignedUrl(req: apiDszSignedUrlReq): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezListReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezListResp>>}
+     */
+    pipezList(req: apiPipezListReq): Promise<import("../errors.js").I6Result<apiPipezListResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListIngestionTokensReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
+     */
+    dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListRecsysTokensReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
+     */
+    dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszDeleteTokenReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
+     */
+    dszDeleteToken(req: apiDszDeleteTokenReq): Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>;
+    /**
+     * Get Model Signed URLs
+     *
+     * Generates presigned URLs for accessing model files in the specified dataset.
+     *
+     * @param {apiDszModelGetReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
+     */
+    dszModelGet(req: apiDszModelGetReq): Promise<import("../errors.js").I6Result<apiDszModelGetResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
+     */
+    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
+    /**
+     *
+     *
+     *
+     *
      * @param {apiDszListStoresReq} req
      * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
      */
     dszListStores(req: apiDszListStoresReq): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
     /**
-     * Event Ingestion
      *
-     * Ingests events data into a target dataset table.
      *
-     * @param {apiIngestzEventRelevanceFashionEventReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>}
+     *
+     *
+     * @param {apiDszCreateIngestionTokenReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>}
      */
-    ingestzEventRelevanceFashionEvent(req: apiIngestzEventRelevanceFashionEventReq): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>;
+    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq): Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateRecsysTokenReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
+     */
+    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>;
+    /**
+     * Create Stripe Checkout
+     *
+     * Creates a Stripe checkout session for a subscription and returns its id and url.
+     *
+     * @param {apiDszStripeCheckoutReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>}
+     */
+    dszStripeCheckout(req: apiDszStripeCheckoutReq): Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>;
+    /**
+     * Sample Fraction
+     *
+     * Sample API that performs a fraction operation
+     *
+     * @param {apiSampleFractionReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiSampleFractionResp>>}
+     */
+    sampleFraction(req: apiSampleFractionReq): Promise<import("../errors.js").I6Result<apiSampleFractionResp>>;
+    /**
+     * Get Ingestion Upload URLs
+     *
+     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
+     *
+     * @param {apiIngestzGetUrlReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
+     */
+    ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
+    /**
+     * Stream Ingestion
+     *
+     * Ingests stream data into a target dataset table.
+     *
+     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>}
+     */
+    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>;
 }
 export { Apis };
 declare class SdkFuncs {
@@ -3425,6 +3437,12 @@ declare class SdkFuncs {
      */
     constructor(services: Services);
     /**
+     * @param {sdkFuncProductRelevanceFashionFbtReq} req
+     * @param {(req: sdkFuncProductRelevanceFashionFbtReq, results: sdkFuncProductRelevanceFashionFbtOutput) => Promise<sdkFuncProductRelevanceFashionFbtSelected>} [selectResults] - picks which of the recommended skus are shown; default: one random sku
+     * @returns {Promise<sdkFuncProductRelevanceFashionFbtSelected>}
+     */
+    productRelevanceFashionFbtV1(req: sdkFuncProductRelevanceFashionFbtReq, selectResults?: (req: sdkFuncProductRelevanceFashionFbtReq, results: sdkFuncProductRelevanceFashionFbtOutput) => Promise<sdkFuncProductRelevanceFashionFbtSelected>): Promise<sdkFuncProductRelevanceFashionFbtSelected>;
+    /**
      * @param {sdkFuncProductRelevanceFashionDashFunnelReq} req
      * @returns {Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>}
      */
@@ -3434,12 +3452,6 @@ declare class SdkFuncs {
      * @returns {Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>}
      */
     productRelevanceFashionDashAttachedRevenueV1(req: sdkFuncProductRelevanceFashionDashAttachedRevenueReq): Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>;
-    /**
-     * @param {sdkFuncProductRelevanceFashionFbtReq} req
-     * @param {(req: sdkFuncProductRelevanceFashionFbtReq, results: sdkFuncProductRelevanceFashionFbtOutput) => Promise<sdkFuncProductRelevanceFashionFbtSelected>} selectResults - picks which of the recommended skus are shown
-     * @returns {Promise<sdkFuncProductRelevanceFashionFbtSelected>}
-     */
-    productRelevanceFashionFbtV1(req: sdkFuncProductRelevanceFashionFbtReq, selectResults: (req: sdkFuncProductRelevanceFashionFbtReq, results: sdkFuncProductRelevanceFashionFbtOutput) => Promise<sdkFuncProductRelevanceFashionFbtSelected>): Promise<sdkFuncProductRelevanceFashionFbtSelected>;
 }
 export { SdkFuncs };
 /**
@@ -3662,9 +3674,10 @@ export type SelectResultsOptions = {
      */
     recId: string;
     /**
-     * - Picks which of the recommended skus are shown.
+     * - Picks which of the recommended skus are shown: returns
+     * `{ results: [{ sku_id, ... }] }`. Default: one random sku of the results, with the rating of the result it was picked from.
      */
-    selectResults: (req: any, results: any) => Promise<any>;
+    selectResults?: (req: any, results: any) => Promise<any>;
 };
 /**
  * Inference client.
@@ -3690,11 +3703,12 @@ declare class Infer {
      */
     run(opts: InferOptions): Promise<any>;
     /**
-     * Asks `selectResults` which of the recommended skus are shown and sends those as the `recshow` event.
+     * Asks `selectResults` which of the recommended skus are shown and sends their sku ids as the `recshow` event.
      * @param {SelectResultsOptions} opts - Select options.
-     * @returns {Promise<*>} What `selectResults` returned.
-     * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing or the sdk has no `sessionId` and
-     *   `userId`, "event" if an event is not accepted.
+     * @returns {Promise<*>} What `selectResults` returned, with the `rating` of each sku added to its item (its best rating; with the
+     *   default, the rating of the result it was picked from).
+     * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing, the sdk has no `sessionId` and
+     *   `userId`, or `selectResults` returned an item with no `sku_id` or a sku not in the results; "event" if an event is not accepted.
      */
     selectResults(opts: SelectResultsOptions): Promise<any>;
     /**

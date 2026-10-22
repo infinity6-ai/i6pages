@@ -56,22 +56,34 @@ class Infer {
     }
   }
   /**
-   * Asks `selectResults` which of the recommended skus are shown and sends those as the `recshow` event.
+   * Asks `selectResults` which of the recommended skus are shown and sends their sku ids as the `recshow` event.
    * @param {SelectResultsOptions} opts - Select options.
-   * @returns {Promise<*>} What `selectResults` returned.
-   * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing or the sdk has no `sessionId` and
-   *   `userId`, "event" if an event is not accepted.
+   * @returns {Promise<*>} What `selectResults` returned, with the `rating` of each sku added to its item (its best rating; with the
+   *   default, the rating of the result it was picked from).
+   * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing, the sdk has no `sessionId` and
+   *   `userId`, or `selectResults` returned an item with no `sku_id` or a sku not in the results; "event" if an event is not accepted.
    */
   async selectResults(opts) {
-    if (typeof opts?.selectResults !== "function") {
+    const selectResults = opts?.selectResults ?? defaultSelectResults;
+    if (typeof selectResults !== "function") {
       throw new I6Error("infer: opts.selectResults must be a function", { code: "invalid_argument" });
     }
     const { req, results } = opts;
     const { recId } = opts;
     if (!recId) throw new I6Error("infer: opts.recId is required", { code: "invalid_argument" });
     const ids = this.#sdkIds();
-    const selected = await opts.selectResults(req, results);
-    await this.#sendRecEvent(opts, ids, recId, "recshow", selected);
+    const selected = await selectResults(req, results);
+    if (!Array.isArray(selected?.results)) {
+      throw new I6Error("infer: selectResults must return { results: [...] }", { code: "invalid_argument" });
+    }
+    const shown = {
+      skus: selected.results.map((item) => {
+        const skuId = item?.sku_id;
+        if (!skuId) throw new I6Error(`infer: selectResults returned an item with no sku_id: ${JSON.stringify(item)}`, { code: "invalid_argument" });
+        return { sku_id: skuId };
+      })
+    };
+    await this.#sendRecEvent(opts, ids, recId, "recshow", shown);
     return selected;
   }
   /**
@@ -159,5 +171,31 @@ function validate(opts) {
 function outputQueryParams(outputs, opts) {
   const named = Object.entries(outputs).map(([name, values]) => [name, { values: Array.from(values) }]);
   return [Object.fromEntries(named), opts.limit ?? DEFAULT_LIMIT];
+}
+function ratingsBySku(results) {
+  const ratings = /* @__PURE__ */ new Map();
+  for (const { skus, rating } of results?.results ?? []) {
+    for (const { sku_id } of skus ?? []) {
+      if (!ratings.has(sku_id) || rating > ratings.get(sku_id)) ratings.set(sku_id, rating);
+    }
+  }
+  return ratings;
+}
+async function defaultSelectResults(req, results) {
+  const inCart = new Set(req.input.skus.map((sku) => sku.sku_id));
+  const shown = [];
+  for (const result of [...results.results]) {
+    console.log(result.skus);
+    for (const { sku_id } of result.skus) {
+      console.log("SKUID", sku_id);
+      if (!inCart.has(sku_id)) {
+        shown.push({ sku_id, rating: result.rating });
+        break;
+      }
+    }
+  }
+  return {
+    results: shown
+  };
 }
 export { Infer };
