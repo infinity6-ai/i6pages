@@ -116,4 +116,4 @@ class Services {
     return ret;
   }
 }
-export { Services };
+export { Services, Apis, SdkFuncs };

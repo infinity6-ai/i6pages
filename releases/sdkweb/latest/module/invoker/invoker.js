@@ -35,10 +35,12 @@ class Invoker {
         url = url + (url.includes("?") ? "&" : "?") + queryString;
       }
     }
+    opts.headers = new Headers(opts.headers);
+    if (opts.opts?.datasetToken) {
+      opts.headers.set("Authorization", "Dataset " + opts.opts?.datasetToken);
+    }
     if (opts.json) {
-      const headers = new Headers(opts.headers);
-      headers.set("Content-Type", "application/json");
-      opts.headers = headers;
+      opts.headers.set("Content-Type", "application/json");
       opts.body = JSON.stringify(opts.json);
     }
     opts.credentials = "include";

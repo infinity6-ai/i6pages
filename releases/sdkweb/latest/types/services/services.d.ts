@@ -82,4 +82,4 @@ declare class Services {
     */
     funcs(): SdkFuncs;
 }
-export { Services };
+export { Services, Apis, SdkFuncs };

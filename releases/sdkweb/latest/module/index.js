@@ -1,4 +1,4 @@
-import { Services } from "./services/services.js";
+import { Services, Apis, SdkFuncs } from "./services/services.js";
 import { I6Error } from "./errors.js";
 const DEFAULT_CONFIG = {
   baseUrl: "https://decsuite.sandbox.rs.infinity6.ai"

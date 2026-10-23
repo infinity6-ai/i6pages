@@ -2,6 +2,12 @@
  * @fileoverview HTTP client for sending API requests to i6 services.
  */
 export type Services = import("../services/services.js").Services;
+export type ServiceOptions = {
+    /**
+     * - [Go: string]
+     */
+    datasetToken: string;
+};
 export type InvokeOptions = {
     /**
      * - The full URL to request. If omitted, defaults to `${baseUrl}/${path}`.
@@ -43,9 +49,14 @@ export type InvokeOptions = {
      * - An AbortSignal to cancel the request.
      */
     signal?: AbortSignal | null;
+    opts?: ServiceOptions;
 };
 /**
  * @typedef {import("../services/services.js").Services} Services
+ */
+/**
+ * @typedef {object} ServiceOptions
+ * @property {string} datasetToken - [Go: string]
  */
 /**
  * Options for sending HTTP requests via the Invoker.
@@ -60,6 +71,7 @@ export type InvokeOptions = {
  * @property {RequestCredentials} [credentials] - Request credentials mode (e.g., 'include', 'same-origin', 'omit').
  * @property {RequestMode} [mode] - Request mode (e.g., 'cors', 'no-cors', 'same-origin').
  * @property {AbortSignal|null} [signal] - An AbortSignal to cancel the request.
+ * @property {ServiceOptions} [opts]
  */
 /**
  * Invoker client for executing HTTP requests against the i6 API.
