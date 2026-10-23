@@ -17,6 +17,10 @@ export type AuthPayload = {
      * -
      */
     ext?: string;
+    /**
+     * - display name
+     */
+    display?: string;
 };
 /**
  * @typedef {import("../services/services.js").Services} Services
@@ -27,6 +31,7 @@ export type AuthPayload = {
  * @property {string} [sub_type] -
  * @property {string} [sub] - user id
  * @property {string} [ext] -
+ * @property {string} [display] - display name
  */
 /**
  * Authentication client for handling user sessions and authentication requests.
