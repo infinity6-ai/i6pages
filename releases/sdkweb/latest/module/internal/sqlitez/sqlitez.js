@@ -35,7 +35,7 @@ class SqliteConn {
    */
   async query(opts) {
     if (!opts || !opts.query) throw new TypeError("sqlitez: opts.query is required");
-    const db = this.alive();
+    const db = this.#alive();
     let stmt;
     try {
       stmt = db.prepare(opts.query);
@@ -64,7 +64,7 @@ class SqliteConn {
    */
   async update(opts) {
     if (!opts || !opts.query) throw new TypeError("sqlitez: opts.query is required");
-    const db = this.alive();
+    const db = this.#alive();
     try {
       db.run(opts.query, opts.params);
     } catch (cause) {
@@ -117,11 +117,10 @@ class SqliteConn {
     }
   }
   /**
-   * @private
    * @returns {Object} The sql.js database.
    * @throws {I6Error} With code "query" if the connection is closed.
    */
-  alive() {
+  #alive() {
     if (!this.db) throw new I6Error("sqlitez: the connection is closed", { code: "query" });
     return this.db;
   }

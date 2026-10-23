@@ -11,10 +11,6 @@ class Invoker {
    * Sends an HTTP request using the Fetch API.
    *
    * @param {InvokeOptions} opts - Request options including path/URL, query params, and fetch options.
-   * @param {string} [opts.url] - The full URL to request. If omitted, defaults to `${baseUrl}/${path}`.
-   * @param {string} [opts.path] - The path to append to the baseUrl if `url` is not provided.
-   * @param {Record<string, any>} [opts.query] - Key-value pairs to append as query parameters.
-   * @param {*} [opts.json] - JSON-serializable body data. If provided, sets Content-Type header to application/json and serializes to body.
    * Credentials are always set to "include" so the session cookie is sent. Note that `opts`
    * is modified (credentials, and headers/body when `json` is given). An HTTP error status
    * does not throw; check `ok` on the returned Response.
@@ -46,8 +42,7 @@ class Invoker {
       opts.body = JSON.stringify(opts.json);
     }
     opts.credentials = "include";
-    const resp = await fetch(url, opts);
-    return resp;
+    return fetch(url, opts);
   }
   /**
    * Like `invoke`, but never throws: resolves with `{status, ok, <key>}` on success and with

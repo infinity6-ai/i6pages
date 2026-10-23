@@ -2,10 +2,9 @@ import { I6Error } from "../errors.js";
 import { fs } from "../internal/fs/fs.js";
 import { sqlitez } from "../internal/sqlitez/sqlitez.js";
 import { downloadFile, isPartitions, partitionsKey } from "../internal/assets/assets.js";
+import { debugLogger } from "../internal/debug/debug.js";
 const SQLITE_FILE = "sqlite.bin";
-const debug = (...args) => {
-  if (globalThis.I6_DEBUG) console.log("dash:", ...args);
-};
+const debug = debugLogger("dash");
 class Dash {
   /**
    * Constructs a Dash client instance.

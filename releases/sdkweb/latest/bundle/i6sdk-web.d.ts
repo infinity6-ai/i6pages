@@ -1,38 +1,303 @@
 /**
- * @fileoverview Authentication client. Looks up the signed-in user and sends
- * unauthenticated browsers to the login page. Requests carry the session
- * cookie (credentials are always included by the Invoker).
+ * @fileoverview HTTP client for sending API requests to i6 services.
  */
 export type Services = import("../services/services.js").Services;
-export type AuthPayload = {
+export type InvokeOptions = {
     /**
-     * -
+     * - The full URL to request. If omitted, defaults to `${baseUrl}/${path}`.
      */
-    sub_type?: string;
+    url?: string;
     /**
-     * - user id
+     * - The path to append to the baseUrl if `url` is not provided.
      */
-    sub?: string;
+    path?: string;
     /**
-     * -
+     * - Key-value pairs to append as query parameters.
      */
-    ext?: string;
+    query?: Record<string, any>;
+    /**
+     * - JSON-serializable body data. If provided, sets Content-Type header to application/json and serializes to body.
+     */
+    json?: any;
+    /**
+     * - HTTP method (e.g., 'GET', 'POST', 'PUT', 'DELETE').
+     */
+    method?: string;
+    /**
+     * - HTTP headers for the request.
+     */
+    headers?: HeadersInit;
+    /**
+     * - HTTP request body.
+     */
+    body?: BodyInit | null;
+    /**
+     * - Request credentials mode (e.g., 'include', 'same-origin', 'omit').
+     */
+    credentials?: RequestCredentials;
+    /**
+     * - Request mode (e.g., 'cors', 'no-cors', 'same-origin').
+     */
+    mode?: RequestMode;
+    /**
+     * - An AbortSignal to cancel the request.
+     */
+    signal?: AbortSignal | null;
 };
 /**
  * @typedef {import("../services/services.js").Services} Services
  */
 /**
- * Configuration options for the i6 SDK.
- * @typedef {Object} AuthPayload
- * @property {string} [sub_type] -
- * @property {string} [sub] - user id
- * @property {string} [ext] -
+ * Options for sending HTTP requests via the Invoker.
+ * @typedef {Object} InvokeOptions
+ * @property {string} [url] - The full URL to request. If omitted, defaults to `${baseUrl}/${path}`.
+ * @property {string} [path] - The path to append to the baseUrl if `url` is not provided.
+ * @property {Record<string, any>} [query] - Key-value pairs to append as query parameters.
+ * @property {*} [json] - JSON-serializable body data. If provided, sets Content-Type header to application/json and serializes to body.
+ * @property {string} [method] - HTTP method (e.g., 'GET', 'POST', 'PUT', 'DELETE').
+ * @property {HeadersInit} [headers] - HTTP headers for the request.
+ * @property {BodyInit|null} [body] - HTTP request body.
+ * @property {RequestCredentials} [credentials] - Request credentials mode (e.g., 'include', 'same-origin', 'omit').
+ * @property {RequestMode} [mode] - Request mode (e.g., 'cors', 'no-cors', 'same-origin').
+ * @property {AbortSignal|null} [signal] - An AbortSignal to cancel the request.
  */
 /**
- * Authentication client for handling user sessions and authentication requests.
- * Obtain an instance with `i6sdk.auth()` rather than constructing it directly.
+ * Invoker client for executing HTTP requests against the i6 API.
  */
-declare class Auth {
+declare class Invoker {
+    /**
+     * @private
+     * @type {Services}
+     */
+    _services;
+    /**
+     * Constructs an Invoker instance.
+     * @param {Services} services - The services manager instance.
+     */
+    constructor(services: Services);
+    /**
+     * Sends an HTTP request using the Fetch API.
+     *
+     * @param {InvokeOptions} opts - Request options including path/URL, query params, and fetch options.
+     * Credentials are always set to "include" so the session cookie is sent. Note that `opts`
+     * is modified (credentials, and headers/body when `json` is given). An HTTP error status
+     * does not throw; check `ok` on the returned Response.
+     * @returns {Promise<Response>} A promise that resolves to the fetch Response.
+     * @throws {TypeError} If the network request fails (from fetch).
+     */
+    invoke(opts: InvokeOptions): Promise<Response>;
+    /**
+     * Like `invoke`, but never throws: resolves with `{status, ok, <key>}` on success and with
+     * `{status, ok: false, error}` (see `I6ApiError`) on an HTTP error or a network failure.
+     * A success with status 204 or an empty body resolves with `{status, ok: true}` and no `<key>`.
+     * @param {InvokeOptions} opts - Same as `invoke`.
+     * @param {"payload"|"body"} [key] - Where the parsed JSON of a success is put.
+     * @returns {Promise<{status: number, ok: boolean, error?: import("../errors.js").I6ApiError} & Record<string, any>>}
+     */
+    invokeResult(opts: InvokeOptions, key?: "payload" | "body"): Promise<{
+        status: number;
+        ok: boolean;
+        error?: import("../errors.js").I6ApiError;
+    } & Record<string, any>>;
+}
+export { Invoker };
+/**
+ * @fileoverview Main entry point for the i6 Web Legacy SDK.
+ */
+import { I6Error } from "./errors.js";
+export type I6SdkConfig = {
+    /**
+     * - Base URL of the i6 server. Defaults to the sandbox environment.
+     */
+    baseUrl?: string;
+    /**
+     * - Id of the user session; sent in the recommendation events (required by `funcs()` inference).
+     */
+    sessionId?: string;
+    /**
+     * - Id of the user; sent in the recommendation events (required by `funcs()` inference).
+     */
+    userId?: string;
+};
+/**
+ * Main SDK class providing access to i6 services.
+ */
+declare class I6Sdk {
+    /**
+     * @private
+     * @type {Services}
+     */
+    _service;
+    /**
+     * Constructs an instance of the i6 SDK.
+     * @param {I6SdkConfig} [config] - Configuration options for the SDK.
+     */
+    constructor(config?: I6SdkConfig);
+    /**
+     * Returns a copy of the configuration the SDK is running with.
+     * @returns {I6SdkConfig} The current configuration.
+     */
+    config(): I6SdkConfig;
+    /**
+     * Overwrites the given keys of the configuration (e.g. `{ sessionId, userId }`); the other keys are kept.
+     * Can be called at any time, the next call of the SDK uses the new values.
+     * @param {Partial<I6SdkConfig>} config - The keys to overwrite.
+     * @returns {void}
+     */
+    setConfig(config: Partial<I6SdkConfig>): void;
+    /**
+     * Returns an Ingest service instance.
+     * @returns {Ingest} An instance of the Ingest client.
+     */
+    ingest(): Ingest;
+    /**
+     * Returns an Infer service instance, which runs an i6 model in the browser and returns the result.
+     * @returns {Infer} An instance of the Infer client.
+     */
+    infer(): Infer;
+    /**
+     * Returns a Dash service instance, which queries an i6 dash in the browser and returns the result.
+     * @returns {Dash} An instance of the Dash client.
+     */
+    dash(): Dash;
+    /**
+     * Returns an Auth service instance.
+     * @returns {Auth} An instance of the Auth client.
+     */
+    auth(): Auth;
+    /**
+     * Returns the Apis service instance, one typed method per i6 server API.
+     * Each call resolves with `{status, ok, payload?, error?}` and does not throw on an HTTP error.
+     * @returns {Apis} An instance of the generated Apis client.
+     */
+    apis(): Apis;
+    /**
+     * Returns the Funcs service instance.
+     * @returns {SdkFuncs} An instance of the generated Apis client.
+     */
+    funcs(): SdkFuncs;
+    /**
+     * Registers an event listener on the SDK's internal event dispatcher (an EventTarget).
+     * @param {string} evt - The event type or name to listen for.
+     * @param {EventListenerOrEventListenerObject|Function} fn - The callback function or event listener object invoked when the event occurs.
+     * @returns {void}
+     */
+    bind(evt: string, fn: EventListenerOrEventListenerObject | Function): void;
+}
+declare namespace I6Sdk {
+    export { I6Error };
+}
+export { I6Sdk, I6Error };
+/**
+ * @fileoverview Ingest client for uploading files to the ingestion service.
+ */
+export type Services = import("../services/services.js").Services;
+export type Partitions = Record<string, string>;
+export type GetUrlParams = {
+    /**
+     * - Dataset name.
+     */
+    dataset: string;
+    /**
+     * - Inbox table name.
+     */
+    table: string;
+    /**
+     * - Values for the table partitions, except the ingest id one.
+     */
+    partitions: Partitions;
+};
+export type UploadProgress = {
+    /**
+     * - Bytes sent so far.
+     */
+    loaded: number;
+    /**
+     * - Total bytes to send (the file size when the browser can't tell).
+     */
+    total: number;
+    /**
+     * - Progress from 0 to 100.
+     */
+    percent: number;
+};
+export type UploadParams = {
+    /**
+     * - Dataset the file is ingested into.
+     */
+    dataset: string;
+    /**
+     * - Inbox table name.
+     */
+    table: string;
+    /**
+     * - Values for the table partitions, except the ingest id one.
+     */
+    partitions: Partitions;
+    /**
+     * - The single file to upload.
+     */
+    file: File;
+    /**
+     * - Called as the file is sent.
+     */
+    onProgress?: (progress: UploadProgress) => void;
+    /**
+     * - Aborts the upload; the promise then rejects with the signal's reason (an AbortError by default).
+     */
+    signal?: AbortSignal;
+    /**
+     * - Content-Type of the PUT. Defaults to the file's own type.
+     */
+    contentType?: string;
+};
+export type UploadResult = {
+    /**
+     * - Id the server assigned to this ingest.
+     */
+    ingestId: string;
+};
+/**
+ * @typedef {import("../services/services.js").Services} Services
+ */
+/**
+ * Key-value mapping representing dataset table partition values, except the ingest ID.
+ * @typedef {Record<string, string>} Partitions
+ */
+/**
+ * Parameters for requesting a signed upload URL from the ingest service.
+ * @typedef {Object} GetUrlParams
+ * @property {string} dataset - Dataset name.
+ * @property {string} table - Inbox table name.
+ * @property {Partitions} partitions - Values for the table partitions, except the ingest id one.
+ */
+/**
+ * Progress of an upload in flight.
+ * @typedef {Object} UploadProgress
+ * @property {number} loaded - Bytes sent so far.
+ * @property {number} total - Total bytes to send (the file size when the browser can't tell).
+ * @property {number} percent - Progress from 0 to 100.
+ */
+/**
+ * Parameters for uploading a single file to the ingest service.
+ * @typedef {Object} UploadParams
+ * @property {string} dataset - Dataset the file is ingested into.
+ * @property {string} table - Inbox table name.
+ * @property {Partitions} partitions - Values for the table partitions, except the ingest id one.
+ * @property {File} file - The single file to upload.
+ * @property {(progress: UploadProgress) => void} [onProgress] - Called as the file is sent.
+ * @property {AbortSignal} [signal] - Aborts the upload; the promise then rejects with the signal's reason (an AbortError by default).
+ * @property {string} [contentType] - Content-Type of the PUT. Defaults to the file's own type.
+ */
+/**
+ * Result of a successful upload.
+ * @typedef {Object} UploadResult
+ * @property {string} ingestId - Id the server assigned to this ingest.
+ */
+/**
+ * Client for handling file uploads to the ingest service.
+ */
+declare class Ingest {
     #private;
     /**
      * @private
@@ -40,348 +305,145 @@ declare class Auth {
      */
     _services;
     /**
-     * Constructs an Auth client instance.
+     * Constructs an Ingest client instance.
      * @param {Services} services - The services manager instance.
      */
     constructor(services: Services);
     /**
-     * Redirects the browser to the login page, passing the current URL (encoded)
-     * as `backurl` so the user returns to this page after signing in.
-     * Navigates away from the page; code after the call may not run.
+     * Asks ingestz for a signed upload URL (ingestz-get-url API) and uploads a single file to it.
+     * @param {UploadParams} params - Upload parameters.
+     * @returns {Promise<UploadResult>} Resolves with the ingest id on a successful upload.
+     * @throws {I6Error} With code "invalid_argument" if file is not a single File, "http" or
+     *   "network" if a request fails. Rejects with an AbortError if `signal` aborts.
+     */
+    upload({ dataset, table, partitions, file, onProgress, signal, contentType }: UploadParams): Promise<UploadResult>;
+    /**
+     * Gets one signed PUT URL from the ingestz-get-url API.
      * @private
-     * @returns {void}
+     * @param {GetUrlParams} params - Parameters for requesting the upload URL.
+     * @returns {Promise<{ingestId: string, url: string}>} The ingest id and the signed PUT URL.
+     * @throws {I6Error} If the request fails or no upload URL is returned.
      */
-    private #redirectToLogin;
+    private #getUrl;
     /**
-     * Redirects the browser to the logout page, passing the given URL (encoded)
-     * as `backurl` so the user returns to it after signing out.
-     * Navigates away from the page; code after the call may not run.
+     * Uploads a file to a signed PUT URL using XMLHttpRequest (fetch has no upload progress).
      * @private
-     * @param {string} backurl - The URL to return to after logging out.
-     * @returns {void}
+     * @param {string} signedPutUrl - The signed URL to PUT the file to.
+     * @param {File} file - The file to upload.
+     * @param {Pick<UploadParams, "onProgress"|"signal"|"contentType">} opts
+     * @returns {Promise<void>} Resolves on a successful upload, rejects on network or HTTP error or abort.
      */
-    private #redirectToLogout;
-    /**
-     * Fetches the current authenticated user profile (`GET api/auth/me`).
-     * Does not redirect; use {@link Auth#requireUser} to force a login.
-     * @returns {Promise<AuthPayload|null>} The user profile data, or null if the
-     *   server returns no user.
-     * @throws {Error} If the network request fails or the response body is not valid JSON.
-     */
-    user(): Promise<AuthPayload | null>;
-    /**
-     * Fetches the current user, redirecting the browser to the login page when
-     * there is none. The login page sends the user back to the current URL
-     * afterwards.
-     * @returns {Promise<AuthPayload|null>} The user profile data, or null when the
-     *   browser is being redirected to login.
-     * @throws {Error} If the network request fails or the response body is not valid JSON.
-     */
-    requireUser(): Promise<AuthPayload | null>;
-    /**
-     * Logs out the current user by redirecting the browser to the logout endpoint.
-     * The server clears the session and redirects the browser back to `backurl`.
-     * Navigates away from the page; code after the call may not run.
-     * @param {string} [backurl=location.href] - The URL to return to after logging out.
-     *   Defaults to the current page URL.
-     * @returns {Promise<void>}
-     */
-    logout(backurl?: string): Promise<void>;
+    private #put;
 }
-export { Auth };
+export { Ingest };
 /**
- * @fileoverview Sqlite client for the SDK, running sqlite (sql.js, wasm) in the browser.
- *
- * Usage: get the file with the downloader, open it by its OPFS path and always close the
- * connection when done:
- *
- *   const ref = await downloader.update({ name, url })
- *   const conn = await sqlitez.open({ path: await fs.resolve(ref) })
- *   try {
- *     const rows = await conn.query({ query: 'SELECT * FROM t WHERE id = ?', params: [1] })
- *   } finally {
- *     await conn.close()
- *   }
- *
- * The database lives in memory: `update` changes the memory copy, the file is never written back.
- * Every method takes a single `opts` object with the real parameters inside it.
+ * @fileoverview Error types thrown by the i6 Web Legacy SDK.
  */
-export type SqliteValue = number | string | null | Uint8Array;
-export type SqliteRow = Record<string, SqliteValue>;
-/**
- * An open sqlite database. Get one with `sqlitez.open` and always call `close()` in a `finally`.
- */
-declare class SqliteConn {
-    /** @private */
-    db;
+export type I6ErrorCode = "http" | "network" | "invalid_argument" | "no_upload_url" | "asset" | "model" | "query";
+export type I6ApiErrorCode = "unauthenticated" | "forbidden" | "not_found" | "bad_request" | "unavailable" | "network";
+export type I6ApiError = {
     /**
-     * Use `sqlitez.open`, not this constructor.
-     * @param {Object} db - The sql.js database.
+     * - HTTP status; 0 when the server did not answer (network failure).
      */
-    constructor(db: Object);
+    status: number;
     /**
-     * Closes the connection, freeing the database. Closing twice is fine.
-     * @returns {Promise<void>}
+     * - Failure kind, from the status: 401 "unauthenticated" (session expired),
+     * 403 "forbidden" (no permission), 404 "not_found" (no data), other 4xx "bad_request", 5xx "unavailable".
      */
-    close(): Promise<void>;
+    code: I6ApiErrorCode;
     /**
-     * Runs a query and returns its rows.
-     * @param {Object} opts
-     * @param {string} opts.query - required, the SQL; use `?` for values.
-     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query (never concatenate them).
-     * @returns {Promise<SqliteRow[]>} The rows (empty array when none), each one an object by column name.
-     * @throws {TypeError} If opts.query is missing.
-     * @throws {I6Error} With code "query" if the connection is closed or sqlite rejects the query.
+     * - The server response text as is (e.g. the Stripe reason), or "HTTP <status>" if empty.
      */
-    query(opts: {
-        query: string;
-        params?: SqliteValue[];
-    }): Promise<SqliteRow[]>;
+    message: string;
     /**
-     * Runs a statement that returns no data (INSERT, UPDATE, CREATE, ...). Only the memory copy changes.
-     * @param {Object} opts
-     * @param {string} opts.query - required, the SQL; use `?` for values.
-     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query.
-     * @returns {Promise<void>}
-     * @throws {TypeError} If opts.query is missing.
-     * @throws {I6Error} With code "query" if the connection is closed or sqlite rejects the statement.
+     * - The raw response text, or the underlying error on a network failure.
      */
-    update(opts: {
-        query: string;
-        params?: SqliteValue[];
-    }): Promise<void>;
-    /**
-     * Runs a query stored in the `namedqueries` table of the sqlite (columns `name` and `query`).
-     * @param {Object} opts
-     * @param {string} opts.name - required, the `name` of the stored query.
-     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the stored query.
-     * @returns {Promise<SqliteRow[]>} The rows of the stored query, like `query`.
-     * @throws {TypeError} If opts.name is missing.
-     * @throws {I6Error} With code "query" if the connection is closed, there is no such table or named query, or the query fails.
-     */
-    namedQuery(opts: {
-        name: string;
-        params?: SqliteValue[];
-    }): Promise<SqliteRow[]>;
-    /**
-     * Like `namedQuery`, but with JSON in and JSON out: each value of `opts.params`
-     * is bound as a JSON string to the positional `?1`, `?2`, ... of the stored query, in order (read them in SQL with
-     * `json_extract(?1, '$.field')`, `json_each(?2)`, ...). The stored query must return a row with a column `ret`
-     * holding a JSON string. That JSON is parsed and returned.
-     * The stored query must have a placeholder for every value, otherwise sqlite rejects the bind ("column index out of range").
-     * @param {Object} opts
-     * @param {string} opts.name - required, the `name` of the stored query (see `namedQuery`).
-     * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
-     * @returns {Promise<*>} The parsed `ret` of the first row, or null if there is no row or `ret` is null.
-     * @throws {TypeError} If opts.name is missing or opts.params is not an array.
-     * @throws {I6Error} With code "query" if `namedQuery` fails, the rows have no `ret` column, or `ret` is not valid JSON.
-     */
-    namedJsonQuery(opts: {
-        name: string;
-        params?: Array<any>;
-    }): Promise<any>;
-    /**
-     * @private
-     * @returns {Object} The sql.js database.
-     * @throws {I6Error} With code "query" if the connection is closed.
-     */
-    private alive;
-}
-/**
- * Sqlitez client. Use the `sqlitez` singleton.
- */
-declare class Sqlitez {
-    /**
-     * Opens a sqlite file of the browser file system into memory.
-     * @param {Object} opts
-     * @param {string} opts.path - required, OPFS path of the file (what `fs.resolve` returns for a downloaded file).
-     * @returns {Promise<SqliteConn>} The connection. The caller must `close()` it.
-     * @throws {TypeError} If opts.path is missing.
-     * @throws {I6Error} With code "asset" if the file cannot be read or is not a sqlite file.
-     */
-    open(opts: {
-        path: string;
-    }): Promise<SqliteConn>;
-}
-/** Shared Sqlitez instance. */
-declare const sqlitez: Sqlitez;
-export { sqlitez };
-/**
- * @fileoverview Keeps a remote file cached in the browser's file system (see fs.js),
- * downloading it only when its etag changes.
- */
-export type FileRef = import('../fs/fs.js').FileRef;
-/**
- * Downloads remote files into the versioned file store. Use the `downloader` singleton.
- */
-declare class Downloader {
-    /**
-     * Downloads the file by name if necessary (checking etag): sends a HEAD request, and
-     * if the etag differs from the released version, streams the body into a new version
-     * and releases it.
-     * @param {Object} opts
-     * @param {string} opts.name - required, name to store the file under (see fs.js)
-     * @param {string} opts.url - required, URL of the file; must answer HEAD with an etag
-     * @returns {Promise<FileRef>} the FileRef of the up-to-date file (basically to get the version)
-     * @throws {TypeError} If name or url is missing.
-     * @throws {Error} If the HEAD or GET request fails, or the HEAD response has no etag.
-     *   When the server answered, the error has `status` (the HTTP status code).
-    */
-    update(opts: {
-        name: string;
-        url: string;
-    }): Promise<FileRef>;
-}
-/** Shared Downloader instance. */
-declare const downloader: Downloader;
-export { downloader };
-/**
- * @fileoverview Versioned file store on the browser's origin private file system (OPFS).
- *
- * Layout under `i6/fs`:
- *   {name}/version.txt          the released (current) version, if any
- *   {name}/v{version}/etag.txt  the etag the version was created for
- *   {name}/v{version}/blob.bin  the content (written by the caller, see `resolve`)
- *
- * Versions are ISO timestamps, so they sort in creation order.
- */
-export type FileRef = {
-    /**
-     * - File name, a single OPFS directory name (e.g. "model").
-     */
-    name: string;
-    /**
-     * - Version id, an ISO timestamp (e.g. "2026-09-29T12:00:00.000Z").
-     */
-    version: string;
-    /**
-     * - Etag of the remote content this version was created for.
-     */
-    etag: string;
+    cause?: any;
+};
+export type I6Result<R> = ({
+    status: number;
+    ok: true;
+    body?: any;
+} & R) | {
+    status: number;
+    ok: false;
+    error: I6ApiError;
 };
 /**
- * Versioned file store. Use the `fs` singleton.
+ * @typedef {"http"|"network"|"invalid_argument"|"no_upload_url"|"asset"|"model"|"query"} I6ErrorCode
+ */
+/**
+ * Why an API call failed, derived from the HTTP status alone; the server message is never parsed.
+ * @typedef {"unauthenticated"|"forbidden"|"not_found"|"bad_request"|"unavailable"|"network"} I6ApiErrorCode
+ */
+/**
+ * Error of an API call that did not succeed, as returned in `I6Result.error`.
+ * @typedef {Object} I6ApiError
+ * @property {number} status - HTTP status; 0 when the server did not answer (network failure).
+ * @property {I6ApiErrorCode} code - Failure kind, from the status: 401 "unauthenticated" (session expired),
+ *   403 "forbidden" (no permission), 404 "not_found" (no data), other 4xx "bad_request", 5xx "unavailable".
+ * @property {string} message - The server response text as is (e.g. the Stripe reason), or "HTTP <status>" if empty.
+ * @property {*} [cause] - The raw response text, or the underlying error on a network failure.
+ */
+/**
+ * What every generated API call resolves with; it does not throw on an HTTP error or a network failure.
+ * Check `ok` to tell the two shapes apart. `body` is the parsed JSON of an API that has no declared payload.
+ * @template R - The generated response type of the API (`{payload}`).
+ * @typedef {({status: number, ok: true, body?: *} & R) | {status: number, ok: false, error: I6ApiError}} I6Result
+ */
+/**
+ * Error thrown by the SDK when a call fails.
  *
- * A file is created as a new unreleased version, filled, then released to become the
- * current one; releasing removes the older versions.
+ * `code` tells what kind of failure it was, so callers can branch on it instead of parsing
+ * the message. `status` and `body` are set for `"http"` failures. `"asset"` failures also have `status`
+ * when a file download was answered with an error (404: the file does not exist), and always `cause`.
  */
-declare class FS {
+declare class I6Error extends Error {
+    /** @type {I6ErrorCode|undefined} */
+    code: I6ErrorCode | undefined;
+    /** @type {number|undefined} */
+    status: number | undefined;
+    /** @type {*} */
+    body: any;
     /**
-     * Removes the versions older than version.txt, and the whole file if it is left empty.
-     * Without version.txt no version is removed.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @returns {Promise<void>}
+     * @param {string} message - Human readable description.
+     * @param {Object} [details]
+     * @param {I6ErrorCode} [details.code] - Failure kind. Defaults to "http" when a status is given.
+     * @param {number} [details.status] - HTTP status code, when the server answered.
+     * @param {*} [details.body] - Error body of the response (parsed JSON, or raw text).
+     * @param {*} [details.cause] - The underlying error, if any.
      */
-    cleanFile(opts: {
-        name: string;
-    }): Promise<void>;
+    constructor(message: string, { code, status, body, cause }?: {
+        code?: I6ErrorCode;
+        status?: number;
+        body?: any;
+        cause?: any;
+    });
     /**
-     * Cleans all files, see cleanFile.
-     * @returns {Promise<void>}
+     * Builds an "http" error from a failed generated-client result ({status, error}).
+     * @param {string} message
+     * @param {{status: number, error?: *}} result
+     * @returns {I6Error}
      */
-    clean(): Promise<void>;
-    /**
-     * Resolves a version of a file.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} [opts.version] - defaults to the content of version.txt
-     * @returns {Promise<FileRef|null>} a new full FileRef, or null if it does not exist.
-     */
-    get(opts: {
-        name: string;
-        version?: string;
-    }): Promise<FileRef | null>;
-    /**
-     * Creates a new version, unless the latest version already has this etag.
-     * The new version is not released.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.etag - required
-     * @param {Blob|BufferSource|string} [opts.data] - content, required when a new version is created
-     * @returns {Promise<FileRef>} a new full FileRef.
-     */
-    create(opts: {
-        name: string;
-        etag: string;
-        data?: Blob | BufferSource | string;
-    }): Promise<FileRef>;
-    /**
-     * Returns the bin file path, full (with base). Does not check that it exists, see get.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.version - required
-     * @returns {Promise<string>} e.g. "i6/fs/{name}/v{version}/blob.bin"
-     */
-    resolve(opts: {
-        name: string;
-        version: string;
-    }): Promise<string>;
-    /**
-     * Reads the content (blob.bin) of a version.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.version - required
-     * @returns {Promise<Uint8Array>} the bytes of the file.
-     * @throws {DOMException} NotFoundError if the version or its blob does not exist.
-     */
-    read(opts: {
-        name: string;
-        version: string;
-    }): Promise<Uint8Array>;
-    /**
-     * Makes a version the current one (version.txt), then cleans the older versions.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.version - required, must exist
-     * @returns {Promise<FileRef>} a new full FileRef of the released version.
-     */
-    release(opts: {
-        name: string;
-        version: string;
-    }): Promise<FileRef>;
-    /**
-     * Removes a version that was never released (e.g. its download failed). Does nothing if it does not exist.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.version - required, must not be the released one
-     * @returns {Promise<void>}
-     */
-    discard(opts: {
-        name: string;
-        version: string;
-    }): Promise<void>;
+    static fromResult(message: string, result: {
+        status: number;
+        error?: any;
+    }): I6Error;
 }
-/** Shared FS instance. */
-declare const fs: FS;
-export { fs };
 /**
- * @fileoverview Helpers shared by the services that run on files downloaded from i6 (infer, dash).
+ * Builds the error of a failed HTTP response, keeping the server text untouched.
+ * @param {number} status - HTTP status.
+ * @param {string} text - Response body as text.
+ * @returns {I6ApiError}
  */
-export type FileRef = import("../fs/fs.js").FileRef;
+declare function apiErrorFromResponse(status: number, text: string): I6ApiError;
 /**
- * @typedef {import("../fs/fs.js").FileRef} FileRef
+ * Builds the error of a request that got no answer.
+ * @param {*} cause - The error thrown by fetch.
+ * @returns {I6ApiError}
  */
-/**
- * @param {Object<string, string>} partitions - Partitions, name -> value.
- * @returns {string} A stable key of the partitions, safe as part of a cache file name (e.g. "store_id%3Ds1-version%3Dv1").
- */
-declare function partitionsKey(partitions: Record<string, string>): string;
-/**
- * @param {*} partitions - Value to check.
- * @returns {boolean} True if it is an object (not an array) whose values are all strings.
- */
-declare function isPartitions(partitions: any): boolean;
-/**
- * Brings one remote file to the browser cache, downloading it only if its etag changed.
- * @param {string} name - Name of the cached file.
- * @param {string} url - URL of the file.
- * @returns {Promise<FileRef>} The cached file.
- * @throws {I6Error} With code "asset" if the download fails; `status` is the HTTP status when the server answered
- *   (404 when the file does not exist, e.g. a store or month without data) and `cause` is the underlying error.
- */
-declare function downloadFile(name: string, url: string): Promise<FileRef>;
-export { partitionsKey, isPartitions, downloadFile };
+declare function apiErrorFromNetwork(cause: any): I6ApiError;
+export { I6Error, apiErrorFromResponse, apiErrorFromNetwork };
 /**
  * @typedef {import("../services/services.js").Services} Services
  */
@@ -938,7 +1000,7 @@ export type apiDszStripeCheckoutResp = {
 };
 export type apiDszStripeCheckoutRespPayload = {
     /**
-     * - [Go: lakedsz.Dataset] Id of the dataset that is going to be created after the payment (starts with ds)
+     * - [Go: lakedsz.Dataset] Dataset that is going to be created after the payment; its id starts with ds
      */
     dataset: string;
     /**
@@ -1039,15 +1101,12 @@ export type apiIngestzEventRelevanceFashionCatalogParams = {
     dataset: string;
 };
 export type apiIngestzEventRelevanceFashionCatalogQuery = {
-    payload: apiIngestzEventRelevanceFashionCatalogQueryPayload;
+    payload: i6JsonEmbedded<apiIngestzEventRelevanceFashionCatalogQueryPayload>;
 };
 export type apiIngestzEventRelevanceFashionCatalogQueryPayload = {
-    /**
-     * - Generic stream data to ingest.
-     */
-    data: Array<apiIngestzEventRelevanceFashionCatalogQueryPayloadDataElement>;
+    rows: Array<apiIngestzEventRelevanceFashionCatalogQueryPayloadRowsElement>;
 };
-export type apiIngestzEventRelevanceFashionCatalogQueryPayloadDataElement = {
+export type apiIngestzEventRelevanceFashionCatalogQueryPayloadRowsElement = {
     /**
      * - [Go: string]
      */
@@ -1093,17 +1152,14 @@ export type apiIngestzEventRelevanceFashionEventParams = {
     dataset: string;
 };
 export type apiIngestzEventRelevanceFashionEventQuery = {
-    payload: apiIngestzEventRelevanceFashionEventQueryPayload;
+    payload: i6JsonEmbedded<apiIngestzEventRelevanceFashionEventQueryPayload>;
 };
 export type apiIngestzEventRelevanceFashionEventQueryPayload = {
-    /**
-     * - Generic stream data to ingest.
-     */
-    data: Array<apiIngestzEventRelevanceFashionEventQueryPayloadDataElement>;
+    rows: Array<apiIngestzEventRelevanceFashionEventQueryPayloadRowsElement>;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElement = {
-    add_to_cart: apiIngestzEventRelevanceFashionEventQueryPayloadDataElementAddToCart;
-    click: apiIngestzEventRelevanceFashionEventQueryPayloadDataElementClick;
+export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElement = {
+    add_to_cart: apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementAddToCart;
+    click: apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementClick;
     /**
      * - [Go: time.Time]
      */
@@ -1116,11 +1172,11 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElement = {
      * - [Go: string]
      */
     id: string;
-    purchase: apiIngestzEventRelevanceFashionEventQueryPayloadDataElementPurchase;
-    recraw: apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRecraw;
-    recshow: apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRecshow;
-    remove_from_cart: apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRemoveFromCart;
-    search: apiIngestzEventRelevanceFashionEventQueryPayloadDataElementSearch;
+    purchase: apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchase;
+    recraw: apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecraw;
+    recshow: apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecshow;
+    remove_from_cart: apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRemoveFromCart;
+    search: apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementSearch;
     /**
      * - [Go: string]
      */
@@ -1134,7 +1190,7 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElement = {
      */
     user_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElementAddToCart = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementAddToCart = {
     /**
      * - [Go: float64]
      */
@@ -1144,7 +1200,7 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElementAddToCart
      */
     sku_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElementClick = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementClick = {
     /**
      * - [Go: float64]
      */
@@ -1154,14 +1210,14 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElementClick = {
      */
     sku_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElementPurchase = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchase = {
     /**
      * - [Go: string]
      */
     order_id: string;
-    skus: Array<apiIngestzEventRelevanceFashionEventQueryPayloadDataElementPurchaseSkusElement>;
+    skus: Array<apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchaseSkusElement>;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElementPurchaseSkusElement = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchaseSkusElement = {
     /**
      * - [Go: int64]
      */
@@ -1175,7 +1231,7 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElementPurchaseS
      */
     unit_price: number;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRecraw = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecraw = {
     /**
      * - [Go: string]
      */
@@ -1193,7 +1249,7 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRecraw = 
      */
     rec_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRecshow = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecshow = {
     /**
      * - [Go: string]
      */
@@ -1211,7 +1267,7 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRecshow =
      */
     rec_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRemoveFromCart = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRemoveFromCart = {
     /**
      * - [Go: float64]
      */
@@ -1221,7 +1277,7 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRemoveFro
      */
     sku_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadDataElementSearch = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementSearch = {
     /**
      * - [Go: string]
      */
@@ -1737,6 +1793,13 @@ export type apiSampleFractionQuery = {
      * - [Go: int] Fraction max precision
      */
     precision: number;
+    smsg: apiSampleFractionQuerySmsg;
+};
+export type apiSampleFractionQuerySmsg = {
+    /**
+     * - [Go: string] message string
+     */
+    message: string;
 };
 export type apiSampleFractionReq = {
     params: apiSampleFractionParams;
@@ -1768,10 +1831,17 @@ export type apiSampleFractionResp = {
     payload: apiSampleFractionRespPayload;
 };
 export type apiSampleFractionRespHeaders = {
+    x_i6_smsg: apiSampleFractionRespHeadersXI6Smsg;
     /**
      * - [Go: string] Sample of any trace message
      */
     x_i6_trace_message: string;
+};
+export type apiSampleFractionRespHeadersXI6Smsg = {
+    /**
+     * - [Go: string] message string
+     */
+    message: string;
 };
 export type apiSampleFractionRespPayload = {
     /**
@@ -2437,7 +2507,7 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
 /**
  * apiDszStripeCheckout respPayload
  * @typedef {object} apiDszStripeCheckoutRespPayload
- * @property {string} dataset - [Go: lakedsz.Dataset] Id of the dataset that is going to be created after the payment (starts with ds)
+ * @property {string} dataset - [Go: lakedsz.Dataset] Dataset that is going to be created after the payment; its id starts with ds
  * @property {string} id - [Go: string] Checkout session id
  * @property {string} url - [Go: string] Checkout session url
  */
@@ -2509,14 +2579,14 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
 /**
  * apiIngestzEventRelevanceFashionCatalog query
  * @typedef {object} apiIngestzEventRelevanceFashionCatalogQuery
- * @property {apiIngestzEventRelevanceFashionCatalogQueryPayload} payload
+ * @property {i6JsonEmbedded<apiIngestzEventRelevanceFashionCatalogQueryPayload>} payload
  */
 /**
  * @typedef {object} apiIngestzEventRelevanceFashionCatalogQueryPayload
- * @property {Array<apiIngestzEventRelevanceFashionCatalogQueryPayloadDataElement>} data - Generic stream data to ingest.
+ * @property {Array<apiIngestzEventRelevanceFashionCatalogQueryPayloadRowsElement>} rows
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionCatalogQueryPayloadDataElement
+ * @typedef {object} apiIngestzEventRelevanceFashionCatalogQueryPayloadRowsElement
  * @property {string} id - [Go: string]
  * @property {boolean} inactive - [Go: bool]
  * @property {string} product_id - [Go: string]
@@ -2548,70 +2618,70 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
 /**
  * apiIngestzEventRelevanceFashionEvent query
  * @typedef {object} apiIngestzEventRelevanceFashionEventQuery
- * @property {apiIngestzEventRelevanceFashionEventQueryPayload} payload
+ * @property {i6JsonEmbedded<apiIngestzEventRelevanceFashionEventQueryPayload>} payload
  */
 /**
  * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayload
- * @property {Array<apiIngestzEventRelevanceFashionEventQueryPayloadDataElement>} data - Generic stream data to ingest.
+ * @property {Array<apiIngestzEventRelevanceFashionEventQueryPayloadRowsElement>} rows
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadDataElement
- * @property {apiIngestzEventRelevanceFashionEventQueryPayloadDataElementAddToCart} add_to_cart
- * @property {apiIngestzEventRelevanceFashionEventQueryPayloadDataElementClick} click
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElement
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementAddToCart} add_to_cart
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementClick} click
  * @property {dszTime} created_at - [Go: time.Time]
  * @property {string} display_id - [Go: bigquery.NullString]
  * @property {string} id - [Go: string]
- * @property {apiIngestzEventRelevanceFashionEventQueryPayloadDataElementPurchase} purchase
- * @property {apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRecraw} recraw
- * @property {apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRecshow} recshow
- * @property {apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRemoveFromCart} remove_from_cart
- * @property {apiIngestzEventRelevanceFashionEventQueryPayloadDataElementSearch} search
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchase} purchase
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecraw} recraw
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecshow} recshow
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRemoveFromCart} remove_from_cart
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementSearch} search
  * @property {string} session_id - [Go: string]
  * @property {string} store_id - [Go: string]
  * @property {string} user_id - [Go: bigquery.NullString]
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadDataElementAddToCart
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementAddToCart
  * @property {number} price - [Go: float64]
  * @property {string} sku_id - [Go: string]
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadDataElementClick
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementClick
  * @property {number} price - [Go: float64]
  * @property {string} sku_id - [Go: string]
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadDataElementPurchase
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchase
  * @property {string} order_id - [Go: string]
- * @property {Array<apiIngestzEventRelevanceFashionEventQueryPayloadDataElementPurchaseSkusElement>} skus
+ * @property {Array<apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchaseSkusElement>} skus
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadDataElementPurchaseSkusElement
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchaseSkusElement
  * @property {number} qtty - [Go: int64]
  * @property {string} sku_id - [Go: string]
  * @property {number} unit_price - [Go: float64]
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRecraw
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecraw
  * @property {string} model_id - [Go: string]
  * @property {string} model_version - [Go: string]
  * @property {string} payload - [Go: string]
  * @property {string} rec_id - [Go: string]
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRecshow
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecshow
  * @property {string} model_id - [Go: string]
  * @property {string} model_version - [Go: string]
  * @property {string} payload - [Go: string]
  * @property {string} rec_id - [Go: string]
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadDataElementRemoveFromCart
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRemoveFromCart
  * @property {number} price - [Go: float64]
  * @property {string} sku_id - [Go: string]
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadDataElementSearch
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementSearch
  * @property {string} text - [Go: string]
  */
 /**
@@ -2992,6 +3062,11 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * apiSampleFraction query
  * @typedef {object} apiSampleFractionQuery
  * @property {number} precision - [Go: int] Fraction max precision
+ * @property {apiSampleFractionQuerySmsg} smsg
+ */
+/**
+ * @typedef {object} apiSampleFractionQuerySmsg
+ * @property {string} message - [Go: string] message string
  */
 /**
  * apiSampleFraction Request
@@ -3026,7 +3101,12 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
 /**
  * apiSampleFraction respHeaders
  * @typedef {object} apiSampleFractionRespHeaders
+ * @property {apiSampleFractionRespHeadersXI6Smsg} x_i6_smsg
  * @property {string} x_i6_trace_message - [Go: string] Sample of any trace message
+ */
+/**
+ * @typedef {object} apiSampleFractionRespHeadersXI6Smsg
+ * @property {string} message - [Go: string] message string
  */
 /**
  * apiSampleFraction respPayload
@@ -3194,32 +3274,23 @@ declare class Apis {
      */
     constructor(services: Services);
     /**
-     * Get Ingestion Upload URLs
+     * Stream Ingestion
      *
-     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
+     * Ingests stream data into a target dataset table.
      *
-     * @param {apiIngestzGetUrlReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
+     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>}
      */
-    ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
-    /**
-     * Get Last Successful Ingestion Data Summary
-     *
-     * Returns the date of ingestion, rows count and distinct and null columns count
-     *
-     * @param {apiIngestzLastBatchSummaryReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>}
-     */
-    ingestzLastBatchSummary(req: apiIngestzLastBatchSummaryReq): Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>;
+    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>;
     /**
      *
      *
      *
      *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
      */
-    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
+    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
     /**
      *
      *
@@ -3230,6 +3301,15 @@ declare class Apis {
      */
     dszListRecsysTokens(req: apiDszListRecsysTokensReq): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
     /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateRecsysTokenReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
+     */
+    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>;
+    /**
      * Create Stripe Checkout
      *
      * Creates a Stripe checkout session for a subscription and returns its id and url.
@@ -3239,23 +3319,14 @@ declare class Apis {
      */
     dszStripeCheckout(req: apiDszStripeCheckoutReq): Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>;
     /**
-     * Sample Fraction
+     * Get Ingestion Upload URLs
      *
-     * Sample API that performs a fraction operation
+     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
      *
-     * @param {apiSampleFractionReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiSampleFractionResp>>}
+     * @param {apiIngestzGetUrlReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
      */
-    sampleFraction(req: apiSampleFractionReq): Promise<import("../errors.js").I6Result<apiSampleFractionResp>>;
-    /**
-     * Stream Ingestion
-     *
-     * Ingests stream data into a target dataset table.
-     *
-     * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>}
-     */
-    ingestzStreamRelevanceFashionCatalog(req: apiIngestzStreamRelevanceFashionCatalogReq): Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>;
+    ingestzGetUrl(req: apiIngestzGetUrlReq): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
     /**
      * Stream Ingestion
      *
@@ -3270,10 +3341,64 @@ declare class Apis {
      *
      * Ingests events data into a target dataset table.
      *
-     * @param {apiIngestzEventRelevanceFashionEventReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>}
+     * @param {apiIngestzEventRelevanceFashionCatalogReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>}
      */
-    ingestzEventRelevanceFashionEvent(req: apiIngestzEventRelevanceFashionEventReq): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>;
+    ingestzEventRelevanceFashionCatalog(req: apiIngestzEventRelevanceFashionCatalogReq): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>;
+    /**
+     * Get Dataset Signed URLs
+     *
+     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     *
+     * @param {apiDszSignedUrlReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
+     */
+    dszSignedUrl(req: apiDszSignedUrlReq): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
+     */
+    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezListReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezListResp>>}
+     */
+    pipezList(req: apiPipezListReq): Promise<import("../errors.js").I6Result<apiPipezListResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezGetReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezGetResp>>}
+     */
+    pipezGet(req: apiPipezGetReq): Promise<import("../errors.js").I6Result<apiPipezGetResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszStoreDisplayCreateReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
+     */
+    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq): Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>;
+    /**
+     * Get Last Successful Ingestion Data Summary
+     *
+     * Returns the date of ingestion, rows count and distinct and null columns count
+     *
+     * @param {apiIngestzLastBatchSummaryReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>}
+     */
+    ingestzLastBatchSummary(req: apiIngestzLastBatchSummaryReq): Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>;
     /**
      * Get Dataset Table File
      *
@@ -3284,14 +3409,68 @@ declare class Apis {
      */
     dszTableGet(req: apiDszTableGetReq): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
     /**
+     * List Dataset Tables
      *
+     * Lists files and tables in the specified dataset.
      *
-     *
-     *
-     * @param {apiPipezListReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezListResp>>}
+     * @param {apiDszTableListReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
      */
-    pipezList(req: apiPipezListReq): Promise<import("../errors.js").I6Result<apiPipezListResp>>;
+    dszTableList(req: apiDszTableListReq): Promise<import("../errors.js").I6Result<apiDszTableListResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateStoreReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
+     */
+    dszCreateStore(req: apiDszCreateStoreReq): Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListStoresReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
+     */
+    dszListStores(req: apiDszListStoresReq): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListDatasetsReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
+     */
+    dszListDatasets(req: apiDszListDatasetsReq): Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszDatasetSolutionsReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
+     */
+    dszDatasetSolutions(req: apiDszDatasetSolutionsReq): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateIngestionTokenReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>}
+     */
+    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq): Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>;
+    /**
+     * Event Ingestion
+     *
+     * Ingests events data into a target dataset table.
+     *
+     * @param {apiIngestzEventRelevanceFashionEventReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>}
+     */
+    ingestzEventRelevanceFashionEvent(req: apiIngestzEventRelevanceFashionEventReq): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>;
     /**
      *
      *
@@ -3311,60 +3490,6 @@ declare class Apis {
      */
     dszListIngestionTokens(req: apiDszListIngestionTokensReq): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
     /**
-     * Event Ingestion
-     *
-     * Ingests events data into a target dataset table.
-     *
-     * @param {apiIngestzEventRelevanceFashionCatalogReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>}
-     */
-    ingestzEventRelevanceFashionCatalog(req: apiIngestzEventRelevanceFashionCatalogReq): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
-     */
-    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszStoreDisplayCreateReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
-     */
-    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq): Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateStoreReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
-     */
-    dszCreateStore(req: apiDszCreateStoreReq): Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListDatasetsReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
-     */
-    dszListDatasets(req: apiDszListDatasetsReq): Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateIngestionTokenReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>}
-     */
-    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq): Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>;
-    /**
      *
      *
      *
@@ -3383,59 +3508,14 @@ declare class Apis {
      */
     dszModelGet(req: apiDszModelGetReq): Promise<import("../errors.js").I6Result<apiDszModelGetResp>>;
     /**
+     * Sample Fraction
      *
+     * Sample API that performs a fraction operation
      *
-     *
-     *
-     * @param {apiPipezGetReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezGetResp>>}
+     * @param {apiSampleFractionReq} req
+     * @returns {Promise<import("../errors.js").I6Result<apiSampleFractionResp>>}
      */
-    pipezGet(req: apiPipezGetReq): Promise<import("../errors.js").I6Result<apiPipezGetResp>>;
-    /**
-     * Get Dataset Signed URLs
-     *
-     * Generates presigned URLs for accessing or mutating files in the specified dataset.
-     *
-     * @param {apiDszSignedUrlReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
-     */
-    dszSignedUrl(req: apiDszSignedUrlReq): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
-    /**
-     * List Dataset Tables
-     *
-     * Lists files and tables in the specified dataset.
-     *
-     * @param {apiDszTableListReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
-     */
-    dszTableList(req: apiDszTableListReq): Promise<import("../errors.js").I6Result<apiDszTableListResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListStoresReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
-     */
-    dszListStores(req: apiDszListStoresReq): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDatasetSolutionsReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
-     */
-    dszDatasetSolutions(req: apiDszDatasetSolutionsReq): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateRecsysTokenReq} req
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
-     */
-    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq): Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>;
+    sampleFraction(req: apiSampleFractionReq): Promise<import("../errors.js").I6Result<apiSampleFractionResp>>;
 }
 export { Apis };
 declare class SdkFuncs {
@@ -3450,6 +3530,11 @@ declare class SdkFuncs {
      */
     constructor(services: Services);
     /**
+     * @param {sdkFuncProductRelevanceFashionDashAttachedRevenueReq} req
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>}
+     */
+    productRelevanceFashionDashAttachedRevenueV1(req: sdkFuncProductRelevanceFashionDashAttachedRevenueReq): Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>;
+    /**
      * @param {sdkFuncProductRelevanceFashionFbtReq} req
      * @param {(req: sdkFuncProductRelevanceFashionFbtReq, results: sdkFuncProductRelevanceFashionFbtOutput) => Promise<sdkFuncProductRelevanceFashionFbtSelected>} [selectResults] - picks which of the recommended skus are shown and may attach your own data to each in enriched; default: for each result, in order, the first sku not in req.input.skus (the cart) and not already picked, with the rating of that result; no duplicates, and results with no such sku are skipped
      * @returns {Promise<sdkFuncProductRelevanceFashionFbtSelected>}
@@ -3460,11 +3545,6 @@ declare class SdkFuncs {
      * @returns {Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>}
      */
     productRelevanceFashionDashFunnelV1(req: sdkFuncProductRelevanceFashionDashFunnelReq): Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>;
-    /**
-     * @param {sdkFuncProductRelevanceFashionDashAttachedRevenueReq} req
-     * @returns {Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>}
-     */
-    productRelevanceFashionDashAttachedRevenueV1(req: sdkFuncProductRelevanceFashionDashAttachedRevenueReq): Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>;
 }
 export { SdkFuncs };
 /**
@@ -3552,6 +3632,158 @@ declare class Services {
     funcs(): SdkFuncs;
 }
 export { Services };
+/**
+ * @fileoverview Authentication client. Looks up the signed-in user and sends
+ * unauthenticated browsers to the login page. Requests carry the session
+ * cookie (credentials are always included by the Invoker).
+ */
+export type Services = import("../services/services.js").Services;
+export type AuthPayload = {
+    /**
+     * -
+     */
+    sub_type?: string;
+    /**
+     * - user id
+     */
+    sub?: string;
+    /**
+     * -
+     */
+    ext?: string;
+};
+/**
+ * @typedef {import("../services/services.js").Services} Services
+ */
+/**
+ * Configuration options for the i6 SDK.
+ * @typedef {Object} AuthPayload
+ * @property {string} [sub_type] -
+ * @property {string} [sub] - user id
+ * @property {string} [ext] -
+ */
+/**
+ * Authentication client for handling user sessions and authentication requests.
+ * Obtain an instance with `i6sdk.auth()` rather than constructing it directly.
+ */
+declare class Auth {
+    #private;
+    /**
+     * @private
+     * @type {Services}
+     */
+    _services;
+    /**
+     * Constructs an Auth client instance.
+     * @param {Services} services - The services manager instance.
+     */
+    constructor(services: Services);
+    /**
+     * Redirects the browser to the login page, passing the current URL (encoded)
+     * as `backurl` so the user returns to this page after signing in.
+     * Navigates away from the page; code after the call may not run.
+     * @private
+     * @returns {void}
+     */
+    private #redirectToLogin;
+    /**
+     * Redirects the browser to the logout page, passing the given URL (encoded)
+     * as `backurl` so the user returns to it after signing out.
+     * Navigates away from the page; code after the call may not run.
+     * @private
+     * @param {string} backurl - The URL to return to after logging out.
+     * @returns {void}
+     */
+    private #redirectToLogout;
+    /**
+     * Fetches the current authenticated user profile (`GET api/auth/me`).
+     * Does not redirect; use {@link Auth#requireUser} to force a login.
+     * @returns {Promise<AuthPayload|null>} The user profile data, or null if the
+     *   server returns no user.
+     * @throws {Error} If the network request fails or the response body is not valid JSON.
+     */
+    user(): Promise<AuthPayload | null>;
+    /**
+     * Fetches the current user, redirecting the browser to the login page when
+     * there is none. The login page sends the user back to the current URL
+     * afterwards.
+     * @returns {Promise<AuthPayload|null>} The user profile data, or null when the
+     *   browser is being redirected to login.
+     * @throws {Error} If the network request fails or the response body is not valid JSON.
+     */
+    requireUser(): Promise<AuthPayload | null>;
+    /**
+     * Logs out the current user by redirecting the browser to the logout endpoint.
+     * The server clears the session and redirects the browser back to `backurl`.
+     * Navigates away from the page; code after the call may not run.
+     * @param {string} [backurl=location.href] - The URL to return to after logging out.
+     *   Defaults to the current page URL.
+     * @returns {Promise<void>}
+     */
+    logout(backurl?: string): Promise<void>;
+}
+export { Auth };
+/**
+ * @fileoverview Queries an i6 dash in the browser: downloads the dash's sqlite, runs the named query
+ * `dash-${dashName}` on it and returns its result as is. Nothing here is dash specific.
+ *
+ * Set `window.I6_DEBUG = true` to see what happens in the console.
+ */
+export type Services = import("../services/services.js").Services;
+export type DashOptions = {
+    /**
+     * - Dash name (e.g. "product-relevance-fashion-dash-funnel"); names the cached sqlite and the named query.
+     */
+    dashName: string;
+    /**
+     * - Partitions of the dash, name -> value (e.g. `{ store_id: "s1", version: "v1" }`).
+     */
+    partitions: Record<string, string>;
+    /**
+     * - Dataset that holds the dash file.
+     */
+    dataset: string;
+    /**
+     * - Query input, any JSON. Bound as `?1` of the named query.
+     */
+    params: any;
+    /**
+     * - Tests only: URL of the sqlite (must answer HEAD with an etag). Default: the model API.
+     */
+    sqliteUrl?: string;
+};
+/**
+ * Dash client.
+ */
+declare class Dash {
+    /**
+     * @private
+     * @type {Services}
+     */
+    _services;
+    /**
+     * Constructs a Dash client instance.
+     * @param {Services} services - The services manager instance.
+     */
+    constructor(services: Services);
+    /**
+     * Downloads the dash sqlite (cached by etag), runs the named query `dash-${dashName}` with `params` and returns its result.
+     * @param {DashOptions} opts - Dash options.
+     * @returns {Promise<*>} The `ret` of the named query.
+     * @throws {I6Error} With code "invalid_argument" if opts is malformed, "asset" if the download fails,
+     *   "query" if the sqlite fails.
+     */
+    query(opts: DashOptions): Promise<any>;
+    /**
+     * Finds where the dash sqlite is: the signed URL of the model API (like Infer), unless opts has `sqliteUrl` (tests).
+     * @private
+     * @param {DashOptions} opts - Dash options.
+     * @returns {Promise<string>} Download URL of the sqlite.
+     * @throws {I6Error} With code "asset" if the API gave no URL.
+     */
+    private _sqliteUrl;
+}
+export { Dash };
 /**
  * @fileoverview The LiteRT side of infer: loads the tflite model and runs it. Everything that touches the
  * LiteRT library (runtime, model, tensors) is in this file. The caller only gives data and gets values back.
@@ -3754,513 +3986,299 @@ declare class Infer {
 }
 export { Infer };
 /**
- * @fileoverview HTTP client for sending API requests to i6 services.
- */
-export type Services = import("../services/services.js").Services;
-export type InvokeOptions = {
-    /**
-     * - The full URL to request. If omitted, defaults to `${baseUrl}/${path}`.
-     */
-    url?: string;
-    /**
-     * - The path to append to the baseUrl if `url` is not provided.
-     */
-    path?: string;
-    /**
-     * - Key-value pairs to append as query parameters.
-     */
-    query?: Record<string, any>;
-    /**
-     * - JSON-serializable body data. If provided, sets Content-Type header to application/json and serializes to body.
-     */
-    json?: any;
-    /**
-     * - HTTP method (e.g., 'GET', 'POST', 'PUT', 'DELETE').
-     */
-    method?: string;
-    /**
-     * - HTTP headers for the request.
-     */
-    headers?: HeadersInit;
-    /**
-     * - HTTP request body.
-     */
-    body?: BodyInit | null;
-    /**
-     * - Request credentials mode (e.g., 'include', 'same-origin', 'omit').
-     */
-    credentials?: RequestCredentials;
-    /**
-     * - Request mode (e.g., 'cors', 'no-cors', 'same-origin').
-     */
-    mode?: RequestMode;
-    /**
-     * - An AbortSignal to cancel the request.
-     */
-    signal?: AbortSignal | null;
-};
-/**
- * @typedef {import("../services/services.js").Services} Services
- */
-/**
- * Options for sending HTTP requests via the Invoker.
- * @typedef {Object} InvokeOptions
- * @property {string} [url] - The full URL to request. If omitted, defaults to `${baseUrl}/${path}`.
- * @property {string} [path] - The path to append to the baseUrl if `url` is not provided.
- * @property {Record<string, any>} [query] - Key-value pairs to append as query parameters.
- * @property {*} [json] - JSON-serializable body data. If provided, sets Content-Type header to application/json and serializes to body.
- * @property {string} [method] - HTTP method (e.g., 'GET', 'POST', 'PUT', 'DELETE').
- * @property {HeadersInit} [headers] - HTTP headers for the request.
- * @property {BodyInit|null} [body] - HTTP request body.
- * @property {RequestCredentials} [credentials] - Request credentials mode (e.g., 'include', 'same-origin', 'omit').
- * @property {RequestMode} [mode] - Request mode (e.g., 'cors', 'no-cors', 'same-origin').
- * @property {AbortSignal|null} [signal] - An AbortSignal to cancel the request.
- */
-/**
- * Invoker client for executing HTTP requests against the i6 API.
- */
-declare class Invoker {
-    /**
-     * @private
-     * @type {Services}
-     */
-    _services;
-    /**
-     * Constructs an Invoker instance.
-     * @param {Services} services - The services manager instance.
-     */
-    constructor(services: Services);
-    /**
-     * Sends an HTTP request using the Fetch API.
-     *
-     * @param {InvokeOptions} opts - Request options including path/URL, query params, and fetch options.
-     * @param {string} [opts.url] - The full URL to request. If omitted, defaults to `${baseUrl}/${path}`.
-     * @param {string} [opts.path] - The path to append to the baseUrl if `url` is not provided.
-     * @param {Record<string, any>} [opts.query] - Key-value pairs to append as query parameters.
-     * @param {*} [opts.json] - JSON-serializable body data. If provided, sets Content-Type header to application/json and serializes to body.
-     * Credentials are always set to "include" so the session cookie is sent. Note that `opts`
-     * is modified (credentials, and headers/body when `json` is given). An HTTP error status
-     * does not throw; check `ok` on the returned Response.
-     * @returns {Promise<Response>} A promise that resolves to the fetch Response.
-     * @throws {TypeError} If the network request fails (from fetch).
-     */
-    invoke(opts: InvokeOptions): Promise<Response>;
-    /**
-     * Like `invoke`, but never throws: resolves with `{status, ok, <key>}` on success and with
-     * `{status, ok: false, error}` (see `I6ApiError`) on an HTTP error or a network failure.
-     * A success with status 204 or an empty body resolves with `{status, ok: true}` and no `<key>`.
-     * @param {InvokeOptions} opts - Same as `invoke`.
-     * @param {"payload"|"body"} [key] - Where the parsed JSON of a success is put.
-     * @returns {Promise<{status: number, ok: boolean, error?: import("../errors.js").I6ApiError} & Record<string, any>>}
-     */
-    invokeResult(opts: InvokeOptions, key?: "payload" | "body"): Promise<{
-        status: number;
-        ok: boolean;
-        error?: import("../errors.js").I6ApiError;
-    } & Record<string, any>>;
-}
-export { Invoker };
-/**
- * @fileoverview Error types thrown by the i6 Web Legacy SDK.
- */
-export type I6ErrorCode = "http" | "network" | "invalid_argument" | "no_upload_url" | "asset" | "model" | "query";
-export type I6ApiErrorCode = "unauthenticated" | "forbidden" | "not_found" | "bad_request" | "unavailable" | "network";
-export type I6ApiError = {
-    /**
-     * - HTTP status; 0 when the server did not answer (network failure).
-     */
-    status: number;
-    /**
-     * - Failure kind, from the status: 401 "unauthenticated" (session expired),
-     * 403 "forbidden" (no permission), 404 "not_found" (no data), other 4xx "bad_request", 5xx "unavailable".
-     */
-    code: I6ApiErrorCode;
-    /**
-     * - The server response text as is (e.g. the Stripe reason), or "HTTP <status>" if empty.
-     */
-    message: string;
-    /**
-     * - The raw response text, or the underlying error on a network failure.
-     */
-    cause?: any;
-};
-export type I6Result<R> = ({
-    status: number;
-    ok: true;
-    body?: any;
-} & R) | {
-    status: number;
-    ok: false;
-    error: I6ApiError;
-};
-/**
- * @typedef {"http"|"network"|"invalid_argument"|"no_upload_url"|"asset"|"model"|"query"} I6ErrorCode
- */
-/**
- * Why an API call failed, derived from the HTTP status alone; the server message is never parsed.
- * @typedef {"unauthenticated"|"forbidden"|"not_found"|"bad_request"|"unavailable"|"network"} I6ApiErrorCode
- */
-/**
- * Error of an API call that did not succeed, as returned in `I6Result.error`.
- * @typedef {Object} I6ApiError
- * @property {number} status - HTTP status; 0 when the server did not answer (network failure).
- * @property {I6ApiErrorCode} code - Failure kind, from the status: 401 "unauthenticated" (session expired),
- *   403 "forbidden" (no permission), 404 "not_found" (no data), other 4xx "bad_request", 5xx "unavailable".
- * @property {string} message - The server response text as is (e.g. the Stripe reason), or "HTTP <status>" if empty.
- * @property {*} [cause] - The raw response text, or the underlying error on a network failure.
- */
-/**
- * What every generated API call resolves with; it does not throw on an HTTP error or a network failure.
- * Check `ok` to tell the two shapes apart. `body` is the parsed JSON of an API that has no declared payload.
- * @template R - The generated response type of the API (`{payload}`).
- * @typedef {({status: number, ok: true, body?: *} & R) | {status: number, ok: false, error: I6ApiError}} I6Result
- */
-/**
- * Error thrown by the SDK when a call fails.
+ * @fileoverview Versioned file store on the browser's origin private file system (OPFS).
  *
- * `code` tells what kind of failure it was, so callers can branch on it instead of parsing
- * the message. `status` and `body` are set for `"http"` failures. `"asset"` failures also have `status`
- * when a file download was answered with an error (404: the file does not exist), and always `cause`.
- */
-declare class I6Error extends Error {
-    /** @type {I6ErrorCode|undefined} */
-    code: I6ErrorCode | undefined;
-    /** @type {number|undefined} */
-    status: number | undefined;
-    /** @type {*} */
-    body: any;
-    /**
-     * @param {string} message - Human readable description.
-     * @param {Object} [details]
-     * @param {I6ErrorCode} [details.code] - Failure kind. Defaults to "http" when a status is given.
-     * @param {number} [details.status] - HTTP status code, when the server answered.
-     * @param {*} [details.body] - Error body of the response (parsed JSON, or raw text).
-     * @param {*} [details.cause] - The underlying error, if any.
-     */
-    constructor(message: string, { code, status, body, cause }?: {
-        code?: I6ErrorCode;
-        status?: number;
-        body?: any;
-        cause?: any;
-    });
-    /**
-     * Builds an "http" error from a failed generated-client result ({status, error}).
-     * @param {string} message
-     * @param {{status: number, error?: *}} result
-     * @returns {I6Error}
-     */
-    static fromResult(message: string, result: {
-        status: number;
-        error?: any;
-    }): I6Error;
-}
-/**
- * Builds the error of a failed HTTP response, keeping the server text untouched.
- * @param {number} status - HTTP status.
- * @param {string} text - Response body as text.
- * @returns {I6ApiError}
- */
-declare function apiErrorFromResponse(status: number, text: string): I6ApiError;
-/**
- * Builds the error of a request that got no answer.
- * @param {*} cause - The error thrown by fetch.
- * @returns {I6ApiError}
- */
-declare function apiErrorFromNetwork(cause: any): I6ApiError;
-export { I6Error, apiErrorFromResponse, apiErrorFromNetwork };
-/**
- * @fileoverview Queries an i6 dash in the browser: downloads the dash's sqlite, runs the named query
- * `dash-${dashName}` on it and returns its result as is. Nothing here is dash specific.
+ * Layout under `i6/fs`:
+ *   {name}/version.txt          the released (current) version, if any
+ *   {name}/v{version}/etag.txt  the etag the version was created for
+ *   {name}/v{version}/blob.bin  the content (written by the caller, see `resolve`)
  *
- * Set `window.I6_DEBUG = true` to see what happens in the console.
+ * Versions are ISO timestamps, so they sort in creation order.
  */
-export type Services = import("../services/services.js").Services;
-export type DashOptions = {
+export type FileRef = {
     /**
-     * - Dash name (e.g. "product-relevance-fashion-dash-funnel"); names the cached sqlite and the named query.
+     * - File name, a single OPFS directory name (e.g. "model").
      */
-    dashName: string;
+    name: string;
     /**
-     * - Partitions of the dash, name -> value (e.g. `{ store_id: "s1", version: "v1" }`).
+     * - Version id, an ISO timestamp (e.g. "2026-09-29T12:00:00.000Z").
      */
-    partitions: Record<string, string>;
+    version: string;
     /**
-     * - Dataset that holds the dash file.
+     * - Etag of the remote content this version was created for.
      */
-    dataset: string;
-    /**
-     * - Query input, any JSON. Bound as `?1` of the named query.
-     */
-    params: any;
-    /**
-     * - Tests only: URL of the sqlite (must answer HEAD with an etag). Default: the model API.
-     */
-    sqliteUrl?: string;
+    etag: string;
 };
 /**
- * Dash client.
+ * Versioned file store. Use the `fs` singleton.
+ *
+ * A file is created as a new unreleased version, filled, then released to become the
+ * current one; releasing removes the older versions.
  */
-declare class Dash {
+declare class FS {
     /**
-     * @private
-     * @type {Services}
+     * Removes the versions older than version.txt, and the whole file if it is left empty.
+     * Without version.txt no version is removed.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @returns {Promise<void>}
      */
-    _services;
+    cleanFile(opts: {
+        name: string;
+    }): Promise<void>;
     /**
-     * Constructs a Dash client instance.
-     * @param {Services} services - The services manager instance.
+     * Cleans all files, see cleanFile.
+     * @returns {Promise<void>}
      */
-    constructor(services: Services);
+    clean(): Promise<void>;
     /**
-     * Downloads the dash sqlite (cached by etag), runs the named query `dash-${dashName}` with `params` and returns its result.
-     * @param {DashOptions} opts - Dash options.
-     * @returns {Promise<*>} The `ret` of the named query.
-     * @throws {I6Error} With code "invalid_argument" if opts is malformed, "asset" if the download fails,
-     *   "query" if the sqlite fails.
+     * Resolves a version of a file.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} [opts.version] - defaults to the content of version.txt
+     * @returns {Promise<FileRef|null>} a new full FileRef, or null if it does not exist.
      */
-    query(opts: DashOptions): Promise<any>;
+    get(opts: {
+        name: string;
+        version?: string;
+    }): Promise<FileRef | null>;
     /**
-     * Finds where the dash sqlite is: the signed URL of the model API (like Infer), unless opts has `sqliteUrl` (tests).
-     * @private
-     * @param {DashOptions} opts - Dash options.
-     * @returns {Promise<string>} Download URL of the sqlite.
-     * @throws {I6Error} With code "asset" if the API gave no URL.
+     * Creates a new version, unless the latest version already has this etag.
+     * The new version is not released.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.etag - required
+     * @param {Blob|BufferSource|string} [opts.data] - content, required when a new version is created
+     * @returns {Promise<FileRef>} a new full FileRef.
      */
-    private _sqliteUrl;
+    create(opts: {
+        name: string;
+        etag: string;
+        data?: Blob | BufferSource | string;
+    }): Promise<FileRef>;
+    /**
+     * Returns the bin file path, full (with base). Does not check that it exists, see get.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.version - required
+     * @returns {Promise<string>} e.g. "i6/fs/{name}/v{version}/blob.bin"
+     */
+    resolve(opts: {
+        name: string;
+        version: string;
+    }): Promise<string>;
+    /**
+     * Reads the content (blob.bin) of a version.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.version - required
+     * @returns {Promise<Uint8Array>} the bytes of the file.
+     * @throws {DOMException} NotFoundError if the version or its blob does not exist.
+     */
+    read(opts: {
+        name: string;
+        version: string;
+    }): Promise<Uint8Array>;
+    /**
+     * Makes a version the current one (version.txt), then cleans the older versions.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.version - required, must exist
+     * @returns {Promise<FileRef>} a new full FileRef of the released version.
+     */
+    release(opts: {
+        name: string;
+        version: string;
+    }): Promise<FileRef>;
+    /**
+     * Removes a version that was never released (e.g. its download failed). Does nothing if it does not exist.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.version - required, must not be the released one
+     * @returns {Promise<void>}
+     */
+    discard(opts: {
+        name: string;
+        version: string;
+    }): Promise<void>;
 }
-export { Dash };
+/** Shared FS instance. */
+declare const fs: FS;
+export { fs };
 /**
- * @fileoverview Main entry point for the i6 Web Legacy SDK.
+ * @fileoverview Helpers shared by the services that run on files downloaded from i6 (infer, dash).
  */
-import { I6Error } from "./errors.js";
-export type I6SdkConfig = {
-    /**
-     * - Base URL of the i6 server. Defaults to the sandbox environment.
-     */
-    baseUrl?: string;
-    /**
-     * - Id of the user session; sent in the recommendation events (required by `funcs()` inference).
-     */
-    sessionId?: string;
-    /**
-     * - Id of the user; sent in the recommendation events (required by `funcs()` inference).
-     */
-    userId?: string;
-};
+export type FileRef = import("../fs/fs.js").FileRef;
 /**
- * Main SDK class providing access to i6 services.
- */
-declare class I6Sdk {
-    /**
-     * @private
-     * @type {Services}
-     */
-    _service;
-    /**
-     * Constructs an instance of the i6 SDK.
-     * @param {I6SdkConfig} [config] - Configuration options for the SDK.
-     */
-    constructor(config?: I6SdkConfig);
-    /**
-     * Returns a copy of the configuration the SDK is running with.
-     * @returns {I6SdkConfig} The current configuration.
-     */
-    config(): I6SdkConfig;
-    /**
-     * Overwrites the given keys of the configuration (e.g. `{ sessionId, userId }`); the other keys are kept.
-     * Can be called at any time, the next call of the SDK uses the new values.
-     * @param {Partial<I6SdkConfig>} config - The keys to overwrite.
-     * @returns {void}
-     */
-    setConfig(config: Partial<I6SdkConfig>): void;
-    /**
-     * Returns an Ingest service instance.
-     * @returns {Ingest} An instance of the Ingest client.
-     */
-    ingest(): Ingest;
-    /**
-     * Returns an Infer service instance, which runs an i6 model in the browser and returns the result.
-     * @returns {Infer} An instance of the Infer client.
-     */
-    infer(): Infer;
-    /**
-     * Returns a Dash service instance, which queries an i6 dash in the browser and returns the result.
-     * @returns {Dash} An instance of the Dash client.
-     */
-    dash(): Dash;
-    /**
-     * Returns an Auth service instance.
-     * @returns {Auth} An instance of the Auth client.
-     */
-    auth(): Auth;
-    /**
-     * Returns the Apis service instance, one typed method per i6 server API.
-     * Each call resolves with `{status, ok, payload?, error?}` and does not throw on an HTTP error.
-     * @returns {Apis} An instance of the generated Apis client.
-     */
-    apis(): Apis;
-    /**
-     * Returns the Funcs service instance.
-     * @returns {SdkFuncs} An instance of the generated Apis client.
-     */
-    funcs(): SdkFuncs;
-    /**
-     * Registers an event listener on the SDK's internal event dispatcher (an EventTarget).
-     * @param {string} evt - The event type or name to listen for.
-     * @param {EventListenerOrEventListenerObject|Function} fn - The callback function or event listener object invoked when the event occurs.
-     * @returns {void}
-     */
-    bind(evt: string, fn: EventListenerOrEventListenerObject | Function): void;
-}
-declare namespace I6Sdk {
-    export { I6Error };
-}
-export { I6Sdk, I6Error };
-/**
- * @fileoverview Ingest client for uploading files to the ingestion service.
- */
-export type Services = import("../services/services.js").Services;
-export type Partitions = Record<string, string>;
-export type GetUrlParams = {
-    /**
-     * - Dataset name.
-     */
-    dataset: string;
-    /**
-     * - Inbox table name.
-     */
-    table: string;
-    /**
-     * - Values for the table partitions, except the ingest id one.
-     */
-    partitions: Partitions;
-};
-export type UploadProgress = {
-    /**
-     * - Bytes sent so far.
-     */
-    loaded: number;
-    /**
-     * - Total bytes to send (the file size when the browser can't tell).
-     */
-    total: number;
-    /**
-     * - Progress from 0 to 100.
-     */
-    percent: number;
-};
-export type UploadParams = {
-    /**
-     * - Dataset the file is ingested into.
-     */
-    dataset: string;
-    /**
-     * - Inbox table name.
-     */
-    table: string;
-    /**
-     * - Values for the table partitions, except the ingest id one.
-     */
-    partitions: Partitions;
-    /**
-     * - The single file to upload.
-     */
-    file: File;
-    /**
-     * - Called as the file is sent.
-     */
-    onProgress?: (progress: UploadProgress) => void;
-    /**
-     * - Aborts the upload; the promise then rejects with the signal's reason (an AbortError by default).
-     */
-    signal?: AbortSignal;
-    /**
-     * - Content-Type of the PUT. Defaults to the file's own type.
-     */
-    contentType?: string;
-};
-export type UploadResult = {
-    /**
-     * - Id the server assigned to this ingest.
-     */
-    ingestId: string;
-};
-/**
- * @typedef {import("../services/services.js").Services} Services
+ * @typedef {import("../fs/fs.js").FileRef} FileRef
  */
 /**
- * Key-value mapping representing dataset table partition values, except the ingest ID.
- * @typedef {Record<string, string>} Partitions
+ * @param {Object<string, string>} partitions - Partitions, name -> value.
+ * @returns {string} A stable key of the partitions, safe as part of a cache file name (e.g. "store_id%3Ds1-version%3Dv1").
  */
+declare function partitionsKey(partitions: Record<string, string>): string;
 /**
- * Parameters for requesting a signed upload URL from the ingest service.
- * @typedef {Object} GetUrlParams
- * @property {string} dataset - Dataset name.
- * @property {string} table - Inbox table name.
- * @property {Partitions} partitions - Values for the table partitions, except the ingest id one.
+ * @param {*} partitions - Value to check.
+ * @returns {boolean} True if it is an object (not an array) whose values are all strings.
  */
+declare function isPartitions(partitions: any): boolean;
 /**
- * Progress of an upload in flight.
- * @typedef {Object} UploadProgress
- * @property {number} loaded - Bytes sent so far.
- * @property {number} total - Total bytes to send (the file size when the browser can't tell).
- * @property {number} percent - Progress from 0 to 100.
+ * Brings one remote file to the browser cache, downloading it only if its etag changed.
+ * @param {string} name - Name of the cached file.
+ * @param {string} url - URL of the file.
+ * @returns {Promise<FileRef>} The cached file.
+ * @throws {I6Error} With code "asset" if the download fails; `status` is the HTTP status when the server answered
+ *   (404 when the file does not exist, e.g. a store or month without data) and `cause` is the underlying error.
  */
+declare function downloadFile(name: string, url: string): Promise<FileRef>;
+export { partitionsKey, isPartitions, downloadFile };
 /**
- * Parameters for uploading a single file to the ingest service.
- * @typedef {Object} UploadParams
- * @property {string} dataset - Dataset the file is ingested into.
- * @property {string} table - Inbox table name.
- * @property {Partitions} partitions - Values for the table partitions, except the ingest id one.
- * @property {File} file - The single file to upload.
- * @property {(progress: UploadProgress) => void} [onProgress] - Called as the file is sent.
- * @property {AbortSignal} [signal] - Aborts the upload; the promise then rejects with the signal's reason (an AbortError by default).
- * @property {string} [contentType] - Content-Type of the PUT. Defaults to the file's own type.
+ * @fileoverview Sqlite client for the SDK, running sqlite (sql.js, wasm) in the browser.
+ *
+ * Usage: get the file with the downloader, open it by its OPFS path and always close the
+ * connection when done:
+ *
+ *   const ref = await downloader.update({ name, url })
+ *   const conn = await sqlitez.open({ path: await fs.resolve(ref) })
+ *   try {
+ *     const rows = await conn.query({ query: 'SELECT * FROM t WHERE id = ?', params: [1] })
+ *   } finally {
+ *     await conn.close()
+ *   }
+ *
+ * The database lives in memory: `update` changes the memory copy, the file is never written back.
+ * Every method takes a single `opts` object with the real parameters inside it.
  */
+export type SqliteValue = number | string | null | Uint8Array;
+export type SqliteRow = Record<string, SqliteValue>;
 /**
- * Result of a successful upload.
- * @typedef {Object} UploadResult
- * @property {string} ingestId - Id the server assigned to this ingest.
+ * An open sqlite database. Get one with `sqlitez.open` and always call `close()` in a `finally`.
  */
-/**
- * Client for handling file uploads to the ingest service.
- */
-declare class Ingest {
+declare class SqliteConn {
     #private;
+    /** @private */
+    db;
     /**
-     * @private
-     * @type {Services}
+     * Use `sqlitez.open`, not this constructor.
+     * @param {Object} db - The sql.js database.
      */
-    _services;
+    constructor(db: Object);
     /**
-     * Constructs an Ingest client instance.
-     * @param {Services} services - The services manager instance.
+     * Closes the connection, freeing the database. Closing twice is fine.
+     * @returns {Promise<void>}
      */
-    constructor(services: Services);
+    close(): Promise<void>;
     /**
-     * Asks ingestz for a signed upload URL (ingestz-get-url API) and uploads a single file to it.
-     * @param {UploadParams} params - Upload parameters.
-     * @returns {Promise<UploadResult>} Resolves with the ingest id on a successful upload.
-     * @throws {I6Error} With code "invalid_argument" if file is not a single File, "http" or
-     *   "network" if a request fails. Rejects with an AbortError if `signal` aborts.
+     * Runs a query and returns its rows.
+     * @param {Object} opts
+     * @param {string} opts.query - required, the SQL; use `?` for values.
+     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query (never concatenate them).
+     * @returns {Promise<SqliteRow[]>} The rows (empty array when none), each one an object by column name.
+     * @throws {TypeError} If opts.query is missing.
+     * @throws {I6Error} With code "query" if the connection is closed or sqlite rejects the query.
      */
-    upload({ dataset, table, partitions, file, onProgress, signal, contentType }: UploadParams): Promise<UploadResult>;
+    query(opts: {
+        query: string;
+        params?: SqliteValue[];
+    }): Promise<SqliteRow[]>;
     /**
-     * Gets one signed PUT URL from the ingestz-get-url API.
-     * @private
-     * @param {GetUrlParams} params - Parameters for requesting the upload URL.
-     * @returns {Promise<{ingestId: string, url: string}>} The ingest id and the signed PUT URL.
-     * @throws {I6Error} If the request fails or no upload URL is returned.
+     * Runs a statement that returns no data (INSERT, UPDATE, CREATE, ...). Only the memory copy changes.
+     * @param {Object} opts
+     * @param {string} opts.query - required, the SQL; use `?` for values.
+     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query.
+     * @returns {Promise<void>}
+     * @throws {TypeError} If opts.query is missing.
+     * @throws {I6Error} With code "query" if the connection is closed or sqlite rejects the statement.
      */
-    private #getUrl;
+    update(opts: {
+        query: string;
+        params?: SqliteValue[];
+    }): Promise<void>;
     /**
-     * Uploads a file to a signed PUT URL using XMLHttpRequest (fetch has no upload progress).
-     * @private
-     * @param {string} signedPutUrl - The signed URL to PUT the file to.
-     * @param {File} file - The file to upload.
-     * @param {Pick<UploadParams, "onProgress"|"signal"|"contentType">} opts
-     * @returns {Promise<void>} Resolves on a successful upload, rejects on network or HTTP error or abort.
+     * Runs a query stored in the `namedqueries` table of the sqlite (columns `name` and `query`).
+     * @param {Object} opts
+     * @param {string} opts.name - required, the `name` of the stored query.
+     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the stored query.
+     * @returns {Promise<SqliteRow[]>} The rows of the stored query, like `query`.
+     * @throws {TypeError} If opts.name is missing.
+     * @throws {I6Error} With code "query" if the connection is closed, there is no such table or named query, or the query fails.
      */
-    private #put;
+    namedQuery(opts: {
+        name: string;
+        params?: SqliteValue[];
+    }): Promise<SqliteRow[]>;
+    /**
+     * Like `namedQuery`, but with JSON in and JSON out: each value of `opts.params`
+     * is bound as a JSON string to the positional `?1`, `?2`, ... of the stored query, in order (read them in SQL with
+     * `json_extract(?1, '$.field')`, `json_each(?2)`, ...). The stored query must return a row with a column `ret`
+     * holding a JSON string. That JSON is parsed and returned.
+     * The stored query must have a placeholder for every value, otherwise sqlite rejects the bind ("column index out of range").
+     * @param {Object} opts
+     * @param {string} opts.name - required, the `name` of the stored query (see `namedQuery`).
+     * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
+     * @returns {Promise<*>} The parsed `ret` of the first row, or null if there is no row or `ret` is null.
+     * @throws {TypeError} If opts.name is missing or opts.params is not an array.
+     * @throws {I6Error} With code "query" if `namedQuery` fails, the rows have no `ret` column, or `ret` is not valid JSON.
+     */
+    namedJsonQuery(opts: {
+        name: string;
+        params?: Array<any>;
+    }): Promise<any>;
 }
-export { Ingest };
+/**
+ * Sqlitez client. Use the `sqlitez` singleton.
+ */
+declare class Sqlitez {
+    /**
+     * Opens a sqlite file of the browser file system into memory.
+     * @param {Object} opts
+     * @param {string} opts.path - required, OPFS path of the file (what `fs.resolve` returns for a downloaded file).
+     * @returns {Promise<SqliteConn>} The connection. The caller must `close()` it.
+     * @throws {TypeError} If opts.path is missing.
+     * @throws {I6Error} With code "asset" if the file cannot be read or is not a sqlite file.
+     */
+    open(opts: {
+        path: string;
+    }): Promise<SqliteConn>;
+}
+/** Shared Sqlitez instance. */
+declare const sqlitez: Sqlitez;
+export { sqlitez };
+/**
+ * @fileoverview Keeps a remote file cached in the browser's file system (see fs.js),
+ * downloading it only when its etag changes.
+ */
+export type FileRef = import('../fs/fs.js').FileRef;
+/**
+ * Downloads remote files into the versioned file store. Use the `downloader` singleton.
+ */
+declare class Downloader {
+    /**
+     * Downloads the file by name if necessary (checking etag): sends a HEAD request, and
+     * if the etag differs from the released version, streams the body into a new version
+     * and releases it.
+     * @param {Object} opts
+     * @param {string} opts.name - required, name to store the file under (see fs.js)
+     * @param {string} opts.url - required, URL of the file; must answer HEAD with an etag
+     * @returns {Promise<FileRef>} the FileRef of the up-to-date file (basically to get the version)
+     * @throws {TypeError} If name or url is missing.
+     * @throws {Error} If the HEAD or GET request fails, or the HEAD response has no etag.
+     *   When the server answered, the error has `status` (the HTTP status code).
+    */
+    update(opts: {
+        name: string;
+        url: string;
+    }): Promise<FileRef>;
+}
+/** Shared Downloader instance. */
+declare const downloader: Downloader;
+export { downloader };
+/**
+ * @fileoverview Debug logging of the SDK. Set `window.I6_DEBUG = true` to see it in the console.
+ */
+/**
+ * @param {string} prefix - Printed first, followed by ":" (e.g. "infer").
+ * @returns {(...args: *) => void} A logger that prints only when `window.I6_DEBUG` is true.
+ */
+declare const debugLogger: (prefix: string) => (...args: any) => void;
+export { debugLogger };

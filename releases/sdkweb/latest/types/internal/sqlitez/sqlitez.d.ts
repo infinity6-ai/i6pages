@@ -21,6 +21,7 @@ export type SqliteRow = Record<string, SqliteValue>;
  * An open sqlite database. Get one with `sqlitez.open` and always call `close()` in a `finally`.
  */
 declare class SqliteConn {
+    #private;
     /** @private */
     db;
     /**
@@ -89,12 +90,6 @@ declare class SqliteConn {
         name: string;
         params?: Array<any>;
     }): Promise<any>;
-    /**
-     * @private
-     * @returns {Object} The sql.js database.
-     * @throws {I6Error} With code "query" if the connection is closed.
-     */
-    private alive;
 }
 /**
  * Sqlitez client. Use the `sqlitez` singleton.

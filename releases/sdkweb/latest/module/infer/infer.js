@@ -3,11 +3,10 @@ import { downloadFile, isPartitions, partitionsKey } from "../internal/assets/as
 import { fs } from "../internal/fs/fs.js";
 import { sqlitez } from "../internal/sqlitez/sqlitez.js";
 import { describeModel, loadModel, runModel } from "./litert.js";
+import { debugLogger } from "../internal/debug/debug.js";
 const DEFAULT_LIMIT = 20;
 const FILES = { sqlite: "sqlite.bin", tflite: "tflite.bin" };
-const debug = (...args) => {
-  if (globalThis.I6_DEBUG) console.log("infer:", ...args);
-};
+const debug = debugLogger("infer");
 class Infer {
   /**
    * Constructs an Infer client instance.
@@ -67,8 +66,7 @@ class Infer {
     if (typeof selectResults !== "function") {
       throw new I6Error("infer: opts.selectResults must be a function", { code: "invalid_argument" });
     }
-    const { req, results } = opts;
-    const { recId } = opts;
+    const { req, results, recId } = opts;
     if (!recId) throw new I6Error("infer: opts.recId is required", { code: "invalid_argument" });
     const ids = this.#sdkIds();
     const selected = await selectResults(req, results);
@@ -76,9 +74,9 @@ class Infer {
       throw new I6Error("infer: selectResults must return { results: [...] }", { code: "invalid_argument" });
     }
     const shown = {
-      skus: selected.results.map((item) => {
+      skus: selected.results.map((item, i) => {
         const skuId = item?.sku_id;
-        if (!skuId) throw new I6Error(`infer: selectResults returned an item with no sku_id: ${JSON.stringify(item)}`, { code: "invalid_argument" });
+        if (!skuId) throw new I6Error(`infer: selectResults returned an item with no sku_id at results[${i}]`, { code: "invalid_argument" });
         return { sku_id: skuId };
       })
     };
@@ -171,19 +169,10 @@ function outputQueryParams(outputs, opts) {
   const named = Object.entries(outputs).map(([name, values]) => [name, { values: Array.from(values) }]);
   return [Object.fromEntries(named), opts.limit ?? DEFAULT_LIMIT];
 }
-function ratingsBySku(results) {
-  const ratings = /* @__PURE__ */ new Map();
-  for (const { skus, rating } of results?.results ?? []) {
-    for (const { sku_id } of skus ?? []) {
-      if (!ratings.has(sku_id) || rating > ratings.get(sku_id)) ratings.set(sku_id, rating);
-    }
-  }
-  return ratings;
-}
 async function defaultSelectResults(req, results) {
   const taken = new Set(req.input.skus.map((sku) => sku.sku_id));
   const shown = [];
-  for (const result of [...results.results]) {
+  for (const result of results.results) {
     for (const { sku_id } of result.skus) {
       if (!taken.has(sku_id)) {
         taken.add(sku_id);
