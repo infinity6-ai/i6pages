@@ -58,8 +58,7 @@ class Infer {
   /**
    * Asks `selectResults` which of the recommended skus are shown and sends their sku ids as the `recshow` event.
    * @param {SelectResultsOptions} opts - Select options.
-   * @returns {Promise<*>} What `selectResults` returned, with the `rating` of each sku added to its item (its best rating; with the
-   *   default, the rating of the result it was picked from).
+   * @returns {Promise<*>} What `selectResults` returned, as is (the default sets the `rating` of each sku; see `defaultSelectResults`).
    * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing, the sdk has no `sessionId` and
    *   `userId`, or `selectResults` returned an item with no `sku_id` or a sku not in the results; "event" if an event is not accepted.
    */
@@ -182,13 +181,12 @@ function ratingsBySku(results) {
   return ratings;
 }
 async function defaultSelectResults(req, results) {
-  const inCart = new Set(req.input.skus.map((sku) => sku.sku_id));
+  const taken = new Set(req.input.skus.map((sku) => sku.sku_id));
   const shown = [];
   for (const result of [...results.results]) {
-    console.log(result.skus);
     for (const { sku_id } of result.skus) {
-      console.log("SKUID", sku_id);
-      if (!inCart.has(sku_id)) {
+      if (!taken.has(sku_id)) {
+        taken.add(sku_id);
         shown.push({ sku_id, rating: result.rating });
         break;
       }

@@ -52,6 +52,7 @@ class Invoker {
   /**
    * Like `invoke`, but never throws: resolves with `{status, ok, <key>}` on success and with
    * `{status, ok: false, error}` (see `I6ApiError`) on an HTTP error or a network failure.
+   * A success with status 204 or an empty body resolves with `{status, ok: true}` and no `<key>`.
    * @param {InvokeOptions} opts - Same as `invoke`.
    * @param {"payload"|"body"} [key] - Where the parsed JSON of a success is put.
    * @returns {Promise<{status: number, ok: boolean, error?: import("../errors.js").I6ApiError} & Record<string, any>>}
@@ -66,7 +67,10 @@ class Invoker {
     const result = { status: resp.status, ok: resp.ok };
     try {
       if (resp.ok) {
-        result[key] = await resp.json();
+        const text = resp.status === 204 ? "" : await resp.text();
+        if (text) {
+          result[key] = JSON.parse(text);
+        }
       } else {
         result.error = apiErrorFromResponse(resp.status, await resp.text());
       }
