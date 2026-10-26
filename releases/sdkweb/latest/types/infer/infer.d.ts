@@ -10,6 +10,7 @@
  */
 export type Services = import("../services/services.js").Services;
 export type FileRef = import("../internal/fs/fs.js").FileRef;
+export type ServiceOptions = import("../invoker/invoker.js").ServiceOptions;
 export type InferOptions = {
     /**
      * - Model name (e.g. "relevance-fashion-fbt"); names the cached assets and the named queries.
@@ -43,6 +44,10 @@ export type InferOptions = {
      * - URL of the folder with the LiteRT wasm files (ending in "/"). Defaults to the jsdelivr copy.
      */
     litertWasm?: string;
+    /**
+     * - Given to the API calls (the model API and the `recraw` event).
+     */
+    serviceOpts?: ServiceOptions;
 };
 export type SelectResultsOptions = {
     /**
@@ -79,6 +84,10 @@ export type SelectResultsOptions = {
      * your own for the sku (e.g. name, price, image), returned to you as is. Default: `defaultSelectResults`.
      */
     selectResults?: (req: any, results: any) => Promise<any>;
+    /**
+     * - Given to the API call of the `recshow` event.
+     */
+    serviceOpts?: ServiceOptions;
 };
 /**
  * Inference client.
@@ -121,7 +130,7 @@ declare class Infer {
     /**
      * Sends one recommendation event.
      * @private
-     * @param {{dataset: string, modelName: string, modelVersion: string, storeId: string}} opts - Event options.
+     * @param {{dataset: string, modelName: string, modelVersion: string, storeId: string, serviceOpts?: ServiceOptions}} opts - Event options.
      * @param {{sessionId: string, userId: string}} ids - Session and user of the sdk.
      * @param {string} recId - Id of the recommendation, the same in the recraw and recshow events.
      * @param {"recraw"|"recshow"} kind - Which event.

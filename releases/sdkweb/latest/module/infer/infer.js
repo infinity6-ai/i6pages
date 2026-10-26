@@ -47,7 +47,7 @@ class Infer {
       debug("output query returned (after namedJsonQuery)", result);
       const recId = crypto.randomUUID();
       const results = { ...result, rec_id: recId };
-      const eventOpts = { dataset: opts.dataset, modelName, modelVersion: opts.partitions.version, storeId: opts.partitions.store_id };
+      const eventOpts = { dataset: opts.dataset, modelName, modelVersion: opts.partitions.version, storeId: opts.partitions.store_id, serviceOpts: opts.serviceOpts };
       await this.#sendRecEvent(eventOpts, ids, recId, "recraw", results);
       return results;
     } finally {
@@ -99,7 +99,7 @@ class Infer {
   /**
    * Sends one recommendation event.
    * @private
-   * @param {{dataset: string, modelName: string, modelVersion: string, storeId: string}} opts - Event options.
+   * @param {{dataset: string, modelName: string, modelVersion: string, storeId: string, serviceOpts?: ServiceOptions}} opts - Event options.
    * @param {{sessionId: string, userId: string}} ids - Session and user of the sdk.
    * @param {string} recId - Id of the recommendation, the same in the recraw and recshow events.
    * @param {"recraw"|"recshow"} kind - Which event.
@@ -126,7 +126,7 @@ class Infer {
           }
         }]
       }
-    });
+    }, opts.serviceOpts);
   }
   /**
    * Finds where the model files are: the signed URLs of the model API, unless opts has both URLs (tests).
@@ -141,7 +141,7 @@ class Infer {
     const resp = await this._services.apis().dszModelGet({
       params: { dataset, model_name: modelName },
       payload: { model_version: opts.partitions.version, model_partitions: partitions }
-    });
+    }, opts.serviceOpts);
     const byName = Object.fromEntries((resp.payload?.urls ?? []).map((file) => [file.name, file.url]));
     const missing = Object.values(FILES).find((name) => !byName[name]);
     if (missing) {

@@ -53,7 +53,7 @@ class Dash {
           { method: "GET", path: `i6tb://results.relevance-fashion-store-dash/store_id=${storeId}/sqlite.bin` }
         ]
       }
-    });
+    }, opts.serviceOpts);
     const url = resp.payload?.urls?.[0]?.url;
     if (!url) throw new I6Error(`dash: the api gave no "${SQLITE_FILE}" file: ${resp.error?.message ?? "empty answer"}`, { code: "asset", status: resp.error?.status, cause: resp.error });
     return url;

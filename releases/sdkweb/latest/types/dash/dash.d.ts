@@ -5,6 +5,7 @@
  * Set `window.I6_DEBUG = true` to see what happens in the console.
  */
 export type Services = import("../services/services.js").Services;
+export type ServiceOptions = import("../invoker/invoker.js").ServiceOptions;
 export type DashOptions = {
     /**
      * - Dash name (e.g. "product-relevance-fashion-dash-funnel"); names the cached sqlite and the named query.
@@ -26,6 +27,10 @@ export type DashOptions = {
      * - Tests only: URL of the sqlite (must answer HEAD with an etag). Default: the model API.
      */
     sqliteUrl?: string;
+    /**
+     * - Given to the API call that signs the sqlite URL.
+     */
+    serviceOpts?: ServiceOptions;
 };
 /**
  * Dash client.

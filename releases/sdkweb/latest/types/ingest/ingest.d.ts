@@ -2,6 +2,7 @@
  * @fileoverview Ingest client for uploading files to the ingestion service.
  */
 export type Services = import("../services/services.js").Services;
+export type ServiceOptions = import("../invoker/invoker.js").ServiceOptions;
 export type Partitions = Record<string, string>;
 export type GetUrlParams = {
     /**
@@ -16,6 +17,10 @@ export type GetUrlParams = {
      * - Values for the table partitions, except the ingest id one.
      */
     partitions: Partitions;
+    /**
+     * - Given to the ingestz-get-url API call.
+     */
+    serviceOpts?: ServiceOptions;
 };
 export type UploadProgress = {
     /**
@@ -60,6 +65,10 @@ export type UploadParams = {
      * - Content-Type of the PUT. Defaults to the file's own type.
      */
     contentType?: string;
+    /**
+     * - Given to the ingestz-get-url API call (the PUT to the signed URL needs none).
+     */
+    serviceOpts?: ServiceOptions;
 };
 export type UploadResult = {
     /**
@@ -69,6 +78,7 @@ export type UploadResult = {
 };
 /**
  * @typedef {import("../services/services.js").Services} Services
+ * @typedef {import("../invoker/invoker.js").ServiceOptions} ServiceOptions
  */
 /**
  * Key-value mapping representing dataset table partition values, except the ingest ID.
@@ -80,6 +90,7 @@ export type UploadResult = {
  * @property {string} dataset - Dataset name.
  * @property {string} table - Inbox table name.
  * @property {Partitions} partitions - Values for the table partitions, except the ingest id one.
+ * @property {ServiceOptions} [serviceOpts] - Given to the ingestz-get-url API call.
  */
 /**
  * Progress of an upload in flight.
@@ -98,6 +109,7 @@ export type UploadResult = {
  * @property {(progress: UploadProgress) => void} [onProgress] - Called as the file is sent.
  * @property {AbortSignal} [signal] - Aborts the upload; the promise then rejects with the signal's reason (an AbortError by default).
  * @property {string} [contentType] - Content-Type of the PUT. Defaults to the file's own type.
+ * @property {ServiceOptions} [serviceOpts] - Given to the ingestz-get-url API call (the PUT to the signed URL needs none).
  */
 /**
  * Result of a successful upload.
@@ -126,7 +138,7 @@ declare class Ingest {
      * @throws {I6Error} With code "invalid_argument" if file is not a single File, "http" or
      *   "network" if a request fails. Rejects with an AbortError if `signal` aborts.
      */
-    upload({ dataset, table, partitions, file, onProgress, signal, contentType }: UploadParams): Promise<UploadResult>;
+    upload({ dataset, table, partitions, file, onProgress, signal, contentType, serviceOpts }: UploadParams): Promise<UploadResult>;
     /**
      * Gets one signed PUT URL from the ingestz-get-url API.
      * @private

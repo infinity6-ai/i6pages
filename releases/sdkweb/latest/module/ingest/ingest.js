@@ -14,12 +14,12 @@ class Ingest {
    * @throws {I6Error} With code "invalid_argument" if file is not a single File, "http" or
    *   "network" if a request fails. Rejects with an AbortError if `signal` aborts.
    */
-  async upload({ dataset, table, partitions, file, onProgress, signal, contentType }) {
+  async upload({ dataset, table, partitions, file, onProgress, signal, contentType, serviceOpts }) {
     if (!(file instanceof File)) {
       throw new I6Error("file must be a single File.", { code: "invalid_argument" });
     }
     signal?.throwIfAborted();
-    const { ingestId, url } = await this.#getUrl({ dataset, table, partitions });
+    const { ingestId, url } = await this.#getUrl({ dataset, table, partitions, serviceOpts });
     signal?.throwIfAborted();
     await this.#put(url, file, { onProgress, signal, contentType });
     return { ingestId };
@@ -31,11 +31,11 @@ class Ingest {
    * @returns {Promise<{ingestId: string, url: string}>} The ingest id and the signed PUT URL.
    * @throws {I6Error} If the request fails or no upload URL is returned.
    */
-  async #getUrl({ dataset, table, partitions }) {
+  async #getUrl({ dataset, table, partitions, serviceOpts }) {
     const resp = await this._services.apis().ingestzGetUrl({
       params: { dataset },
       payload: { table, partitions, amount: 1 }
-    });
+    }, serviceOpts);
     if (!resp.ok) {
       throw I6Error.fromResult("Get upload URL failed", resp);
     }

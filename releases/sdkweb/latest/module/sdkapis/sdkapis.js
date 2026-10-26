@@ -7,40 +7,6 @@ class Apis {
     this._services = services;
   }
   /**
-   * Stream Ingestion
-   * 
-   * Ingests stream data into a target dataset table.
-   * 
-   * @param {apiIngestzStreamRelevanceFashionCatalogReq} req
-   * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionCatalogResp>>}
-   */
-  async ingestzStreamRelevanceFashionCatalog(req, opts) {
-    return this._services.invoker().invokeResult({
-      method: "POST",
-      path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/stream/relevance-fashion-catalog`,
-      json: req.payload,
-      opts
-    }, "payload");
-  }
-  /**
-   * Stream Ingestion
-   * 
-   * Ingests stream data into a target dataset table.
-   * 
-   * @param {apiIngestzStreamRelevanceFashionEventReq} req
-   * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiIngestzStreamRelevanceFashionEventResp>>}
-   */
-  async ingestzStreamRelevanceFashionEvent(req, opts) {
-    return this._services.invoker().invokeResult({
-      method: "POST",
-      path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/stream/relevance-fashion-event`,
-      json: req.payload,
-      opts
-    }, "payload");
-  }
-  /**
    * Event Ingestion
    * 
    * Ingests events data into a target dataset table.
@@ -75,20 +41,21 @@ class Apis {
     }, "payload");
   }
   /**
-   * Get Dataset Table File
    * 
-   * Get table file by redirecting to its signed URL.
    * 
-   * @param {apiDszTableGetReq} req
+   * 
+   * 
+   * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
    * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
+   * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
    */
-  async dszTableGet(req, opts) {
+  async pipezStartRelevanceFashionRelevanceFashionMain(req, opts) {
     return this._services.invoker().invokeResult({
-      method: "GET",
-      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/table-file/{path...}`,
+      method: "POST",
+      path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/start/relevance_fashion/relevance-fashion-main`,
+      json: req.payload,
       opts
-    }, "body");
+    }, "payload");
   }
   /**
    * 
@@ -111,64 +78,31 @@ class Apis {
    * 
    * 
    * 
-   * @param {apiDszListStoresReq} req
+   * @param {apiDszStoreDisplayCreateReq} req
    * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
+   * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
    */
-  async dszListStores(req, opts) {
-    return this._services.invoker().invokeResult({
-      method: "GET",
-      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/list`,
-      opts
-    }, "payload");
-  }
-  /**
-   * 
-   * 
-   * 
-   * 
-   * @param {apiDszCreateRecsysTokenReq} req
-   * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
-   */
-  async dszCreateRecsysToken(req, opts) {
+  async dszStoreDisplayCreate(req, opts) {
     return this._services.invoker().invokeResult({
       method: "POST",
-      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/recsystoken/create`,
+      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/display/create`,
       json: req.payload,
       opts
     }, "payload");
   }
   /**
-   * Get Dataset Signed URLs
    * 
-   * Generates presigned URLs for accessing or mutating files in the specified dataset.
    * 
-   * @param {apiDszSignedUrlReq} req
+   * 
+   * 
+   * @param {apiDszStoreDisplayListReq} req
    * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
+   * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>}
    */
-  async dszSignedUrl(req, opts) {
-    return this._services.invoker().invokeResult({
-      method: "POST",
-      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/signed-url`,
-      json: req.payload,
-      opts
-    }, "payload");
-  }
-  /**
-   * List Dataset Tables
-   * 
-   * Lists files and tables in the specified dataset.
-   * 
-   * @param {apiDszTableListReq} req
-   * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
-   */
-  async dszTableList(req, opts) {
+  async dszStoreDisplayList(req, opts) {
     return this._services.invoker().invokeResult({
       method: "GET",
-      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/table-list`,
+      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/display/list`,
       query: req.query,
       opts
     }, "payload");
@@ -195,140 +129,6 @@ class Apis {
    * 
    * 
    * 
-   * @param {apiDszDatasetSolutionsReq} req
-   * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
-   */
-  async dszDatasetSolutions(req, opts) {
-    return this._services.invoker().invokeResult({
-      method: "GET",
-      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solutions`,
-      opts
-    }, "payload");
-  }
-  /**
-   * Create Stripe Checkout
-   * 
-   * Creates a Stripe checkout session for a subscription and returns its id and url.
-   * 
-   * @param {apiDszStripeCheckoutReq} req
-   * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>}
-   */
-  async dszStripeCheckout(req, opts) {
-    return this._services.invoker().invokeResult({
-      method: "POST",
-      path: `api/stripe/checkout`,
-      json: req.payload,
-      opts
-    }, "payload");
-  }
-  /**
-   * 
-   * 
-   * 
-   * 
-   * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
-   * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
-   */
-  async pipezStartRelevanceFashionRelevanceFashionBatchIngest(req, opts) {
-    return this._services.invoker().invokeResult({
-      method: "POST",
-      path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/start/relevance_fashion/relevance-fashion-batch-ingest`,
-      json: req.payload,
-      opts
-    }, "payload");
-  }
-  /**
-   * 
-   * 
-   * 
-   * 
-   * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
-   * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
-   */
-  async pipezStartRelevanceFashionRelevanceFashionMain(req, opts) {
-    return this._services.invoker().invokeResult({
-      method: "POST",
-      path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/start/relevance_fashion/relevance-fashion-main`,
-      json: req.payload,
-      opts
-    }, "payload");
-  }
-  /**
-   * 
-   * 
-   * 
-   * 
-   * @param {apiPipezListReq} req
-   * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiPipezListResp>>}
-   */
-  async pipezList(req, opts) {
-    return this._services.invoker().invokeResult({
-      method: "GET",
-      path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/list`,
-      query: req.query,
-      opts
-    }, "payload");
-  }
-  /**
-   * 
-   * 
-   * 
-   * 
-   * @param {apiDszStoreDisplayListReq} req
-   * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>}
-   */
-  async dszStoreDisplayList(req, opts) {
-    return this._services.invoker().invokeResult({
-      method: "GET",
-      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/display/list`,
-      query: req.query,
-      opts
-    }, "payload");
-  }
-  /**
-   * 
-   * 
-   * 
-   * 
-   * @param {apiDszCreateStoreReq} req
-   * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
-   */
-  async dszCreateStore(req, opts) {
-    return this._services.invoker().invokeResult({
-      method: "POST",
-      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/create`,
-      json: req.payload,
-      opts
-    }, "body");
-  }
-  /**
-   * 
-   * 
-   * 
-   * 
-   * @param {apiDszListRecsysTokensReq} req
-   * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
-   */
-  async dszListRecsysTokens(req, opts) {
-    return this._services.invoker().invokeResult({
-      method: "GET",
-      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/recsystoken/list`,
-      opts
-    }, "payload");
-  }
-  /**
-   * 
-   * 
-   * 
-   * 
    * @param {apiDszDeleteTokenReq} req
    * @param {ServiceOptions} [opts]
    * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
@@ -340,23 +140,6 @@ class Apis {
       query: req.query,
       opts
     }, "body");
-  }
-  /**
-   * Get Model Signed URLs
-   * 
-   * Generates presigned URLs for accessing model files in the specified dataset.
-   * 
-   * @param {apiDszModelGetReq} req
-   * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
-   */
-  async dszModelGet(req, opts) {
-    return this._services.invoker().invokeResult({
-      method: "POST",
-      path: `api/model/dataset/${encodeURIComponent(String(req.params.dataset))}/signed-get/${encodeURIComponent(String(req.params.model_name))}`,
-      json: req.payload,
-      opts
-    }, "payload");
   }
   /**
    * Sample Fraction
@@ -378,23 +161,6 @@ class Apis {
     }, "payload");
   }
   /**
-   * Get Ingestion Upload URLs
-   * 
-   * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
-   * 
-   * @param {apiIngestzGetUrlReq} req
-   * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
-   */
-  async ingestzGetUrl(req, opts) {
-    return this._services.invoker().invokeResult({
-      method: "POST",
-      path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/get-url`,
-      json: req.payload,
-      opts
-    }, "payload");
-  }
-  /**
    * Event Ingestion
    * 
    * Ingests events data into a target dataset table.
@@ -407,6 +173,23 @@ class Apis {
     return this._services.invoker().invokeResult({
       method: "GET",
       path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/event/relevance-fashion-event/text.txt`,
+      query: req.query,
+      opts
+    }, "payload");
+  }
+  /**
+   * List Dataset Tables
+   * 
+   * Lists files and tables in the specified dataset.
+   * 
+   * @param {apiDszTableListReq} req
+   * @param {ServiceOptions} [opts]
+   * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
+   */
+  async dszTableList(req, opts) {
+    return this._services.invoker().invokeResult({
+      method: "GET",
+      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/table-list`,
       query: req.query,
       opts
     }, "payload");
@@ -433,15 +216,99 @@ class Apis {
    * 
    * 
    * 
-   * @param {apiDszStoreDisplayCreateReq} req
+   * @param {apiPipezListReq} req
    * @param {ServiceOptions} [opts]
-   * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
+   * @returns {Promise<import("../errors.js").I6Result<apiPipezListResp>>}
    */
-  async dszStoreDisplayCreate(req, opts) {
+  async pipezList(req, opts) {
+    return this._services.invoker().invokeResult({
+      method: "GET",
+      path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/list`,
+      query: req.query,
+      opts
+    }, "payload");
+  }
+  /**
+   * 
+   * 
+   * 
+   * 
+   * @param {apiDszCreateStoreReq} req
+   * @param {ServiceOptions} [opts]
+   * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
+   */
+  async dszCreateStore(req, opts) {
     return this._services.invoker().invokeResult({
       method: "POST",
-      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/display/create`,
+      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/create`,
       json: req.payload,
+      opts
+    }, "body");
+  }
+  /**
+   * Create Stripe Checkout
+   * 
+   * Creates a Stripe checkout session for a subscription and returns its id and url.
+   * 
+   * @param {apiDszStripeCheckoutReq} req
+   * @param {ServiceOptions} [opts]
+   * @returns {Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>}
+   */
+  async dszStripeCheckout(req, opts) {
+    return this._services.invoker().invokeResult({
+      method: "POST",
+      path: `api/stripe/checkout`,
+      json: req.payload,
+      opts
+    }, "payload");
+  }
+  /**
+   * Get Ingestion Upload URLs
+   * 
+   * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
+   * 
+   * @param {apiIngestzGetUrlReq} req
+   * @param {ServiceOptions} [opts]
+   * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
+   */
+  async ingestzGetUrl(req, opts) {
+    return this._services.invoker().invokeResult({
+      method: "POST",
+      path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/get-url`,
+      json: req.payload,
+      opts
+    }, "payload");
+  }
+  /**
+   * Get Dataset Signed URLs
+   * 
+   * Generates presigned URLs for accessing or mutating files in the specified dataset.
+   * 
+   * @param {apiDszSignedUrlReq} req
+   * @param {ServiceOptions} [opts]
+   * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
+   */
+  async dszSignedUrl(req, opts) {
+    return this._services.invoker().invokeResult({
+      method: "POST",
+      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/signed-url`,
+      json: req.payload,
+      opts
+    }, "payload");
+  }
+  /**
+   * 
+   * 
+   * 
+   * 
+   * @param {apiDszDatasetSolutionsReq} req
+   * @param {ServiceOptions} [opts]
+   * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
+   */
+  async dszDatasetSolutions(req, opts) {
+    return this._services.invoker().invokeResult({
+      method: "GET",
+      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solutions`,
       opts
     }, "payload");
   }
@@ -478,6 +345,105 @@ class Apis {
       opts
     }, "payload");
   }
+  /**
+   * 
+   * 
+   * 
+   * 
+   * @param {apiDszCreateRecsysTokenReq} req
+   * @param {ServiceOptions} [opts]
+   * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
+   */
+  async dszCreateRecsysToken(req, opts) {
+    return this._services.invoker().invokeResult({
+      method: "POST",
+      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/recsystoken/create`,
+      json: req.payload,
+      opts
+    }, "payload");
+  }
+  /**
+   * Get Dataset Table File
+   * 
+   * Get table file by redirecting to its signed URL.
+   * 
+   * @param {apiDszTableGetReq} req
+   * @param {ServiceOptions} [opts]
+   * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
+   */
+  async dszTableGet(req, opts) {
+    return this._services.invoker().invokeResult({
+      method: "GET",
+      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/table-file/{path...}`,
+      opts
+    }, "body");
+  }
+  /**
+   * 
+   * 
+   * 
+   * 
+   * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
+   * @param {ServiceOptions} [opts]
+   * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
+   */
+  async pipezStartRelevanceFashionRelevanceFashionBatchIngest(req, opts) {
+    return this._services.invoker().invokeResult({
+      method: "POST",
+      path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/start/relevance_fashion/relevance-fashion-batch-ingest`,
+      json: req.payload,
+      opts
+    }, "payload");
+  }
+  /**
+   * 
+   * 
+   * 
+   * 
+   * @param {apiDszListStoresReq} req
+   * @param {ServiceOptions} [opts]
+   * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
+   */
+  async dszListStores(req, opts) {
+    return this._services.invoker().invokeResult({
+      method: "GET",
+      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/list`,
+      opts
+    }, "payload");
+  }
+  /**
+   * 
+   * 
+   * 
+   * 
+   * @param {apiDszListRecsysTokensReq} req
+   * @param {ServiceOptions} [opts]
+   * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
+   */
+  async dszListRecsysTokens(req, opts) {
+    return this._services.invoker().invokeResult({
+      method: "GET",
+      path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/recsystoken/list`,
+      opts
+    }, "payload");
+  }
+  /**
+   * Get Model Signed URLs
+   * 
+   * Generates presigned URLs for accessing model files in the specified dataset.
+   * 
+   * @param {apiDszModelGetReq} req
+   * @param {ServiceOptions} [opts]
+   * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
+   */
+  async dszModelGet(req, opts) {
+    return this._services.invoker().invokeResult({
+      method: "POST",
+      path: `api/model/dataset/${encodeURIComponent(String(req.params.dataset))}/signed-get/${encodeURIComponent(String(req.params.model_name))}`,
+      json: req.payload,
+      opts
+    }, "payload");
+  }
 }
 export { Apis };
 class SdkFuncs {
@@ -491,15 +457,17 @@ class SdkFuncs {
   /**
    * @param {sdkFuncProductRelevanceFashionFbtReq} req
    * @param {(req: sdkFuncProductRelevanceFashionFbtReq, results: sdkFuncProductRelevanceFashionFbtOutput) => Promise<sdkFuncProductRelevanceFashionFbtSelected>} [selectResults] - picks which of the recommended skus are shown and may attach your own data to each in enriched; default: for each result, in order, the first sku not in req.input.skus (the cart) and not already picked, with the rating of that result; no duplicates, and results with no such sku are skipped
+   * @param {ServiceOptions} [opts]
    * @returns {Promise<sdkFuncProductRelevanceFashionFbtSelected>}
    */
-  async productRelevanceFashionFbtV1(req, selectResults) {
+  async productRelevanceFashionFbtV1(req, selectResults, opts) {
     const infer = this._services.infer();
     const results = await infer.run({
       dataset: req.input.dataset,
       modelName: "relevance-fashion-fbt",
       params: req.input,
-      partitions: { "version": "v1", ...req.partitions }
+      partitions: { "version": "v1", ...req.partitions },
+      serviceOpts: opts
     });
     return infer.selectResults({
       dataset: req.input.dataset,
@@ -509,34 +477,39 @@ class SdkFuncs {
       req,
       results,
       recId: results.rec_id,
-      selectResults
+      selectResults,
+      serviceOpts: opts
     });
   }
   /**
    * @param {sdkFuncProductRelevanceFashionDashFunnelReq} req
+   * @param {ServiceOptions} [opts]
    * @returns {Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>}
    */
-  async productRelevanceFashionDashFunnelV1(req) {
+  async productRelevanceFashionDashFunnelV1(req, opts) {
     const dash = this._services.dash();
     const ret = await dash.query({
       dataset: req.input.dataset,
       dashName: "product-relevance-fashion-dash-funnel",
       params: req.input,
-      partitions: { "version": "v1", ...req.partitions }
+      partitions: { "version": "v1", ...req.partitions },
+      serviceOpts: opts
     });
     return ret;
   }
   /**
    * @param {sdkFuncProductRelevanceFashionDashAttachedRevenueReq} req
+   * @param {ServiceOptions} [opts]
    * @returns {Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>}
    */
-  async productRelevanceFashionDashAttachedRevenueV1(req) {
+  async productRelevanceFashionDashAttachedRevenueV1(req, opts) {
     const dash = this._services.dash();
     const ret = await dash.query({
       dataset: req.input.dataset,
       dashName: "product-relevance-fashion-dash-attached-revenue",
       params: req.input,
-      partitions: { "version": "v1", ...req.partitions }
+      partitions: { "version": "v1", ...req.partitions },
+      serviceOpts: opts
     });
     return ret;
   }
