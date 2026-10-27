@@ -9,14 +9,6 @@ export type ServiceOptions = {
      */
     datasetToken?: string;
     /**
-     * - Id of the user session; sent in the recommendation events.
-     */
-    sessionId?: string;
-    /**
-     * - Id of the user; sent in the recommendation events.
-     */
-    userId?: string;
-    /**
      * - Custom fetch implementation.
      */
     fetcher?: Fetcher;
@@ -167,8 +159,6 @@ export type InvokeOptions = {
 /**
  * @typedef {object} ServiceOptions
  * @property {string} [datasetToken] - [Go: string]
- * @property {string} [sessionId] - Id of the user session; sent in the recommendation events.
- * @property {string} [userId] - Id of the user; sent in the recommendation events.
  * @property {Fetcher} [fetcher] - Custom fetch implementation.
  */
 /**
