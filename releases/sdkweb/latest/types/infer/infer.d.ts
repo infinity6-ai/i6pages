@@ -29,6 +29,14 @@ export type InferOptions = {
      */
     params: any;
     /**
+     * - Id of the user session; sent in the recommendation events.
+     */
+    sessionId: string;
+    /**
+     * - Id of the user; sent in the recommendation events.
+     */
+    userId: string;
+    /**
      * - Max number of results asked from the output query (its `?2`). Default 20.
      */
     limit?: number;
@@ -66,6 +74,14 @@ export type SelectResultsOptions = {
      * - Store of the event.
      */
     storeId: string;
+    /**
+     * - Id of the user session; sent in the recommendation events.
+     */
+    sessionId: string;
+    /**
+     * - Id of the user; sent in the recommendation events.
+     */
+    userId: string;
     /**
      * - What the caller asked for; given as is to `selectResults`.
      */
@@ -108,7 +124,7 @@ declare class Infer {
      * Runs the model for the given params and returns what the output query gives.
      * @param {InferOptions} opts - Inference options.
      * @returns {Promise<*>} The `ret` of the named query `model-${modelName}-output`, plus a generated `rec_id` (uuid). Sends the `recraw` event with that id.
-     * @throws {I6Error} With code "invalid_argument" if opts is malformed, the sdk has no `sessionId` and `userId` or the model inputs do not fit the model,
+     * @throws {I6Error} With code "invalid_argument" if opts is malformed, has no `sessionId` and `userId` or the model inputs do not fit the model,
      *   "asset" if a download fails, "model" if loading or running the model fails, "query" if the sqlite fails.
      */
     run(opts: InferOptions): Promise<any>;
@@ -116,17 +132,10 @@ declare class Infer {
      * Asks `selectResults` which of the recommended skus are shown and sends their sku ids as the `recshow` event.
      * @param {SelectResultsOptions} opts - Select options.
      * @returns {Promise<*>} What `selectResults` returned, as is (the default sets the `rating` of each sku; see `defaultSelectResults`).
-     * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing, the sdk has no `sessionId` and
+     * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing, `opts` has no `sessionId` and
      *   `userId`, or `selectResults` returned an item with no `sku_id` or a sku not in the results; "event" if an event is not accepted.
      */
     selectResults(opts: SelectResultsOptions): Promise<any>;
-    /**
-     * The session and user the sdk was created with (`new I6Sdk({ sessionId, userId })`).
-     * @private
-     * @returns {{sessionId: string, userId: string}}
-     * @throws {I6Error} With code "invalid_argument" if one of them is missing.
-     */
-    private #sdkIds;
     /**
      * Sends one recommendation event.
      * @private

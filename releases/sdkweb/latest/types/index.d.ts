@@ -8,14 +8,6 @@ export type I6SdkConfig = {
      * - Base URL of the i6 server. Defaults to the sandbox environment.
      */
     baseUrl?: string;
-    /**
-     * - Id of the user session; sent in the recommendation events (required by `funcs()` inference).
-     */
-    sessionId?: string;
-    /**
-     * - Id of the user; sent in the recommendation events (required by `funcs()` inference).
-     */
-    userId?: string;
 };
 /**
  * Main SDK class providing access to i6 services.
@@ -37,7 +29,7 @@ declare class I6Sdk {
      */
     config(): I6SdkConfig;
     /**
-     * Overwrites the given keys of the configuration (e.g. `{ sessionId, userId }`); the other keys are kept.
+     * Overwrites the given keys of the configuration; the other keys are kept.
      * Can be called at any time, the next call of the SDK uses the new values.
      * @param {Partial<I6SdkConfig>} config - The keys to overwrite.
      * @returns {void}

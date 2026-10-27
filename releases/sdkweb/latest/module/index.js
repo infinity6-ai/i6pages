@@ -24,7 +24,7 @@ class I6Sdk {
     return { ...this._service.config() };
   }
   /**
-   * Overwrites the given keys of the configuration (e.g. `{ sessionId, userId }`); the other keys are kept.
+   * Overwrites the given keys of the configuration; the other keys are kept.
    * Can be called at any time, the next call of the SDK uses the new values.
    * @param {Partial<I6SdkConfig>} config - The keys to overwrite.
    * @returns {void}

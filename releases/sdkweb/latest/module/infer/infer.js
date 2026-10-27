@@ -19,13 +19,13 @@ class Infer {
    * Runs the model for the given params and returns what the output query gives.
    * @param {InferOptions} opts - Inference options.
    * @returns {Promise<*>} The `ret` of the named query `model-${modelName}-output`, plus a generated `rec_id` (uuid). Sends the `recraw` event with that id.
-   * @throws {I6Error} With code "invalid_argument" if opts is malformed, the sdk has no `sessionId` and `userId` or the model inputs do not fit the model,
+   * @throws {I6Error} With code "invalid_argument" if opts is malformed, has no `sessionId` and `userId` or the model inputs do not fit the model,
    *   "asset" if a download fails, "model" if loading or running the model fails, "query" if the sqlite fails.
    */
   async run(opts) {
     validate(opts);
-    const ids = this.#sdkIds();
-    const { modelName, params } = opts;
+    const { modelName, params, sessionId, userId } = opts;
+    const ids = { sessionId, userId };
     const queryName = (kind) => `model-${modelName}-${kind}`;
     const urls = await this._assetUrls(opts);
     const cacheName = (kind) => `infer-${modelName}-${partitionsKey(opts.partitions)}-${kind}`;
@@ -58,7 +58,7 @@ class Infer {
    * Asks `selectResults` which of the recommended skus are shown and sends their sku ids as the `recshow` event.
    * @param {SelectResultsOptions} opts - Select options.
    * @returns {Promise<*>} What `selectResults` returned, as is (the default sets the `rating` of each sku; see `defaultSelectResults`).
-   * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing, the sdk has no `sessionId` and
+   * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing, `opts` has no `sessionId` and
    *   `userId`, or `selectResults` returned an item with no `sku_id` or a sku not in the results; "event" if an event is not accepted.
    */
   async selectResults(opts) {
@@ -66,9 +66,12 @@ class Infer {
     if (typeof selectResults !== "function") {
       throw new I6Error("infer: opts.selectResults must be a function", { code: "invalid_argument" });
     }
-    const { req, results, recId } = opts;
+    const { req, results, recId, sessionId, userId } = opts;
     if (!recId) throw new I6Error("infer: opts.recId is required", { code: "invalid_argument" });
-    const ids = this.#sdkIds();
+    if (!sessionId || !userId) {
+      throw new I6Error("infer: opts needs sessionId and userId", { code: "invalid_argument" });
+    }
+    const ids = { sessionId, userId };
     const selected = await selectResults(req, results);
     if (!Array.isArray(selected?.results)) {
       throw new I6Error("infer: selectResults must return { results: [...] }", { code: "invalid_argument" });
@@ -82,19 +85,6 @@ class Infer {
     };
     await this.#sendRecEvent(opts, ids, recId, "recshow", shown);
     return selected;
-  }
-  /**
-   * The session and user the sdk was created with (`new I6Sdk({ sessionId, userId })`).
-   * @private
-   * @returns {{sessionId: string, userId: string}}
-   * @throws {I6Error} With code "invalid_argument" if one of them is missing.
-   */
-  #sdkIds() {
-    const { sessionId, userId } = this._services?.config?.() ?? {};
-    if (!sessionId || !userId) {
-      throw new I6Error("infer: the sdk needs sessionId and userId, e.g. new I6Sdk({ sessionId, userId })", { code: "invalid_argument" });
-    }
-    return { sessionId, userId };
   }
   /**
    * Sends one recommendation event.
@@ -151,7 +141,7 @@ class Infer {
   }
 }
 function validate(opts) {
-  for (const key of ["modelName", "dataset"]) {
+  for (const key of ["modelName", "dataset", "sessionId", "userId"]) {
     if (!opts || !opts[key]) throw new I6Error(`infer: opts.${key} is required`, { code: "invalid_argument" });
   }
   if (!isPartitions(opts.partitions)) {

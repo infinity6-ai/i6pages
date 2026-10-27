@@ -2,11 +2,24 @@
  * @fileoverview HTTP client for sending API requests to i6 services.
  */
 export type Services = import("../services/services.js").Services;
+export type Fetcher = (url: string, opts: InvokeOptions) => Promise<Response>;
 export type ServiceOptions = {
     /**
      * - [Go: string]
      */
-    datasetToken: string;
+    datasetToken?: string;
+    /**
+     * - Id of the user session; sent in the recommendation events.
+     */
+    sessionId?: string;
+    /**
+     * - Id of the user; sent in the recommendation events.
+     */
+    userId?: string;
+    /**
+     * - Custom fetch implementation.
+     */
+    fetcher?: Fetcher;
 };
 export type InvokeOptions = {
     /**
@@ -55,8 +68,108 @@ export type InvokeOptions = {
  * @typedef {import("../services/services.js").Services} Services
  */
 /**
+ * A custom fetch implementation.
+ *
+ * It intercepts requests made by the SDK. This is essential when the `DatasetToken` must
+ * never be exposed to the browser.
+ *
+ * There are two main approaches to keep the `DatasetToken` safe on your backend:
+ *
+ * ---
+ * ### Approach 1: Backend Reverse Proxy (Recommended for simplicity)
+ * To avoid all signature complexity ("signature hell"), you can simply proxy requests through
+ * your own backend server. The browser sends the request to your backend, and your server forwards
+ * it to i6 while attaching the `Authorization: Dataset <datasetToken>` header. This also works for
+ * all HTTP methods and request bodies without any signing restrictions.
+ *
+ * Browser Fetcher example:
+ * ```js
+ * const fetcher = async (url, opts) => {
+ *   // Route the request to your own server proxy endpoint
+ *   const proxyUrl = url.replace('https://api.i6.ai', '/api/i6-proxy');
+ *   return fetch(proxyUrl, opts);
+ * };
+ * ```
+ *
+ * Backend server handler example:
+ * ```js
+ * // Express / Node.js backend
+ * app.all('/api/i6-proxy/*', async (req, res) => {
+ *   const targetUrl = req.originalUrl.replace('/api/i6-proxy', 'https://api.i6.ai');
+ *   const resp = await fetch(targetUrl, {
+ *     method: req.method,
+ *     headers: {
+ *       ...req.headers,
+ *       'Authorization': `Dataset ${process.env.I6_DATASET_TOKEN}`,
+ *     },
+ *     body: ['GET', 'HEAD'].includes(req.method) ? undefined : req.body,
+ *   });
+ *   res.status(resp.status).send(await resp.text());
+ * });
+ * ```
+ *
+ * ---
+ * ### Approach 2: URL Signing (Direct browser-to-i6 calls)
+ * If you prefer requests to go directly from the browser to i6 (e.g. to offload traffic from your servers),
+ * provide a custom `fetcher` that calls your backend server to pre-sign the URL before forwarding it to i6.
+ *
+ * Example:
+ * ```js
+ * const fetcher = async (url, opts) => {
+ *   // Ask your backend to sign the URL
+ *   const res = await fetch('/api/sign-i6-url', {
+ *     method: 'POST',
+ *     body: JSON.stringify({ url, method: opts.method })
+ *   });
+ *   const { signedUrl } = await res.json();
+ *   // Send the actual request directly to i6 using the signed URL
+ *   return fetch(signedUrl, opts);
+ * };
+ * ```
+ *
+ * #### How the backend signs the URL
+ * The `DatasetToken` is a JWT securely stored on your backend. The Ed25519 private key is located inside
+ * the JWT payload's `ext.priv_key` field (Base64URL encoded). The public key `jti` is registered in our storage.
+ * Signed URLs will work while this specific `jti` is not revoked.
+ *
+ * Nowadays, we can sign only:
+ * - `GET` requests
+ * - Path
+ * - Expiration timestamp (`exp`)
+ * - Allowed open query params
+ * - Allowed query params with specific fixed values
+ *
+ * **Example using `ingestzEventRelevanceFashionEvent`:**
+ * The browser sends some fixed values (like `userid`, `sessionid`, `dataset`) and some open values (like `click` or `purchase` inside `payload`).
+ *
+ * 1. Define your expiration time (`exp`) in ISO8601BasicMillis (e.g., `20261027T150000000Z`).
+ * 2. Build the canonical message:
+ *    `METHOD\nPATH\nEXP\nOPEN_PARAMS_SORTED_COMMA_SEPARATED\nFIXED_PARAMS_KEY_SORTED_COMMA_SEPARATED`
+ *    Note: The values of fixed params are Base64URL-encoded without padding: `key=b64url(value)`.
+ *    Example:
+ *    ```text
+ *    GET
+ *    /api/ingest/dataset/my-dataset/event/relevance-fashion-event/text.txt
+ *    20261027T150000000Z
+ *    payload
+ *    dataset=bXktZGF0YXNldA,sessionid=YWJj,userid=MTIz
+ *    ```
+ * 3. Sign the message bytes with the Ed25519 private key. To make it using openssl (like in `@cryptz/cryptz25519/cryptz25519openssl`):
+ *    ```bash
+ *    openssl pkeyutl -sign -inkey private_key.pem -rawin -in message.txt -out signature.bin
+ *    ```
+ * 4. Encode the signature and public key in Base64URL.
+ * 5. Append the `sig` query parameter: `?sig=v1.<exp>.<open_params_pipe_separated>.<pub_key>.<signature>`
+ *    (e.g., `sig=v1.20261027T150000000Z.payload.PubKeyBase64...SigBase64...`)
+ *
+ * @typedef {(url: string, opts: InvokeOptions) => Promise<Response>} Fetcher
+ */
+/**
  * @typedef {object} ServiceOptions
- * @property {string} datasetToken - [Go: string]
+ * @property {string} [datasetToken] - [Go: string]
+ * @property {string} [sessionId] - Id of the user session; sent in the recommendation events.
+ * @property {string} [userId] - Id of the user; sent in the recommendation events.
+ * @property {Fetcher} [fetcher] - Custom fetch implementation.
  */
 /**
  * Options for sending HTTP requests via the Invoker.
@@ -123,14 +236,6 @@ export type I6SdkConfig = {
      * - Base URL of the i6 server. Defaults to the sandbox environment.
      */
     baseUrl?: string;
-    /**
-     * - Id of the user session; sent in the recommendation events (required by `funcs()` inference).
-     */
-    sessionId?: string;
-    /**
-     * - Id of the user; sent in the recommendation events (required by `funcs()` inference).
-     */
-    userId?: string;
 };
 /**
  * Main SDK class providing access to i6 services.
@@ -152,7 +257,7 @@ declare class I6Sdk {
      */
     config(): I6SdkConfig;
     /**
-     * Overwrites the given keys of the configuration (e.g. `{ sessionId, userId }`); the other keys are kept.
+     * Overwrites the given keys of the configuration; the other keys are kept.
      * Can be called at any time, the next call of the SDK uses the new values.
      * @param {Partial<I6SdkConfig>} config - The keys to overwrite.
      * @returns {void}
@@ -1228,12 +1333,9 @@ export type apiIngestzEventRelevanceFashionCatalogParams = {
     dataset: string;
 };
 export type apiIngestzEventRelevanceFashionCatalogQuery = {
-    payload: i6JsonEmbedded<apiIngestzEventRelevanceFashionCatalogQueryPayload>;
+    payload: apiIngestzEventRelevanceFashionCatalogQueryPayload;
 };
 export type apiIngestzEventRelevanceFashionCatalogQueryPayload = {
-    rows: Array<apiIngestzEventRelevanceFashionCatalogQueryPayloadRowsElement>;
-};
-export type apiIngestzEventRelevanceFashionCatalogQueryPayloadRowsElement = {
     /**
      * - [Go: string]
      */
@@ -1279,14 +1381,11 @@ export type apiIngestzEventRelevanceFashionEventParams = {
     dataset: string;
 };
 export type apiIngestzEventRelevanceFashionEventQuery = {
-    payload: i6JsonEmbedded<apiIngestzEventRelevanceFashionEventQueryPayload>;
+    payload: apiIngestzEventRelevanceFashionEventQueryPayload;
 };
 export type apiIngestzEventRelevanceFashionEventQueryPayload = {
-    rows: Array<apiIngestzEventRelevanceFashionEventQueryPayloadRowsElement>;
-};
-export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElement = {
-    add_to_cart: apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementAddToCart;
-    click: apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementClick;
+    add_to_cart: apiIngestzEventRelevanceFashionEventQueryPayloadAddToCart;
+    click: apiIngestzEventRelevanceFashionEventQueryPayloadClick;
     /**
      * - [Go: time.Time]
      */
@@ -1299,11 +1398,11 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElement = {
      * - [Go: string]
      */
     id: string;
-    purchase: apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchase;
-    recraw: apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecraw;
-    recshow: apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecshow;
-    remove_from_cart: apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRemoveFromCart;
-    search: apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementSearch;
+    purchase: apiIngestzEventRelevanceFashionEventQueryPayloadPurchase;
+    recraw: apiIngestzEventRelevanceFashionEventQueryPayloadRecraw;
+    recshow: apiIngestzEventRelevanceFashionEventQueryPayloadRecshow;
+    remove_from_cart: apiIngestzEventRelevanceFashionEventQueryPayloadRemoveFromCart;
+    search: apiIngestzEventRelevanceFashionEventQueryPayloadSearch;
     /**
      * - [Go: string]
      */
@@ -1317,7 +1416,7 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElement = {
      */
     user_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementAddToCart = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadAddToCart = {
     /**
      * - [Go: float64]
      */
@@ -1327,7 +1426,7 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementAddToCart
      */
     sku_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementClick = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadClick = {
     /**
      * - [Go: float64]
      */
@@ -1337,14 +1436,14 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementClick = {
      */
     sku_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchase = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadPurchase = {
     /**
      * - [Go: string]
      */
     order_id: string;
-    skus: Array<apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchaseSkusElement>;
+    skus: Array<apiIngestzEventRelevanceFashionEventQueryPayloadPurchaseSkusElement>;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchaseSkusElement = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadPurchaseSkusElement = {
     /**
      * - [Go: int64]
      */
@@ -1358,7 +1457,7 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchaseS
      */
     unit_price: number;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecraw = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadRecraw = {
     /**
      * - [Go: string]
      */
@@ -1376,7 +1475,7 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecraw = 
      */
     rec_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecshow = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadRecshow = {
     /**
      * - [Go: string]
      */
@@ -1394,7 +1493,7 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecshow =
      */
     rec_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRemoveFromCart = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadRemoveFromCart = {
     /**
      * - [Go: float64]
      */
@@ -1404,7 +1503,7 @@ export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRemoveFro
      */
     sku_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementSearch = {
+export type apiIngestzEventRelevanceFashionEventQueryPayloadSearch = {
     /**
      * - [Go: string]
      */
@@ -2584,14 +2683,10 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
 /**
  * apiIngestzEventRelevanceFashionCatalog query
  * @typedef {object} apiIngestzEventRelevanceFashionCatalogQuery
- * @property {i6JsonEmbedded<apiIngestzEventRelevanceFashionCatalogQueryPayload>} payload
+ * @property {apiIngestzEventRelevanceFashionCatalogQueryPayload} payload
  */
 /**
  * @typedef {object} apiIngestzEventRelevanceFashionCatalogQueryPayload
- * @property {Array<apiIngestzEventRelevanceFashionCatalogQueryPayloadRowsElement>} rows
- */
-/**
- * @typedef {object} apiIngestzEventRelevanceFashionCatalogQueryPayloadRowsElement
  * @property {string} id - [Go: string]
  * @property {boolean} inactive - [Go: bool]
  * @property {string} product_id - [Go: string]
@@ -2623,70 +2718,66 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
 /**
  * apiIngestzEventRelevanceFashionEvent query
  * @typedef {object} apiIngestzEventRelevanceFashionEventQuery
- * @property {i6JsonEmbedded<apiIngestzEventRelevanceFashionEventQueryPayload>} payload
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayload} payload
  */
 /**
  * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayload
- * @property {Array<apiIngestzEventRelevanceFashionEventQueryPayloadRowsElement>} rows
- */
-/**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElement
- * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementAddToCart} add_to_cart
- * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementClick} click
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayloadAddToCart} add_to_cart
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayloadClick} click
  * @property {dszTime} created_at - [Go: time.Time]
  * @property {string} display_id - [Go: bigquery.NullString]
  * @property {string} id - [Go: string]
- * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchase} purchase
- * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecraw} recraw
- * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecshow} recshow
- * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRemoveFromCart} remove_from_cart
- * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementSearch} search
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayloadPurchase} purchase
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRecraw} recraw
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRecshow} recshow
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayloadRemoveFromCart} remove_from_cart
+ * @property {apiIngestzEventRelevanceFashionEventQueryPayloadSearch} search
  * @property {string} session_id - [Go: string]
  * @property {string} store_id - [Go: string]
  * @property {string} user_id - [Go: bigquery.NullString]
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementAddToCart
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadAddToCart
  * @property {number} price - [Go: float64]
  * @property {string} sku_id - [Go: string]
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementClick
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadClick
  * @property {number} price - [Go: float64]
  * @property {string} sku_id - [Go: string]
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchase
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadPurchase
  * @property {string} order_id - [Go: string]
- * @property {Array<apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchaseSkusElement>} skus
+ * @property {Array<apiIngestzEventRelevanceFashionEventQueryPayloadPurchaseSkusElement>} skus
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementPurchaseSkusElement
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadPurchaseSkusElement
  * @property {number} qtty - [Go: int64]
  * @property {string} sku_id - [Go: string]
  * @property {number} unit_price - [Go: float64]
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecraw
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRecraw
  * @property {string} model_id - [Go: string]
  * @property {string} model_version - [Go: string]
  * @property {string} payload - [Go: string]
  * @property {string} rec_id - [Go: string]
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRecshow
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRecshow
  * @property {string} model_id - [Go: string]
  * @property {string} model_version - [Go: string]
  * @property {string} payload - [Go: string]
  * @property {string} rec_id - [Go: string]
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementRemoveFromCart
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRemoveFromCart
  * @property {number} price - [Go: float64]
  * @property {string} sku_id - [Go: string]
  */
 /**
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadRowsElementSearch
+ * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPayloadSearch
  * @property {string} text - [Go: string]
  */
 /**
@@ -3162,71 +3253,11 @@ declare class Apis {
      *
      * Load a table file from the datalake as JSON and return it.
      *
-     * @param {apiDszResultRelevanceFashionCatalogReq} req
+     * @param {apiDszResultLastBatchSummaryReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>}
      */
-    dszResultRelevanceFashionCatalog(req: apiDszResultRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
-     */
-    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszStoreDisplayCreateReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
-     */
-    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDeleteTokenReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
-     */
-    dszDeleteToken(req: apiDszDeleteTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>;
-    /**
-     * Create Stripe Checkout
-     *
-     * Creates a Stripe checkout session for a subscription and returns its id and url.
-     *
-     * @param {apiDszStripeCheckoutReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>}
-     */
-    dszStripeCheckout(req: apiDszStripeCheckoutReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>;
-    /**
-     * Sample Fraction
-     *
-     * Sample API that performs a fraction operation
-     *
-     * @param {apiSampleFractionReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiSampleFractionResp>>}
-     */
-    sampleFraction(req: apiSampleFractionReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiSampleFractionResp>>;
-    /**
-     * Get Ingestion Upload URLs
-     *
-     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
-     *
-     * @param {apiIngestzGetUrlReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
-     */
-    ingestzGetUrl(req: apiIngestzGetUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
+    dszResultLastBatchSummary(req: apiDszResultLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>;
     /**
      *
      *
@@ -3252,96 +3283,6 @@ declare class Apis {
      *
      *
      *
-     * @param {apiDszListStoresReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
-     */
-    dszListStores(req: apiDszListStoresReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListIngestionTokensReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
-     */
-    dszListIngestionTokens(req: apiDszListIngestionTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszListRecsysTokensReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
-     */
-    dszListRecsysTokens(req: apiDszListRecsysTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
-    /**
-     * Get Model Signed URLs
-     *
-     * Generates presigned URLs for accessing model files in the specified dataset.
-     *
-     * @param {apiDszModelGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
-     */
-    dszModelGet(req: apiDszModelGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszModelGetResp>>;
-    /**
-     * Get Last Successful Ingestion Data Summary
-     *
-     * Returns the date of ingestion, rows count and distinct and null columns count
-     *
-     * @param {apiIngestzLastBatchSummaryReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>}
-     */
-    ingestzLastBatchSummary(req: apiIngestzLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>;
-    /**
-     * Get Dataset Table File
-     *
-     * Get table file by redirecting to its signed URL.
-     *
-     * @param {apiDszTableGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
-     */
-    dszTableGet(req: apiDszTableGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
-    /**
-     * List Dataset Tables
-     *
-     * Lists files and tables in the specified dataset.
-     *
-     * @param {apiDszTableListReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
-     */
-    dszTableList(req: apiDszTableListReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableListResp>>;
-    /**
-     * Load Table File as JSON
-     *
-     * Load a table file from the datalake as JSON and return it.
-     *
-     * @param {apiDszResultLastBatchSummaryReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>}
-     */
-    dszResultLastBatchSummary(req: apiDszResultLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
-     */
-    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
-    /**
-     *
-     *
-     *
-     *
      * @param {apiDszCreateStoreReq} req
      * @param {ServiceOptions} [opts]
      * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
@@ -3352,21 +3293,11 @@ declare class Apis {
      *
      *
      *
-     * @param {apiDszListDatasetsReq} req
+     * @param {apiDszListStoresReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
      */
-    dszListDatasets(req: apiDszListDatasetsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDatasetSolutionsReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
-     */
-    dszDatasetSolutions(req: apiDszDatasetSolutionsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
+    dszListStores(req: apiDszListStoresReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
     /**
      * Event Ingestion
      *
@@ -3398,15 +3329,45 @@ declare class Apis {
      */
     dszSignedUrl(req: apiDszSignedUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
     /**
+     * Get Dataset Table File
      *
+     * Get table file by redirecting to its signed URL.
      *
-     *
-     *
-     * @param {apiPipezGetReq} req
+     * @param {apiDszTableGetReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezGetResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
      */
-    pipezGet(req: apiPipezGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezGetResp>>;
+    dszTableGet(req: apiDszTableGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
+    /**
+     * Load Table File as JSON
+     *
+     * Load a table file from the datalake as JSON and return it.
+     *
+     * @param {apiDszResultRelevanceFashionCatalogReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>}
+     */
+    dszResultRelevanceFashionCatalog(req: apiDszResultRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListDatasetsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
+     */
+    dszListDatasets(req: apiDszListDatasetsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListIngestionTokensReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
+     */
+    dszListIngestionTokens(req: apiDszListIngestionTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
     /**
      *
      *
@@ -3422,11 +3383,141 @@ declare class Apis {
      *
      *
      *
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
+     */
+    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
+     */
+    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezGetResp>>}
+     */
+    pipezGet(req: apiPipezGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezGetResp>>;
+    /**
+     *
+     *
+     *
+     *
      * @param {apiDszCreateRecsysTokenReq} req
      * @param {ServiceOptions} [opts]
      * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
      */
     dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszDeleteTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
+     */
+    dszDeleteToken(req: apiDszDeleteTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>;
+    /**
+     * Get Last Successful Ingestion Data Summary
+     *
+     * Returns the date of ingestion, rows count and distinct and null columns count
+     *
+     * @param {apiIngestzLastBatchSummaryReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>}
+     */
+    ingestzLastBatchSummary(req: apiIngestzLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszStoreDisplayCreateReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
+     */
+    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszDatasetSolutionsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
+     */
+    dszDatasetSolutions(req: apiDszDatasetSolutionsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListRecsysTokensReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
+     */
+    dszListRecsysTokens(req: apiDszListRecsysTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
+    /**
+     * Get Model Signed URLs
+     *
+     * Generates presigned URLs for accessing model files in the specified dataset.
+     *
+     * @param {apiDszModelGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
+     */
+    dszModelGet(req: apiDszModelGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszModelGetResp>>;
+    /**
+     * Create Stripe Checkout
+     *
+     * Creates a Stripe checkout session for a subscription and returns its id and url.
+     *
+     * @param {apiDszStripeCheckoutReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>}
+     */
+    dszStripeCheckout(req: apiDszStripeCheckoutReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>;
+    /**
+     * Sample Fraction
+     *
+     * Sample API that performs a fraction operation
+     *
+     * @param {apiSampleFractionReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiSampleFractionResp>>}
+     */
+    sampleFraction(req: apiSampleFractionReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiSampleFractionResp>>;
+    /**
+     * Get Ingestion Upload URLs
+     *
+     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
+     *
+     * @param {apiIngestzGetUrlReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
+     */
+    ingestzGetUrl(req: apiIngestzGetUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
+    /**
+     * List Dataset Tables
+     *
+     * Lists files and tables in the specified dataset.
+     *
+     * @param {apiDszTableListReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
+     */
+    dszTableList(req: apiDszTableListReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableListResp>>;
 }
 export { Apis };
 declare class SdkFuncs {
@@ -3798,6 +3889,14 @@ export type InferOptions = {
      */
     params: any;
     /**
+     * - Id of the user session; sent in the recommendation events.
+     */
+    sessionId: string;
+    /**
+     * - Id of the user; sent in the recommendation events.
+     */
+    userId: string;
+    /**
      * - Max number of results asked from the output query (its `?2`). Default 20.
      */
     limit?: number;
@@ -3835,6 +3934,14 @@ export type SelectResultsOptions = {
      * - Store of the event.
      */
     storeId: string;
+    /**
+     * - Id of the user session; sent in the recommendation events.
+     */
+    sessionId: string;
+    /**
+     * - Id of the user; sent in the recommendation events.
+     */
+    userId: string;
     /**
      * - What the caller asked for; given as is to `selectResults`.
      */
@@ -3877,7 +3984,7 @@ declare class Infer {
      * Runs the model for the given params and returns what the output query gives.
      * @param {InferOptions} opts - Inference options.
      * @returns {Promise<*>} The `ret` of the named query `model-${modelName}-output`, plus a generated `rec_id` (uuid). Sends the `recraw` event with that id.
-     * @throws {I6Error} With code "invalid_argument" if opts is malformed, the sdk has no `sessionId` and `userId` or the model inputs do not fit the model,
+     * @throws {I6Error} With code "invalid_argument" if opts is malformed, has no `sessionId` and `userId` or the model inputs do not fit the model,
      *   "asset" if a download fails, "model" if loading or running the model fails, "query" if the sqlite fails.
      */
     run(opts: InferOptions): Promise<any>;
@@ -3885,17 +3992,10 @@ declare class Infer {
      * Asks `selectResults` which of the recommended skus are shown and sends their sku ids as the `recshow` event.
      * @param {SelectResultsOptions} opts - Select options.
      * @returns {Promise<*>} What `selectResults` returned, as is (the default sets the `rating` of each sku; see `defaultSelectResults`).
-     * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing, the sdk has no `sessionId` and
+     * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing, `opts` has no `sessionId` and
      *   `userId`, or `selectResults` returned an item with no `sku_id` or a sku not in the results; "event" if an event is not accepted.
      */
     selectResults(opts: SelectResultsOptions): Promise<any>;
-    /**
-     * The session and user the sdk was created with (`new I6Sdk({ sessionId, userId })`).
-     * @private
-     * @returns {{sessionId: string, userId: string}}
-     * @throws {I6Error} With code "invalid_argument" if one of them is missing.
-     */
-    private #sdkIds;
     /**
      * Sends one recommendation event.
      * @private
