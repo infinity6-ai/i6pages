@@ -1,4 +1,6 @@
 import { apiErrorFromResponse, apiErrorFromNetwork } from "../errors.js";
+import * as b64 from "../internal/b64/b64.js";
+import * as gzip from "../internal/gzip/gzip.js";
 class Invoker {
   /**
    * Constructs an Invoker instance.
@@ -18,7 +20,7 @@ class Invoker {
    * @throws {TypeError} If the network request fails (from fetch).
    */
   async invoke(opts) {
-    let url = opts.url || `${this._services.config().baseUrl}/${opts.path}`;
+    opts.url = opts.url || `${this._services.config().baseUrl}/${opts.path}`;
     if (opts.query) {
       const search = new URLSearchParams();
       for (const [key, value] of Object.entries(opts.query)) {
@@ -32,7 +34,7 @@ class Invoker {
       }
       const queryString = search.toString();
       if (queryString) {
-        url = url + (url.includes("?") ? "&" : "?") + queryString;
+        opts.url = opts.url + (opts.url.includes("?") ? "&" : "?") + queryString;
       }
     }
     opts.headers = new Headers(opts.headers);
@@ -44,10 +46,24 @@ class Invoker {
       opts.body = JSON.stringify(opts.json);
     }
     opts.credentials = "include";
-    if (opts.opts?.fetcher) {
-      return opts.opts.fetcher(url, opts);
+    if (opts.opts?.prepareRequest) {
+      await opts.opts.prepareRequest(opts);
     }
-    return fetch(url, opts);
+    if (opts.sinkable) {
+      if (opts.method?.toUpperCase() != "GET") throw "Unsupported: sinkable must be GET";
+      if (opts.body) throw "Unsupported: sinkable must not have body";
+      const u = new URL(url);
+      let search = u.search.startsWith("?") ? u.search.substring(1) : u.search;
+      if (search) {
+        search = b64.encodeUrlSafe(await gzip.gzip(search));
+      }
+      if (search.length > 1900) throw `It is too large to sink: ${search.length}: ${search}`;
+      url = `${this._services.config().baseUrl}/api/sink/${u.pathname}?s=${search}`;
+    }
+    if (opts.opts?.fetcher) {
+      return opts.opts.fetcher(opts.url, opts);
+    }
+    return fetch(opts.url, opts);
   }
   /**
    * Like `invoke`, but never throws: resolves with `{status, ok, <key>}` on success and with

@@ -6,7 +6,7 @@
  * run the tflite model, and run the named query `model-${modelName}-output` with the model outputs.
  * Its result is returned as is. Nothing here is model specific.
  *
- * Set `window.I6_DEBUG = true` to see what happens in the console.
+ * Set `window.I6_DEBUG = true` to see what happens in the console, and to get the model tensors in the "i6:infer-tensors" event.
  */
 export type Services = import("../services/services.js").Services;
 export type FileRef = import("../internal/fs/fs.js").FileRef;

@@ -43,6 +43,7 @@ class Infer {
       debug("input query returned", Object.keys(inputs), "model", describeModel(compiled));
       const outputs = await runModel(compiled, inputs);
       debug("output returned (before namedJsonQuery)", outputs);
+      announceTensors({ modelName, partitions: opts.partitions, model: describeModel(compiled), inputs, outputs });
       const result = await conn.namedJsonQuery({ name: queryName("output"), params: outputQueryParams(outputs, opts) });
       debug("output query returned (after namedJsonQuery)", result);
       const recId = crypto.randomUUID();
@@ -98,23 +99,20 @@ class Infer {
    * @throws {I6Error} With code "event" if the event is not accepted.
    */
   async #sendRecEvent(opts, ids, recId, kind, payload) {
-    await this._services.apis().ingestzStreamRelevanceFashionEvent({
+    await this._services.apis().ingestzEventRelevanceFashionEvent({
       params: { dataset: opts.dataset },
-      payload: {
-        data: [{
-          id: crypto.randomUUID(),
-          store_id: opts.storeId,
-          session_id: ids.sessionId,
-          user_id: ids.userId,
-          dataset: opts.dataset,
-          created_at: (/* @__PURE__ */ new Date()).toISOString().split(".")[0] + "Z",
-          [kind]: {
-            rec_id: recId,
-            model_id: opts.modelName,
-            model_version: opts.modelVersion,
-            payload: JSON.stringify(payload)
-          }
-        }]
+      query: {
+        id: crypto.randomUUID(),
+        store_id: opts.storeId,
+        session_id: ids.sessionId,
+        user_id: ids.userId,
+        created_at: (/* @__PURE__ */ new Date()).toISOString().split(".")[0] + "Z",
+        [kind]: {
+          rec_id: recId,
+          model_id: opts.modelName,
+          model_version: opts.modelVersion,
+          payload: JSON.stringify(payload)
+        }
       }
     }, opts.serviceOpts);
   }
@@ -139,6 +137,11 @@ class Infer {
     }
     return { sqlite: byName[FILES.sqlite], tflite: byName[FILES.tflite] };
   }
+}
+function announceTensors({ outputs, ...rest }) {
+  if (!globalThis.I6_DEBUG || typeof globalThis.dispatchEvent !== "function") return;
+  const plain = Object.fromEntries(Object.entries(outputs).map(([name, values]) => [name, Array.from(values)]));
+  globalThis.dispatchEvent(new CustomEvent("i6:infer-tensors", { detail: { ...rest, outputs: plain } }));
 }
 function validate(opts) {
   for (const key of ["modelName", "dataset", "sessionId", "userId"]) {
