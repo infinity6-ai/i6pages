@@ -20,9 +20,9 @@ export type DashOptions = {
      */
     dataset: string;
     /**
-     * - Query input, any JSON. Bound as `?1` of the named query.
+     * - Query input, any JSON. Bound as `?1` of the named query. Omit it for a query that takes none.
      */
-    params: any;
+    params?: any;
     /**
      * - Tests only: URL of the sqlite (must answer HEAD with an etag). Default: the model API.
      */

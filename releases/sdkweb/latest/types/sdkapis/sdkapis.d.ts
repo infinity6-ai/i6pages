@@ -1483,6 +1483,160 @@ export type sdkFuncProductRelevanceFashionDashFunnelReq = {
 export type sdkFuncProductRelevanceFashionDashFunnelResp = {
     output: sdkFuncProductRelevanceFashionDashFunnelOutput;
 };
+export type sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryInput = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
+    dataset: string;
+    params: sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryInputParams;
+};
+export type sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryInputParams = {
+    /**
+     * - [Go: string]
+     */
+    max_year_month: string;
+    /**
+     * - [Go: string]
+     */
+    min_year_month: string;
+};
+export type sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryOutput = {
+    rows: Array<sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryOutputRowsElement>;
+};
+export type sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryOutputRowsElement = {
+    /**
+     * - [Go: float64]
+     */
+    cart_adds: number;
+    /**
+     * - [Go: float64]
+     */
+    clicks: number;
+    /**
+     * - [Go: float64]
+     */
+    purchases: number;
+    /**
+     * - [Go: float64]
+     */
+    recomendations: number;
+    /**
+     * - [Go: float64]
+     */
+    revenue: number;
+    /**
+     * - [Go: string]
+     */
+    showcase_category: string;
+};
+export type sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryPartitions = {
+    /**
+     * - [Go: string]
+     */
+    store_id: string;
+};
+export type sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryReq = {
+    input: sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryInput;
+    partitions: sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryPartitions;
+};
+export type sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryResp = {
+    output: sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryOutput;
+};
+export type sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuInput = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
+    dataset: string;
+    params: sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuInputParams;
+};
+export type sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuInputParams = {
+    /**
+     * - [Go: string]
+     */
+    max_year_month: string;
+    /**
+     * - [Go: string]
+     */
+    min_year_month: string;
+};
+export type sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutput = {
+    rows: Array<sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutputRowsElement>;
+};
+export type sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutputRowsElement = {
+    /**
+     * - [Go: float64]
+     */
+    cart_adds: number;
+    /**
+     * - [Go: float64]
+     */
+    clicks: number;
+    /**
+     * - [Go: string]
+     */
+    description: string;
+    /**
+     * - [Go: float64]
+     */
+    purchases: number;
+    /**
+     * - [Go: float64]
+     */
+    recomendations: number;
+    /**
+     * - [Go: float64]
+     */
+    revenue: number;
+    /**
+     * - [Go: string]
+     */
+    showcase_category: string;
+    /**
+     * - [Go: string]
+     */
+    sku_id: string;
+};
+export type sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuPartitions = {
+    /**
+     * - [Go: string]
+     */
+    store_id: string;
+};
+export type sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuReq = {
+    input: sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuInput;
+    partitions: sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuPartitions;
+};
+export type sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuResp = {
+    output: sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutput;
+};
+export type sdkFuncProductRelevanceFashionDashListShowcaseCategoriesInput = {
+    /**
+     * - [Go: lakedsz.Dataset]
+     */
+    dataset: string;
+};
+export type sdkFuncProductRelevanceFashionDashListShowcaseCategoriesOutput = {
+    rows: Array<sdkFuncProductRelevanceFashionDashListShowcaseCategoriesOutputRowsElement>;
+};
+export type sdkFuncProductRelevanceFashionDashListShowcaseCategoriesOutputRowsElement = {
+    /**
+     * - [Go: string]
+     */
+    showcase_category: string;
+};
+export type sdkFuncProductRelevanceFashionDashListShowcaseCategoriesPartitions = {
+    /**
+     * - [Go: string]
+     */
+    store_id: string;
+};
+export type sdkFuncProductRelevanceFashionDashListShowcaseCategoriesReq = {
+    input: sdkFuncProductRelevanceFashionDashListShowcaseCategoriesInput;
+    partitions: sdkFuncProductRelevanceFashionDashListShowcaseCategoriesPartitions;
+};
+export type sdkFuncProductRelevanceFashionDashListShowcaseCategoriesResp = {
+    output: sdkFuncProductRelevanceFashionDashListShowcaseCategoriesOutput;
+};
 export type sdkFuncProductRelevanceFashionFbtInput = {
     /**
      * - [Go: lakedsz.Dataset]
@@ -2689,6 +2843,120 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {sdkFuncProductRelevanceFashionDashFunnelOutput} output
  */
 /**
+ * sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategory input
+ * @typedef {object} sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryInput
+ * @property {string} dataset - [Go: lakedsz.Dataset]
+ * @property {sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryInputParams} params
+ */
+/**
+ * @typedef {object} sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryInputParams
+ * @property {string} max_year_month - [Go: string]
+ * @property {string} min_year_month - [Go: string]
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategory output
+ * @typedef {object} sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryOutput
+ * @property {Array<sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryOutputRowsElement>} rows
+ */
+/**
+ * @typedef {object} sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryOutputRowsElement
+ * @property {number} cart_adds - [Go: float64]
+ * @property {number} clicks - [Go: float64]
+ * @property {number} purchases - [Go: float64]
+ * @property {number} recomendations - [Go: float64]
+ * @property {number} revenue - [Go: float64]
+ * @property {string} showcase_category - [Go: string]
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategory partitions
+ * @typedef {object} sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryPartitions
+ * @property {string} store_id - [Go: string]
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategory Request
+ * @typedef {object} sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryReq
+ * @property {sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryInput} input
+ * @property {sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryPartitions} partitions
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategory Response
+ * @typedef {object} sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryResp
+ * @property {sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryOutput} output
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashImpactedMetricsBySku input
+ * @typedef {object} sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuInput
+ * @property {string} dataset - [Go: lakedsz.Dataset]
+ * @property {sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuInputParams} params
+ */
+/**
+ * @typedef {object} sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuInputParams
+ * @property {string} max_year_month - [Go: string]
+ * @property {string} min_year_month - [Go: string]
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashImpactedMetricsBySku output
+ * @typedef {object} sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutput
+ * @property {Array<sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutputRowsElement>} rows
+ */
+/**
+ * @typedef {object} sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutputRowsElement
+ * @property {number} cart_adds - [Go: float64]
+ * @property {number} clicks - [Go: float64]
+ * @property {string} description - [Go: string]
+ * @property {number} purchases - [Go: float64]
+ * @property {number} recomendations - [Go: float64]
+ * @property {number} revenue - [Go: float64]
+ * @property {string} showcase_category - [Go: string]
+ * @property {string} sku_id - [Go: string]
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashImpactedMetricsBySku partitions
+ * @typedef {object} sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuPartitions
+ * @property {string} store_id - [Go: string]
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashImpactedMetricsBySku Request
+ * @typedef {object} sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuReq
+ * @property {sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuInput} input
+ * @property {sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuPartitions} partitions
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashImpactedMetricsBySku Response
+ * @typedef {object} sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuResp
+ * @property {sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutput} output
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashListShowcaseCategories input
+ * @typedef {object} sdkFuncProductRelevanceFashionDashListShowcaseCategoriesInput
+ * @property {string} dataset - [Go: lakedsz.Dataset]
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashListShowcaseCategories output
+ * @typedef {object} sdkFuncProductRelevanceFashionDashListShowcaseCategoriesOutput
+ * @property {Array<sdkFuncProductRelevanceFashionDashListShowcaseCategoriesOutputRowsElement>} rows
+ */
+/**
+ * @typedef {object} sdkFuncProductRelevanceFashionDashListShowcaseCategoriesOutputRowsElement
+ * @property {string} showcase_category - [Go: string]
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashListShowcaseCategories partitions
+ * @typedef {object} sdkFuncProductRelevanceFashionDashListShowcaseCategoriesPartitions
+ * @property {string} store_id - [Go: string]
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashListShowcaseCategories Request
+ * @typedef {object} sdkFuncProductRelevanceFashionDashListShowcaseCategoriesReq
+ * @property {sdkFuncProductRelevanceFashionDashListShowcaseCategoriesInput} input
+ * @property {sdkFuncProductRelevanceFashionDashListShowcaseCategoriesPartitions} partitions
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashListShowcaseCategories Response
+ * @typedef {object} sdkFuncProductRelevanceFashionDashListShowcaseCategoriesResp
+ * @property {sdkFuncProductRelevanceFashionDashListShowcaseCategoriesOutput} output
+ */
+/**
  * sdkFuncProductRelevanceFashionFbt input
  * @typedef {object} sdkFuncProductRelevanceFashionFbtInput
  * @property {string} dataset - [Go: lakedsz.Dataset]
@@ -2754,85 +3022,15 @@ declare class Apis {
      */
     constructor(services: Services);
     /**
+     * List Dataset Tables
      *
+     * Lists files and tables in the specified dataset.
      *
-     *
-     *
-     * @param {apiDszListRecsysTokensReq} req
+     * @param {apiDszTableListReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
      */
-    dszListRecsysTokens(req: apiDszListRecsysTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszCreateRecsysTokenReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
-     */
-    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>;
-    /**
-     * Event Ingestion
-     *
-     * Ingests events data into a target dataset table.
-     *
-     * @param {apiIngestzEventRelevanceFashionCatalogReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>}
-     */
-    ingestzEventRelevanceFashionCatalog(req: apiIngestzEventRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>;
-    /**
-     * Get Last Successful Ingestion Data Summary
-     *
-     * Returns the date of ingestion, rows count and distinct and null columns count
-     *
-     * @param {apiIngestzLastBatchSummaryReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>}
-     */
-    ingestzLastBatchSummary(req: apiIngestzLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>;
-    /**
-     * Get Dataset Signed URLs
-     *
-     * Generates presigned URLs for accessing or mutating files in the specified dataset.
-     *
-     * @param {apiDszSignedUrlReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
-     */
-    dszSignedUrl(req: apiDszSignedUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
-    /**
-     * Load Table File as JSON
-     *
-     * Load a table file from the datalake as JSON and return it.
-     *
-     * @param {apiDszResultLastBatchSummaryReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>}
-     */
-    dszResultLastBatchSummary(req: apiDszResultLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszStoreDisplayCreateReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
-     */
-    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszStoreDisplayListReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>}
-     */
-    dszStoreDisplayList(req: apiDszStoreDisplayListReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>;
+    dszTableList(req: apiDszTableListReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableListResp>>;
     /**
      *
      *
@@ -2848,71 +3046,41 @@ declare class Apis {
      *
      *
      *
+     * @param {apiDszListStoresReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
+     */
+    dszListStores(req: apiDszListStoresReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateIngestionTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>}
+     */
+    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListRecsysTokensReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
+     */
+    dszListRecsysTokens(req: apiDszListRecsysTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
+    /**
+     *
+     *
+     *
+     *
      * @param {apiDszDeleteTokenReq} req
      * @param {ServiceOptions} [opts]
      * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
      */
     dszDeleteToken(req: apiDszDeleteTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>;
-    /**
-     * Get Ingestion Upload URLs
-     *
-     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
-     *
-     * @param {apiIngestzGetUrlReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
-     */
-    ingestzGetUrl(req: apiIngestzGetUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
-    /**
-     * List Dataset Tables
-     *
-     * Lists files and tables in the specified dataset.
-     *
-     * @param {apiDszTableListReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
-     */
-    dszTableList(req: apiDszTableListReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableListResp>>;
-    /**
-     * Load Table File as JSON
-     *
-     * Load a table file from the datalake as JSON and return it.
-     *
-     * @param {apiDszResultRelevanceFashionCatalogReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>}
-     */
-    dszResultRelevanceFashionCatalog(req: apiDszResultRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
-     */
-    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
-    /**
-     *
-     *
-     *
-     *
-     * @param {apiDszDatasetSolutionsReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
-     */
-    dszDatasetSolutions(req: apiDszDatasetSolutionsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
-    /**
-     * Get Model Signed URLs
-     *
-     * Generates presigned URLs for accessing model files in the specified dataset.
-     *
-     * @param {apiDszModelGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
-     */
-    dszModelGet(req: apiDszModelGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszModelGetResp>>;
     /**
      * Create Stripe Checkout
      *
@@ -2924,25 +3092,25 @@ declare class Apis {
      */
     dszStripeCheckout(req: apiDszStripeCheckoutReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>;
     /**
-     * Get Dataset Table File
+     * Get Ingestion Upload URLs
      *
-     * Get table file by redirecting to its signed URL.
+     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
      *
-     * @param {apiDszTableGetReq} req
+     * @param {apiIngestzGetUrlReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
      */
-    dszTableGet(req: apiDszTableGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
+    ingestzGetUrl(req: apiIngestzGetUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
     /**
+     * Get Last Successful Ingestion Data Summary
      *
+     * Returns the date of ingestion, rows count and distinct and null columns count
      *
-     *
-     *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
+     * @param {apiIngestzLastBatchSummaryReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>}
      */
-    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
+    ingestzLastBatchSummary(req: apiIngestzLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>;
     /**
      *
      *
@@ -2968,21 +3136,31 @@ declare class Apis {
      *
      *
      *
-     * @param {apiDszListIngestionTokensReq} req
+     * @param {apiDszStoreDisplayListReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>}
      */
-    dszListIngestionTokens(req: apiDszListIngestionTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
+    dszStoreDisplayList(req: apiDszStoreDisplayListReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>;
     /**
      *
      *
      *
      *
-     * @param {apiDszCreateIngestionTokenReq} req
+     * @param {apiDszDatasetSolutionsReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
      */
-    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>;
+    dszDatasetSolutions(req: apiDszDatasetSolutionsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
+    /**
+     * Get Model Signed URLs
+     *
+     * Generates presigned URLs for accessing model files in the specified dataset.
+     *
+     * @param {apiDszModelGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
+     */
+    dszModelGet(req: apiDszModelGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszModelGetResp>>;
     /**
      * Get Subscription
      *
@@ -3014,15 +3192,35 @@ declare class Apis {
      */
     ingestzEventRelevanceFashionEvent(req: apiIngestzEventRelevanceFashionEventReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>;
     /**
+     * Get Dataset Table File
      *
+     * Get table file by redirecting to its signed URL.
      *
-     *
-     *
-     * @param {apiDszListStoresReq} req
+     * @param {apiDszTableGetReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
      */
-    dszListStores(req: apiDszListStoresReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
+    dszTableGet(req: apiDszTableGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
+     */
+    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
+     */
+    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
     /**
      *
      *
@@ -3033,6 +3231,76 @@ declare class Apis {
      * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
      */
     dszListDatasets(req: apiDszListDatasetsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszListIngestionTokensReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
+     */
+    dszListIngestionTokens(req: apiDszListIngestionTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
+    /**
+     * Event Ingestion
+     *
+     * Ingests events data into a target dataset table.
+     *
+     * @param {apiIngestzEventRelevanceFashionCatalogReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>}
+     */
+    ingestzEventRelevanceFashionCatalog(req: apiIngestzEventRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>;
+    /**
+     * Get Dataset Signed URLs
+     *
+     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     *
+     * @param {apiDszSignedUrlReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
+     */
+    dszSignedUrl(req: apiDszSignedUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
+    /**
+     * Load Table File as JSON
+     *
+     * Load a table file from the datalake as JSON and return it.
+     *
+     * @param {apiDszResultRelevanceFashionCatalogReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>}
+     */
+    dszResultRelevanceFashionCatalog(req: apiDszResultRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>;
+    /**
+     * Load Table File as JSON
+     *
+     * Load a table file from the datalake as JSON and return it.
+     *
+     * @param {apiDszResultLastBatchSummaryReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>}
+     */
+    dszResultLastBatchSummary(req: apiDszResultLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszStoreDisplayCreateReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
+     */
+    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>;
+    /**
+     *
+     *
+     *
+     *
+     * @param {apiDszCreateRecsysTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
+     */
+    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>;
 }
 export { Apis };
 declare class SdkFuncs {
@@ -3065,5 +3333,23 @@ declare class SdkFuncs {
      * @returns {Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>}
      */
     productRelevanceFashionDashAttachedRevenueV1(req: sdkFuncProductRelevanceFashionDashAttachedRevenueReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>;
+    /**
+     * @param {sdkFuncProductRelevanceFashionDashListShowcaseCategoriesReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashListShowcaseCategoriesOutput>}
+     */
+    productRelevanceFashionDashListShowcaseCategoriesV1(req: sdkFuncProductRelevanceFashionDashListShowcaseCategoriesReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashListShowcaseCategoriesOutput>;
+    /**
+     * @param {sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryOutput>}
+     */
+    productRelevanceFashionDashImpactedMetricsByShowcaseCategoryV1(req: sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryOutput>;
+    /**
+     * @param {sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutput>}
+     */
+    productRelevanceFashionDashImpactedMetricsBySkuV1(req: sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutput>;
 }
 export { SdkFuncs };

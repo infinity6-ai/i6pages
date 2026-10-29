@@ -27,7 +27,7 @@ class Dash {
     const conn = await sqlitez.open({ path: await fs.resolve(ref) });
     try {
       const name = `${opts.dashName}`;
-      const result = await conn.namedJsonQuery({ name, params: [opts.params] });
+      const result = await conn.namedJsonQuery({ name, params: opts.params === void 0 ? [] : [opts.params] });
       debug(`${name} returned`, result);
       return result;
     } finally {
@@ -66,6 +66,5 @@ function validate(opts) {
   if (!isPartitions(opts.partitions)) {
     throw new I6Error("dash: opts.partitions must be an object of string values", { code: "invalid_argument" });
   }
-  if (opts.params === void 0) throw new I6Error("dash: opts.params is required", { code: "invalid_argument" });
 }
 export { Dash };
