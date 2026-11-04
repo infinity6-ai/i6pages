@@ -90,6 +90,20 @@ declare class SqliteConn {
         name: string;
         params?: Array<any>;
     }): Promise<any>;
+    /**
+     * Like `namedJsonQuery` (same JSON params bound as `?1`, `?2`, ...), but the `ret` column is returned as is,
+     * without JSON.parse. Use it when the stored query returns plain text (e.g. for models); use `namedJsonQuery` when it returns JSON (e.g. for dash).
+     * @param {Object} opts
+     * @param {string} opts.name - required, the `name` of the stored query (see `namedQuery`).
+     * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
+     * @returns {Promise<string|null>} The `ret` of the first row as a string, or null if there is no row or `ret` is null.
+     * @throws {TypeError} If opts.name is missing or opts.params is not an array.
+     * @throws {I6Error} With code "query" if `namedQuery` fails or the rows have no `ret` column.
+     */
+    namedStringQuery(opts: {
+        name: string;
+        params?: Array<any>;
+    }): Promise<string | null>;
 }
 /**
  * Sqlitez client. Use the `sqlitez` singleton.

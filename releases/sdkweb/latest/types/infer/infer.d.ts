@@ -128,6 +128,7 @@ declare class Infer {
      *   "asset" if a download fails, "model" if loading or running the model fails, "query" if the sqlite fails.
      */
     run(opts: InferOptions): Promise<any>;
+    callModel(inputs: any, opts: any): Promise<import("../errors.js").I6Result<import("../sdkapis/sdkapis.js").apiTfzModelPredictResp>>;
     /**
      * Asks `selectResults` which of the recommended skus are shown and sends their sku ids as the `recshow` event.
      * @param {SelectResultsOptions} opts - Select options.

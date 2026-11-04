@@ -8,6 +8,10 @@ export type I6SdkConfig = {
      * - Base URL of the i6 server. Defaults to the sandbox environment.
      */
     baseUrl?: string;
+    /**
+     * - Base URL of the other services, by the `servname` label of the api (e.g. `tfinfer`). An api whose service is not listed uses `baseUrl`.
+     */
+    servUrls?: Record<string, string>;
 };
 /**
  * Main SDK class providing access to i6 services.

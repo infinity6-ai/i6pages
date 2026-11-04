@@ -30,21 +30,20 @@ class Infer {
     const urls = await this._assetUrls(opts);
     const cacheName = (kind) => `infer-${modelName}-${partitionsKey(opts.partitions)}-${kind}`;
     const [sqliteRef, tfliteRef] = await Promise.all([
-      downloadFile(cacheName("sqlite"), urls.sqlite),
-      downloadFile(cacheName("tflite"), urls.tflite)
+      downloadFile(cacheName("sqlite"), urls.sqlite)
+      // downloadFile(cacheName("tflite"), urls.tflite),
     ]);
     const conn = await sqlitez.open({ path: await fs.resolve(sqliteRef) });
     try {
       const [inputs, compiled] = await Promise.all([
-        conn.namedJsonQuery({ name: queryName("input"), params: [params] }),
-        loadModel({ ref: tfliteRef, wasmUrl: opts.litertWasm })
+        conn.namedStringQuery({ name: queryName("input"), params: [params] })
+        // loadModel({ ref: tfliteRef, wasmUrl: opts.litertWasm }),
       ]);
-      if (!inputs || typeof inputs !== "object") throw new I6Error(`infer: ${queryName("input")} returned no model inputs`, { code: "query" });
-      debug("input query returned", Object.keys(inputs), "model", describeModel(compiled));
-      const outputs = await runModel(compiled, inputs);
-      debug("output returned (before namedJsonQuery)", outputs);
-      announceTensors({ modelName, partitions: opts.partitions, model: describeModel(compiled), inputs, outputs });
-      const result = await conn.namedJsonQuery({ name: queryName("output"), params: outputQueryParams(outputs, opts) });
+      if (!inputs) throw new I6Error(`infer: ${queryName("input")} returned no model inputs`, { code: "query" });
+      const outputs = await this.callModel(inputs, opts);
+      let modelOutputsAndLimit = [JSON.parse(outputs.payload.outputs), opts.limit ?? DEFAULT_LIMIT];
+      console.log("TEST", modelOutputsAndLimit);
+      const result = await conn.namedJsonQuery({ name: queryName("output"), params: modelOutputsAndLimit });
       debug("output query returned (after namedJsonQuery)", result);
       const recId = crypto.randomUUID();
       const results = { ...result, rec_id: recId };
@@ -54,6 +53,20 @@ class Infer {
     } finally {
       await conn.close();
     }
+  }
+  async callModel(inputs, opts) {
+    const { dataset, modelName, partitions } = opts;
+    return await this._services.apis().tfzModelPredict({
+      params: {
+        dataset,
+        model_name: modelName,
+        version: partitions.version
+      },
+      payload: {
+        model_partitions: partitions,
+        inputs
+      }
+    }, opts.serviceOpts);
   }
   /**
    * Asks `selectResults` which of the recommended skus are shown and sends their sku ids as the `recshow` event.
