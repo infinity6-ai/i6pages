@@ -1001,7 +1001,11 @@ export type apiIngestzEventRelevanceFashionCatalogParams = {
      */
     dataset: string;
 };
-export type apiIngestzEventRelevanceFashionCatalogQuery = {
+export type apiIngestzEventRelevanceFashionCatalogReq = {
+    params: apiIngestzEventRelevanceFashionCatalogParams;
+    payload: apiIngestzEventRelevanceFashionCatalogReqPayload;
+};
+export type apiIngestzEventRelevanceFashionCatalogReqPayload = {
     /**
      * - [Go: string] Catalog entry id.
      */
@@ -1027,10 +1031,6 @@ export type apiIngestzEventRelevanceFashionCatalogQuery = {
      */
     store_id: string;
 };
-export type apiIngestzEventRelevanceFashionCatalogReq = {
-    params: apiIngestzEventRelevanceFashionCatalogParams;
-    query: apiIngestzEventRelevanceFashionCatalogQuery;
-};
 export type apiIngestzEventRelevanceFashionCatalogResp = {
     payload: apiIngestzEventRelevanceFashionCatalogRespPayload;
 };
@@ -1046,15 +1046,19 @@ export type apiIngestzEventRelevanceFashionEventParams = {
      */
     dataset: string;
 };
-export type apiIngestzEventRelevanceFashionEventQuery = {
+export type apiIngestzEventRelevanceFashionEventReq = {
+    params: apiIngestzEventRelevanceFashionEventParams;
+    payload: apiIngestzEventRelevanceFashionEventReqPayload;
+};
+export type apiIngestzEventRelevanceFashionEventReqPayload = {
     /**
-     * - AddToCart event payload. Mutually exclusive with other payloads.
+     * - AddToCart event payload. SkuId is required; price must be non-negative.
      */
-    add_to_cart: apiIngestzEventRelevanceFashionEventQueryAddToCart;
+    add_to_cart: apiIngestzEventRelevanceFashionEventReqPayloadAddToCart;
     /**
-     * - Click event payload. Mutually exclusive with other payloads.
+     * - Click event payload. SkuId is required; price must be non-negative.
      */
-    click: apiIngestzEventRelevanceFashionEventQueryClick;
+    click: apiIngestzEventRelevanceFashionEventReqPayloadClick;
     /**
      * - [Go: time.Time] Timestamp of event creation (required).
      */
@@ -1068,25 +1072,25 @@ export type apiIngestzEventRelevanceFashionEventQuery = {
      */
     id: string;
     /**
-     * - Purchase event payload. Mutually exclusive with other payloads.
+     * - Purchase event payload. OrderId is required and skus must not be empty.
      */
-    purchase: apiIngestzEventRelevanceFashionEventQueryPurchase;
+    purchase: apiIngestzEventRelevanceFashionEventReqPayloadPurchase;
     /**
-     * - Recraw event payload. Mutually exclusive with other payloads.
+     * - Recraw event payload representing raw recommendations. RecId, ModelId, and Payload are required.
      */
-    recraw: apiIngestzEventRelevanceFashionEventQueryRecraw;
+    recraw: apiIngestzEventRelevanceFashionEventReqPayloadRecraw;
     /**
-     * - Recshow event payload. Mutually exclusive with other payloads.
+     * - Recshow event payload representing displayed recommendations. RecId and Payload are required.
      */
-    recshow: apiIngestzEventRelevanceFashionEventQueryRecshow;
+    recshow: apiIngestzEventRelevanceFashionEventReqPayloadRecshow;
     /**
-     * - RemoveFromCart event payload. Mutually exclusive with other payloads.
+     * - RemoveFromCart event payload. SkuId is required; price must be non-negative.
      */
-    remove_from_cart: apiIngestzEventRelevanceFashionEventQueryRemoveFromCart;
+    remove_from_cart: apiIngestzEventRelevanceFashionEventReqPayloadRemoveFromCart;
     /**
-     * - Search event payload. Mutually exclusive with other payloads.
+     * - Search event payload. Text is required.
      */
-    search: apiIngestzEventRelevanceFashionEventQuerySearch;
+    search: apiIngestzEventRelevanceFashionEventReqPayloadSearch;
     /**
      * - [Go: string] Identifier of the user session (required).
      */
@@ -1100,7 +1104,7 @@ export type apiIngestzEventRelevanceFashionEventQuery = {
      */
     user_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryAddToCart = {
+export type apiIngestzEventRelevanceFashionEventReqPayloadAddToCart = {
     /**
      * - [Go: float64] Price of the added SKU (non-negative).
      */
@@ -1110,7 +1114,7 @@ export type apiIngestzEventRelevanceFashionEventQueryAddToCart = {
      */
     sku_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryClick = {
+export type apiIngestzEventRelevanceFashionEventReqPayloadClick = {
     /**
      * - [Go: float64] Price of the clicked SKU (non-negative).
      */
@@ -1120,7 +1124,7 @@ export type apiIngestzEventRelevanceFashionEventQueryClick = {
      */
     sku_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPurchase = {
+export type apiIngestzEventRelevanceFashionEventReqPayloadPurchase = {
     /**
      * - [Go: string] Order identifier (required).
      */
@@ -1128,9 +1132,9 @@ export type apiIngestzEventRelevanceFashionEventQueryPurchase = {
     /**
      * - List of purchased SKUs (must not be empty).
      */
-    skus: Array<apiIngestzEventRelevanceFashionEventQueryPurchaseSkusElement>;
+    skus: Array<apiIngestzEventRelevanceFashionEventReqPayloadPurchaseSkusElement>;
 };
-export type apiIngestzEventRelevanceFashionEventQueryPurchaseSkusElement = {
+export type apiIngestzEventRelevanceFashionEventReqPayloadPurchaseSkusElement = {
     /**
      * - [Go: int64] Quantity of the purchased item (must be greater than 0).
      */
@@ -1144,7 +1148,7 @@ export type apiIngestzEventRelevanceFashionEventQueryPurchaseSkusElement = {
      */
     unit_price: number;
 };
-export type apiIngestzEventRelevanceFashionEventQueryRecraw = {
+export type apiIngestzEventRelevanceFashionEventReqPayloadRecraw = {
     /**
      * - [Go: string] Model identifier (required).
      */
@@ -1162,7 +1166,7 @@ export type apiIngestzEventRelevanceFashionEventQueryRecraw = {
      */
     rec_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryRecshow = {
+export type apiIngestzEventRelevanceFashionEventReqPayloadRecshow = {
     /**
      * - [Go: string] Model identifier.
      */
@@ -1180,7 +1184,7 @@ export type apiIngestzEventRelevanceFashionEventQueryRecshow = {
      */
     rec_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQueryRemoveFromCart = {
+export type apiIngestzEventRelevanceFashionEventReqPayloadRemoveFromCart = {
     /**
      * - [Go: float64] Price of the removed SKU (non-negative).
      */
@@ -1190,15 +1194,11 @@ export type apiIngestzEventRelevanceFashionEventQueryRemoveFromCart = {
      */
     sku_id: string;
 };
-export type apiIngestzEventRelevanceFashionEventQuerySearch = {
+export type apiIngestzEventRelevanceFashionEventReqPayloadSearch = {
     /**
      * - [Go: string] Search query text (required).
      */
     text: string;
-};
-export type apiIngestzEventRelevanceFashionEventReq = {
-    params: apiIngestzEventRelevanceFashionEventParams;
-    query: apiIngestzEventRelevanceFashionEventQuery;
 };
 export type apiIngestzEventRelevanceFashionEventResp = {
     payload: apiIngestzEventRelevanceFashionEventRespPayload;
@@ -2766,20 +2766,20 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {string} dataset - [Go: lakedsz.Dataset] Name of the dataset that receives the stream data.
  */
 /**
- * apiIngestzEventRelevanceFashionCatalog query
- * @typedef {object} apiIngestzEventRelevanceFashionCatalogQuery
+ * apiIngestzEventRelevanceFashionCatalog Request
+ * @typedef {object} apiIngestzEventRelevanceFashionCatalogReq
+ * @property {apiIngestzEventRelevanceFashionCatalogParams} params
+ * @property {apiIngestzEventRelevanceFashionCatalogReqPayload} payload
+ */
+/**
+ * apiIngestzEventRelevanceFashionCatalog reqPayload
+ * @typedef {object} apiIngestzEventRelevanceFashionCatalogReqPayload
  * @property {string} id - [Go: string] Catalog entry id.
  * @property {boolean} inactive - [Go: bool] Whether the SKU is inactive.
  * @property {string} product_id - [Go: string] Product identifier.
  * @property {string} sku_ds - [Go: string] SKU description.
  * @property {string} sku_id - [Go: string] SKU identifier.
  * @property {string} store_id - [Go: string] Store identifier.
- */
-/**
- * apiIngestzEventRelevanceFashionCatalog Request
- * @typedef {object} apiIngestzEventRelevanceFashionCatalogReq
- * @property {apiIngestzEventRelevanceFashionCatalogParams} params
- * @property {apiIngestzEventRelevanceFashionCatalogQuery} query
  */
 /**
  * apiIngestzEventRelevanceFashionCatalog Response
@@ -2797,79 +2797,79 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {string} dataset - [Go: lakedsz.Dataset] Name of the dataset that receives the stream data.
  */
 /**
- * apiIngestzEventRelevanceFashionEvent query
- * @typedef {object} apiIngestzEventRelevanceFashionEventQuery
- * @property {apiIngestzEventRelevanceFashionEventQueryAddToCart} add_to_cart - AddToCart event payload. Mutually exclusive with other payloads.
- * @property {apiIngestzEventRelevanceFashionEventQueryClick} click - Click event payload. Mutually exclusive with other payloads.
+ * apiIngestzEventRelevanceFashionEvent Request
+ * @typedef {object} apiIngestzEventRelevanceFashionEventReq
+ * @property {apiIngestzEventRelevanceFashionEventParams} params
+ * @property {apiIngestzEventRelevanceFashionEventReqPayload} payload
+ */
+/**
+ * apiIngestzEventRelevanceFashionEvent reqPayload
+ * @typedef {object} apiIngestzEventRelevanceFashionEventReqPayload
+ * @property {apiIngestzEventRelevanceFashionEventReqPayloadAddToCart} add_to_cart - AddToCart event payload. SkuId is required; price must be non-negative.
+ * @property {apiIngestzEventRelevanceFashionEventReqPayloadClick} click - Click event payload. SkuId is required; price must be non-negative.
  * @property {dszTime} created_at - [Go: time.Time] Timestamp of event creation (required).
  * @property {string} display_id - [Go: bigquery.NullString] Optional display identifier.
  * @property {string} id - [Go: string] Unique identifier for the event (required).
- * @property {apiIngestzEventRelevanceFashionEventQueryPurchase} purchase - Purchase event payload. Mutually exclusive with other payloads.
- * @property {apiIngestzEventRelevanceFashionEventQueryRecraw} recraw - Recraw event payload. Mutually exclusive with other payloads.
- * @property {apiIngestzEventRelevanceFashionEventQueryRecshow} recshow - Recshow event payload. Mutually exclusive with other payloads.
- * @property {apiIngestzEventRelevanceFashionEventQueryRemoveFromCart} remove_from_cart - RemoveFromCart event payload. Mutually exclusive with other payloads.
- * @property {apiIngestzEventRelevanceFashionEventQuerySearch} search - Search event payload. Mutually exclusive with other payloads.
+ * @property {apiIngestzEventRelevanceFashionEventReqPayloadPurchase} purchase - Purchase event payload. OrderId is required and skus must not be empty.
+ * @property {apiIngestzEventRelevanceFashionEventReqPayloadRecraw} recraw - Recraw event payload representing raw recommendations. RecId, ModelId, and Payload are required.
+ * @property {apiIngestzEventRelevanceFashionEventReqPayloadRecshow} recshow - Recshow event payload representing displayed recommendations. RecId and Payload are required.
+ * @property {apiIngestzEventRelevanceFashionEventReqPayloadRemoveFromCart} remove_from_cart - RemoveFromCart event payload. SkuId is required; price must be non-negative.
+ * @property {apiIngestzEventRelevanceFashionEventReqPayloadSearch} search - Search event payload. Text is required.
  * @property {string} session_id - [Go: string] Identifier of the user session (required).
  * @property {string} store_id - [Go: string] Identifier of the store (required).
  * @property {string} user_id - [Go: bigquery.NullString] Optional user identifier.
  */
 /**
- * AddToCart event payload. Mutually exclusive with other payloads.
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryAddToCart
+ * AddToCart event payload. SkuId is required; price must be non-negative.
+ * @typedef {object} apiIngestzEventRelevanceFashionEventReqPayloadAddToCart
  * @property {number} price - [Go: float64] Price of the added SKU (non-negative).
  * @property {string} sku_id - [Go: string] SKU identifier (required).
  */
 /**
- * Click event payload. Mutually exclusive with other payloads.
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryClick
+ * Click event payload. SkuId is required; price must be non-negative.
+ * @typedef {object} apiIngestzEventRelevanceFashionEventReqPayloadClick
  * @property {number} price - [Go: float64] Price of the clicked SKU (non-negative).
  * @property {string} sku_id - [Go: string] SKU identifier (required).
  */
 /**
- * Purchase event payload. Mutually exclusive with other payloads.
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPurchase
+ * Purchase event payload. OrderId is required and skus must not be empty.
+ * @typedef {object} apiIngestzEventRelevanceFashionEventReqPayloadPurchase
  * @property {string} order_id - [Go: string] Order identifier (required).
- * @property {Array<apiIngestzEventRelevanceFashionEventQueryPurchaseSkusElement>} skus - List of purchased SKUs (must not be empty).
+ * @property {Array<apiIngestzEventRelevanceFashionEventReqPayloadPurchaseSkusElement>} skus - List of purchased SKUs (must not be empty).
  */
 /**
  * PurchaseSku represents an individual item in a purchase. SkuId is required, unit_price must be non-negative, and qtty must be greater than 0.
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryPurchaseSkusElement
+ * @typedef {object} apiIngestzEventRelevanceFashionEventReqPayloadPurchaseSkusElement
  * @property {number} qtty - [Go: int64] Quantity of the purchased item (must be greater than 0).
  * @property {string} sku_id - [Go: string] SKU identifier (required).
  * @property {number} unit_price - [Go: float64] Unit price of the item (non-negative).
  */
 /**
- * Recraw event payload. Mutually exclusive with other payloads.
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryRecraw
+ * Recraw event payload representing raw recommendations. RecId, ModelId, and Payload are required.
+ * @typedef {object} apiIngestzEventRelevanceFashionEventReqPayloadRecraw
  * @property {string} model_id - [Go: string] Model identifier (required).
  * @property {string} model_version - [Go: string] Model version string.
  * @property {string} payload - [Go: string] Raw recommendation payload (required).
  * @property {string} rec_id - [Go: string] Recommendation identifier (required).
  */
 /**
- * Recshow event payload. Mutually exclusive with other payloads.
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryRecshow
+ * Recshow event payload representing displayed recommendations. RecId and Payload are required.
+ * @typedef {object} apiIngestzEventRelevanceFashionEventReqPayloadRecshow
  * @property {string} model_id - [Go: string] Model identifier.
  * @property {string} model_version - [Go: string] Model version string.
  * @property {string} payload - [Go: string] Displayed recommendation payload (required).
  * @property {string} rec_id - [Go: string] Recommendation identifier (required).
  */
 /**
- * RemoveFromCart event payload. Mutually exclusive with other payloads.
- * @typedef {object} apiIngestzEventRelevanceFashionEventQueryRemoveFromCart
+ * RemoveFromCart event payload. SkuId is required; price must be non-negative.
+ * @typedef {object} apiIngestzEventRelevanceFashionEventReqPayloadRemoveFromCart
  * @property {number} price - [Go: float64] Price of the removed SKU (non-negative).
  * @property {string} sku_id - [Go: string] SKU identifier (required).
  */
 /**
- * Search event payload. Mutually exclusive with other payloads.
- * @typedef {object} apiIngestzEventRelevanceFashionEventQuerySearch
+ * Search event payload. Text is required.
+ * @typedef {object} apiIngestzEventRelevanceFashionEventReqPayloadSearch
  * @property {string} text - [Go: string] Search query text (required).
- */
-/**
- * apiIngestzEventRelevanceFashionEvent Request
- * @typedef {object} apiIngestzEventRelevanceFashionEventReq
- * @property {apiIngestzEventRelevanceFashionEventParams} params
- * @property {apiIngestzEventRelevanceFashionEventQuery} query
  */
 /**
  * apiIngestzEventRelevanceFashionEvent Response
@@ -3496,215 +3496,15 @@ declare class Apis {
      */
     constructor(services: Services);
     /**
-     * List Active Dataset Solutions
+     * Get Pipeline
      *
-     * Lists all active solutions configured for a specific dataset.
+     * Gets a pipeline of a dataset by its id.
      *
-     * @param {apiDszDatasetSolutionsReq} req
+     * @param {apiPipezGetReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezGetResp>>}
      */
-    dszDatasetSolutions(req: apiDszDatasetSolutionsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
-    /**
-     * Create Recsys Token
-     *
-     * Creates a read/recommendation token for the recommendation system associated with a specific dataset.
-     *
-     * @param {apiDszCreateRecsysTokenReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
-     */
-    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>;
-    /**
-     * Create Stripe Checkout
-     *
-     * Creates a Stripe checkout session for a subscription and returns its id and url.
-     *
-     * @param {apiDszStripeCheckoutReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>}
-     */
-    dszStripeCheckout(req: apiDszStripeCheckoutReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>;
-    /**
-     * Sample Fraction
-     *
-     * Sample API that performs a fraction operation
-     *
-     * @param {apiSampleFractionReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiSampleFractionResp>>}
-     */
-    sampleFraction(req: apiSampleFractionReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiSampleFractionResp>>;
-    /**
-     * Get Dataset Signed URLs
-     *
-     * Generates presigned URLs for accessing or mutating files in the specified dataset.
-     *
-     * @param {apiDszSignedUrlReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
-     */
-    dszSignedUrl(req: apiDszSignedUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
-    /**
-     * Load Table File as JSON
-     *
-     * Load a table file from the datalake as JSON and return it.
-     *
-     * @param {apiDszResultRelevanceFashionCatalogReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>}
-     */
-    dszResultRelevanceFashionCatalog(req: apiDszResultRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>;
-    /**
-     * Load Table File as JSON
-     *
-     * Load a table file from the datalake as JSON and return it.
-     *
-     * @param {apiDszResultLastBatchSummaryReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>}
-     */
-    dszResultLastBatchSummary(req: apiDszResultLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>;
-    /**
-     * Get Last Successful Ingestion Data Summary
-     *
-     * Returns the date of ingestion, rows count and distinct and null columns count
-     *
-     * @param {apiIngestzLastBatchSummaryReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>}
-     */
-    ingestzLastBatchSummary(req: apiIngestzLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>;
-    /**
-     * List Ingestion Tokens
-     *
-     * Lists all active data ingestion tokens for a specific dataset.
-     *
-     * @param {apiDszListIngestionTokensReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
-     */
-    dszListIngestionTokens(req: apiDszListIngestionTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
-    /**
-     * Model Predict
-     *
-     * Runs a prediction of a dataset model version on the inference service (tfinfer), sending the model inputs and the model partitions and returning the model outputs.
-     *
-     * @param {apiTfzModelPredictReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiTfzModelPredictResp>>}
-     */
-    tfzModelPredict(req: apiTfzModelPredictReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiTfzModelPredictResp>>;
-    /**
-     * Event Ingestion
-     *
-     * Ingests events data into a target dataset table.
-     *
-     * @param {apiIngestzEventRelevanceFashionCatalogReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>}
-     */
-    ingestzEventRelevanceFashionCatalog(req: apiIngestzEventRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>;
-    /**
-     * Event Ingestion
-     *
-     * Ingests events data into a target dataset table.
-     *
-     * @param {apiIngestzEventRelevanceFashionEventReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>}
-     */
-    ingestzEventRelevanceFashionEvent(req: apiIngestzEventRelevanceFashionEventReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>;
-    /**
-     * Start Pipeline
-     *
-     * Starts a pipeline on a dataset with the given params and returns its id.
-     *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
-     */
-    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
-    /**
-     * Start Pipeline
-     *
-     * Starts a pipeline on a dataset with the given params and returns its id.
-     *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
-     */
-    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
-    /**
-     * Create Store Display
-     *
-     * Creates a store display configuration mapping for a store under a specific dataset.
-     *
-     * @param {apiDszStoreDisplayCreateReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
-     */
-    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>;
-    /**
-     * List Stores
-     *
-     * Lists all stores configured under a specific dataset.
-     *
-     * @param {apiDszListStoresReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
-     */
-    dszListStores(req: apiDszListStoresReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
-    /**
-     * Create Customer Portal
-     *
-     * Creates a Stripe billing portal session URL where the user can manage cards, auto-renew, and plans.
-     *
-     * @param {apiDszCreateCustomerPortalReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateCustomerPortalResp>>}
-     */
-    dszCreateCustomerPortal(req: apiDszCreateCustomerPortalReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateCustomerPortalResp>>;
-    /**
-     * Get Dataset Table File
-     *
-     * Get table file by redirecting to its signed URL.
-     *
-     * @param {apiDszTableGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
-     */
-    dszTableGet(req: apiDszTableGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
-    /**
-     * List Store Displays
-     *
-     * Lists all active store displays configured for a store under a specific dataset.
-     *
-     * @param {apiDszStoreDisplayListReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>}
-     */
-    dszStoreDisplayList(req: apiDszStoreDisplayListReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>;
-    /**
-     * Create Store
-     *
-     * Creates a store configuration under a specific dataset.
-     *
-     * @param {apiDszCreateStoreReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
-     */
-    dszCreateStore(req: apiDszCreateStoreReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>;
-    /**
-     * List Datasets
-     *
-     * Lists all datasets available to the user.
-     *
-     * @param {apiDszListDatasetsReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
-     */
-    dszListDatasets(req: apiDszListDatasetsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>;
+    pipezGet(req: apiPipezGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezGetResp>>;
     /**
      * Get Model Signed URLs
      *
@@ -3716,15 +3516,15 @@ declare class Apis {
      */
     dszModelGet(req: apiDszModelGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszModelGetResp>>;
     /**
-     * Update Payment Auto Renew
+     * Get Subscription
      *
-     * Turns auto renew on or off for the Stripe subscription of a dataset product/solution.
+     * Gets the plan and the status of the Stripe subscription of a dataset product/solution. The payload is empty for contracts without Stripe.
      *
-     * @param {apiDszUpdatePaymentAutoRenewReq} req
+     * @param {apiDszGetSubscriptionReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszUpdatePaymentAutoRenewResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszGetSubscriptionResp>>}
      */
-    dszUpdatePaymentAutoRenew(req: apiDszUpdatePaymentAutoRenewReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszUpdatePaymentAutoRenewResp>>;
+    dszGetSubscription(req: apiDszGetSubscriptionReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszGetSubscriptionResp>>;
     /**
      * List Payments
      *
@@ -3736,55 +3536,95 @@ declare class Apis {
      */
     dszListPayments(req: apiDszListPaymentsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListPaymentsResp>>;
     /**
-     * Get Ingestion Upload URLs
+     * Get Dataset Table File
      *
-     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
+     * Get table file by redirecting to its signed URL.
      *
-     * @param {apiIngestzGetUrlReq} req
+     * @param {apiDszTableGetReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
      */
-    ingestzGetUrl(req: apiIngestzGetUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
+    dszTableGet(req: apiDszTableGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
     /**
-     * Get Subscription
+     * List Pipelines
      *
-     * Gets the plan and the status of the Stripe subscription of a dataset product/solution. The payload is empty for contracts without Stripe.
+     * Lists the pipelines of a dataset, optionally filtered, with cursor pagination.
      *
-     * @param {apiDszGetSubscriptionReq} req
+     * @param {apiPipezListReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszGetSubscriptionResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezListResp>>}
      */
-    dszGetSubscription(req: apiDszGetSubscriptionReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszGetSubscriptionResp>>;
+    pipezList(req: apiPipezListReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezListResp>>;
     /**
-     * List Recsys Tokens
+     * Update Payment Auto Renew
      *
-     * Lists all active recommendation system tokens for a specific dataset.
+     * Turns auto renew on or off for the Stripe subscription of a dataset product/solution.
      *
-     * @param {apiDszListRecsysTokensReq} req
+     * @param {apiDszUpdatePaymentAutoRenewReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszUpdatePaymentAutoRenewResp>>}
      */
-    dszListRecsysTokens(req: apiDszListRecsysTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
+    dszUpdatePaymentAutoRenew(req: apiDszUpdatePaymentAutoRenewReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszUpdatePaymentAutoRenewResp>>;
     /**
-     * Delete Token
+     * Get Last Successful Ingestion Data Summary
      *
-     * Deletes (revokes) a specific token (e.g. ingestion or recsys token) associated with a dataset.
+     * Returns the date of ingestion, rows count and distinct and null columns count
      *
-     * @param {apiDszDeleteTokenReq} req
+     * @param {apiIngestzLastBatchSummaryReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>}
      */
-    dszDeleteToken(req: apiDszDeleteTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>;
+    ingestzLastBatchSummary(req: apiIngestzLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzLastBatchSummaryResp>>;
     /**
-     * Get Pipeline
+     * Load Table File as JSON
      *
-     * Gets a pipeline of a dataset by its id.
+     * Load a table file from the datalake as JSON and return it.
      *
-     * @param {apiPipezGetReq} req
+     * @param {apiDszResultRelevanceFashionCatalogReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezGetResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>}
      */
-    pipezGet(req: apiPipezGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezGetResp>>;
+    dszResultRelevanceFashionCatalog(req: apiDszResultRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>;
+    /**
+     * Event Ingestion
+     *
+     * Ingests events data into a target dataset table.
+     *
+     * @param {apiIngestzEventRelevanceFashionCatalogReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>}
+     */
+    ingestzEventRelevanceFashionCatalog(req: apiIngestzEventRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>;
+    /**
+     * Start Pipeline
+     *
+     * Starts a pipeline on a dataset with the given params and returns its id.
+     *
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
+     */
+    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
+    /**
+     * List Stores
+     *
+     * Lists all stores configured under a specific dataset.
+     *
+     * @param {apiDszListStoresReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
+     */
+    dszListStores(req: apiDszListStoresReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
+    /**
+     * List Ingestion Tokens
+     *
+     * Lists all active data ingestion tokens for a specific dataset.
+     *
+     * @param {apiDszListIngestionTokensReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
+     */
+    dszListIngestionTokens(req: apiDszListIngestionTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
     /**
      * Create Ingestion Token
      *
@@ -3796,6 +3636,56 @@ declare class Apis {
      */
     dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>;
     /**
+     * Create Recsys Token
+     *
+     * Creates a read/recommendation token for the recommendation system associated with a specific dataset.
+     *
+     * @param {apiDszCreateRecsysTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
+     */
+    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>;
+    /**
+     * Get Ingestion Upload URLs
+     *
+     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
+     *
+     * @param {apiIngestzGetUrlReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
+     */
+    ingestzGetUrl(req: apiIngestzGetUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
+    /**
+     * Load Table File as JSON
+     *
+     * Load a table file from the datalake as JSON and return it.
+     *
+     * @param {apiDszResultLastBatchSummaryReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>}
+     */
+    dszResultLastBatchSummary(req: apiDszResultLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>;
+    /**
+     * List Store Displays
+     *
+     * Lists all active store displays configured for a store under a specific dataset.
+     *
+     * @param {apiDszStoreDisplayListReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>}
+     */
+    dszStoreDisplayList(req: apiDszStoreDisplayListReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>;
+    /**
+     * Event Ingestion
+     *
+     * Ingests events data into a target dataset table.
+     *
+     * @param {apiIngestzEventRelevanceFashionEventReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>}
+     */
+    ingestzEventRelevanceFashionEvent(req: apiIngestzEventRelevanceFashionEventReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>;
+    /**
      * List Dataset Tables
      *
      * Lists files and tables in the specified dataset.
@@ -3806,15 +3696,125 @@ declare class Apis {
      */
     dszTableList(req: apiDszTableListReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableListResp>>;
     /**
-     * List Pipelines
+     * List Active Dataset Solutions
      *
-     * Lists the pipelines of a dataset, optionally filtered, with cursor pagination.
+     * Lists all active solutions configured for a specific dataset.
      *
-     * @param {apiPipezListReq} req
+     * @param {apiDszDatasetSolutionsReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezListResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
      */
-    pipezList(req: apiPipezListReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezListResp>>;
+    dszDatasetSolutions(req: apiDszDatasetSolutionsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
+    /**
+     * List Recsys Tokens
+     *
+     * Lists all active recommendation system tokens for a specific dataset.
+     *
+     * @param {apiDszListRecsysTokensReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
+     */
+    dszListRecsysTokens(req: apiDszListRecsysTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
+    /**
+     * Sample Fraction
+     *
+     * Sample API that performs a fraction operation
+     *
+     * @param {apiSampleFractionReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiSampleFractionResp>>}
+     */
+    sampleFraction(req: apiSampleFractionReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiSampleFractionResp>>;
+    /**
+     * List Datasets
+     *
+     * Lists all datasets available to the user.
+     *
+     * @param {apiDszListDatasetsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
+     */
+    dszListDatasets(req: apiDszListDatasetsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>;
+    /**
+     * Delete Token
+     *
+     * Deletes (revokes) a specific token (e.g. ingestion or recsys token) associated with a dataset.
+     *
+     * @param {apiDszDeleteTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
+     */
+    dszDeleteToken(req: apiDszDeleteTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>;
+    /**
+     * Get Dataset Signed URLs
+     *
+     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     *
+     * @param {apiDszSignedUrlReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
+     */
+    dszSignedUrl(req: apiDszSignedUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
+    /**
+     * Create Store Display
+     *
+     * Creates a store display configuration mapping for a store under a specific dataset.
+     *
+     * @param {apiDszStoreDisplayCreateReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
+     */
+    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>;
+    /**
+     * Create Store
+     *
+     * Creates a store configuration under a specific dataset.
+     *
+     * @param {apiDszCreateStoreReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
+     */
+    dszCreateStore(req: apiDszCreateStoreReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>;
+    /**
+     * Model Predict
+     *
+     * Runs a prediction of a dataset model version on the inference service (tfinfer), sending the model inputs and the model partitions and returning the model outputs.
+     *
+     * @param {apiTfzModelPredictReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiTfzModelPredictResp>>}
+     */
+    tfzModelPredict(req: apiTfzModelPredictReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiTfzModelPredictResp>>;
+    /**
+     * Create Customer Portal
+     *
+     * Creates a Stripe billing portal session URL where the user can manage cards, auto-renew, and plans.
+     *
+     * @param {apiDszCreateCustomerPortalReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateCustomerPortalResp>>}
+     */
+    dszCreateCustomerPortal(req: apiDszCreateCustomerPortalReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateCustomerPortalResp>>;
+    /**
+     * Create Stripe Checkout
+     *
+     * Creates a Stripe checkout session for a subscription and returns its id and url.
+     *
+     * @param {apiDszStripeCheckoutReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>}
+     */
+    dszStripeCheckout(req: apiDszStripeCheckoutReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>;
+    /**
+     * Start Pipeline
+     *
+     * Starts a pipeline on a dataset with the given params and returns its id.
+     *
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
+     */
+    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
 }
 export { Apis };
 declare class SdkFuncs {
