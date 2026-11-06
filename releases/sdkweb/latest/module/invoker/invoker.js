@@ -49,13 +49,6 @@ class Invoker {
     if (opts.opts?.prepareRequest) {
       await opts.opts.prepareRequest(opts);
     }
-    if (opts.sinkable) {
-      console.log("sinkable apis disabled", opts.url);
-      return new Response(null, {
-        status: 204,
-        statusText: "No Content"
-      });
-    }
     if (opts.opts?.fetcher) {
       return opts.opts.fetcher(opts.url, opts);
     }

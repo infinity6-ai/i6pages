@@ -114,7 +114,7 @@ class Infer {
   async #sendRecEvent(opts, ids, recId, kind, payload) {
     await this._services.apis().ingestzEventRelevanceFashionEvent({
       params: { dataset: opts.dataset },
-      query: {
+      payload: {
         id: crypto.randomUUID(),
         store_id: opts.storeId,
         session_id: ids.sessionId,
