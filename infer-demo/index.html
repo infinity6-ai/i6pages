@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>infer demo</title>
+  <!-- The published SDK bundle of this repo (sql.js is inside it); sets window.I6Sdk -->
+  <script src="../releases/sdkweb/latest/bundle/i6sdk-web.js"></script>
+  <style>
+    :root { --bg:#f6f7f9; --card:#fff; --fg:#1b1f24; --muted:#667; --line:#d8dce2; --ok:#1a7f37; --err:#cf222e; --run:#9a6700; --code:#f0f2f5; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#0f1318; --card:#181d24; --fg:#e6e9ee; --muted:#9aa4b2; --line:#2c333d; --ok:#3fb950; --err:#f85149; --run:#d29922; --code:#0f1318; }
+    }
+    * { box-sizing: border-box }
+    body { margin:0; padding:16px; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui, sans-serif }
+    h1 { font-size:18px; margin:0 0 12px }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px; margin-bottom:12px }
+    .card h2 { font-size:14px; margin:0 0 8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+    .badge { font-size:12px; padding:1px 8px; border-radius:10px; border:1px solid var(--line); color:var(--muted) }
+    .badge.ok { color:var(--ok); border-color:var(--ok) } .badge.error { color:var(--err); border-color:var(--err) } .badge.running { color:var(--run); border-color:var(--run) }
+    .hint { color:var(--muted); font-size:13px; margin:0 0 8px }
+    label { display:block; font-size:12px; color:var(--muted); margin:6px 0 2px }
+    input[type=text], input[type=password], textarea { width:100%; padding:6px 8px; font:13px ui-monospace, monospace; background:var(--code); color:var(--fg); border:1px solid var(--line); border-radius:6px }
+    button { padding:6px 12px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--fg); cursor:pointer; font:inherit }
+    button:hover { border-color:var(--fg) } button.primary { background:var(--fg); color:var(--bg) }
+    .io { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px }
+    @media (max-width:800px) { .io { grid-template-columns:1fr } }
+    .io h3, .sqlh { font-size:12px; color:var(--muted); margin:0 0 2px; font-weight:600 }
+    .sqlh { margin:8px 0 2px }
+    pre { margin:0; padding:8px; background:var(--code); border:1px solid var(--line); border-radius:6px; font:12px/1.4 ui-monospace, monospace; max-height:320px; overflow:auto; white-space:pre-wrap; word-break:break-word; min-height:34px }
+    .tabs { display:flex; gap:4px; margin:0 0 12px; border-bottom:1px solid var(--line) }
+    .tabs button { border:0; border-bottom:2px solid transparent; border-radius:0; background:none; color:var(--muted); padding:8px 14px }
+    .tabs button.active { color:var(--fg); border-bottom-color:var(--fg); font-weight:600 }
+    .hidden { display:none !important }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+  </style>
+</head>
+<body>
+  <h1>infer demo <span class="badge">uses the SDK: new I6Sdk().funcs().productRelevanceFashionFbtV1(req)</span></h1>
+
+  <nav class="tabs">
+    <button data-tab="infer">Infer</button>
+    <button data-tab="dash">Dash</button>
+  </nav>
+
+  <div class="card" data-page="infer">
+    <h2>Config <span class="badge">what an SDK user passes in the request</span></h2>
+    <label for="modelName">input.model_name</label>
+    <input type="text" id="modelName" value="relevance-fashion-fbt">
+    <label for="modelVersion">partitions.version</label>
+    <input type="text" id="modelVersion" value="v1">
+    <label for="storeId">partitions.store_id</label>
+    <input type="text" id="storeId" value="1">
+    <label for="dataset">input.dataset</label>
+    <input type="text" id="dataset" value="dectest">
+    <label for="sku_ids">input.skus (sku ids, comma separated; each becomes {sku_id})</label>
+    <input type="text" id="sku_ids" value="150, 77, unknown-id">
+  </div>
+
+  <div class="card">
+    <h2>Auth and cache <span class="badge">both pages</span></h2>
+    <label for="datasetToken">opts.datasetToken (sent as the Authorization: Dataset header of every API call; empty: none, the login cookie is used)</label>
+    <input type="password" id="datasetToken" autocomplete="off">
+    <div class="row" style="margin-top:8px">
+      <button id="login">Login (auth().requireUser())</button>
+      <button id="clear">Clear OPFS cache</button>
+    </div>
+  </div>
+
+  <div class="card" data-page="infer">
+    <h2>SDK config <span class="badge">what new I6Sdk(...) is running with</span></h2>
+    <p class="hint">Compare with the network tab: <code>session_id</code> and <code>user_id</code> of every recraw/recshow event are these. <code>id</code> is new per event; <code>rec_id</code> is the same in the recraw and recshow of one run.</p>
+    <pre id="sdkConfig"></pre>
+  </div>
+
+  <div class="card" data-page="infer">
+    <h2>SDK usage <span class="badge">the code an SDK user writes</span></h2>
+    <p class="hint">The button below runs exactly this. It follows the config above.</p>
+    <pre id="usage"></pre>
+  </div>
+
+  <div class="card" id="step" data-page="infer">
+    <h2><button id="run" class="primary">Run with the SDK</button><span class="badge">idle</span></h2>
+    <p class="hint">new I6Sdk().funcs().productRelevanceFashionFbtV1(req), the real code path.</p>
+    <div class="io"><div><h3>Input (req)</h3><pre class="in"></pre></div><div><h3>Output (result)</h3><pre class="out"></pre></div></div>
+  </div>
+
+  <div class="card" id="tensors" data-page="infer">
+    <h2>Model tensors <span class="badge" id="tensorsBadge">run first</span> <button id="copyTensors">Copy JSON</button></h2>
+    <p class="hint">What the input query gave the model and what the model gave back, of the last run: name, dtype, shape and every value.</p>
+    <pre id="tensorsModel"></pre>
+    <div class="io"><div><h3>Inputs</h3><pre id="tensorsIn" style="max-height:420px"></pre></div><div><h3>Outputs</h3><pre id="tensorsOut" style="max-height:420px"></pre></div></div>
+  </div>
+
+  <div class="card" data-page="dash">
+    <h2>Dash <span class="badge">new I6Sdk().funcs().&lt;dash func&gt;(req)</span></h2>
+    <label for="dashFunc">dash query</label>
+    <select id="dashFunc">
+      <option value="productRelevanceFashionDashFunnelV1">product-relevance-fashion-dash-funnel</option>
+      <option value="productRelevanceFashionDashAttachedRevenueV1">product-relevance-fashion-dash-attached-revenue</option>
+      <option value="productRelevanceFashionDashListShowcaseCategoriesV1">product-relevance-fashion-dash-list-showcase-categories</option>
+      <option value="productRelevanceFashionDashImpactedMetricsByShowcaseCategoryV1">product-relevance-fashion-dash-impacted-metrics-by-showcase-category</option>
+      <option value="productRelevanceFashionDashImpactedMetricsBySkuV1">product-relevance-fashion-dash-impacted-metrics-by-sku</option>
+      <option value="productRelevanceFashionDashCoverageV1">product-relevance-fashion-dash-coverage</option>
+    </select>
+    <label for="dashDataset">input.dataset</label>
+    <input type="text" id="dashDataset" value="dectest">
+    <label for="dashStoreId">partitions.store_id</label>
+    <input type="text" id="dashStoreId" value="1">
+    <label for="dashVersion">partitions.version</label>
+    <input type="text" id="dashVersion" value="v1">
+    <label for="minYearMonth">input.params.min_year_month</label>
+    <input type="text" id="minYearMonth" value="2026-07">
+    <label for="maxYearMonth">input.params.max_year_month</label>
+    <input type="text" id="maxYearMonth" value="2026-09">
+    <pre id="dashUsage" style="margin-top:8px"></pre>
+    <div class="row" style="margin-top:8px"><button id="dashRun" class="primary">Run the dash</button><span class="badge" id="dashBadge">idle</span></div>
+    <div class="io"><div><h3>Input (req)</h3><pre id="dashIn"></pre></div><div><h3>Output (result)</h3><pre id="dashOut"></pre></div></div>
+  </div>
+
+  <div class="card">
+    <h2>Log <span class="badge">same lines as the browser console, one blank line between them</span> <button id="clearlog">Clear</button></h2>
+    <pre id="log" style="max-height:420px"></pre>
+  </div>
+
+  <script type="module" src="./demo.js"></script>
+</body>
+</html>
