@@ -1,6 +1,11 @@
 import { apiErrorFromResponse, apiErrorFromNetwork } from "../errors.js";
 import * as b64 from "../internal/b64/b64.js";
 import * as gzip from "../internal/gzip/gzip.js";
+function getValue(obj, path) {
+  return path.split(".").reduce((currentObject, key) => {
+    return currentObject ? currentObject[key] : void 0;
+  }, obj);
+}
 class Invoker {
   /**
    * Constructs an Invoker instance.
@@ -38,9 +43,32 @@ class Invoker {
       }
     }
     opts.headers = new Headers(opts.headers);
-    if (opts.opts?.datasetToken) {
-      opts.headers.set("Authorization", "Dataset " + opts.opts?.datasetToken);
+    const datasetToken = opts.opts?.datasetToken || this._services.config().datasetToken;
+    const bearerToken = opts.opts?.bearerToken || this._services.config().bearerToken || (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("i6_user_access_token") : null);
+    if (!opts.headers.has("Authorization") && datasetToken) {
+      opts.headers.set("Authorization", "Dataset " + datasetToken);
     }
+    if (!opts.headers.has("Authorization") && bearerToken) {
+      opts.headers.set("Authorization", "Bearer " + bearerToken);
+    }
+    if (!opts.headers.has("Authorization")) {
+      const url = new URL(opts.url);
+      const split = url.pathname.split("/");
+      const idx = split.indexOf("dataset");
+      let token = "";
+      if (idx < 0) {
+        token = await this._services.tokens().getValidAccessToken();
+        console.log("user token", token);
+      } else {
+        const dataset = split[idx + 1];
+        token = await this._services.tokens().getValidDatasetAccessToken(dataset);
+        console.log("dataset token", dataset, token);
+      }
+      if (token) {
+        opts.headers["Authorization"] = "Bearer " + token;
+      }
+    }
+    console.log(opts);
     if (opts.json) {
       opts.headers.set("Content-Type", "application/json");
       opts.body = JSON.stringify(opts.json);

@@ -56,9 +56,19 @@ declare class I6Sdk {
     dash(): Dash;
     /**
      * Returns an Auth service instance.
-     * @returns {Auth} An instance of the Auth client.
+     * @returns {import("./auth/authv2.js").AuthV2} An instance of the Auth client.
      */
-    auth(): Auth;
+    auth(): import("./auth/authv2.js").AuthV2;
+    /**
+     * Returns an AuthV2 service instance.
+     * @returns {import("./auth/authv2.js").AuthV2} An instance of the Auth client.
+     */
+    authv2(): import("./auth/authv2.js").AuthV2;
+    /**
+     * Returns a Tokens service instance.
+     * @returns {import("./tokens/tokens.js").Tokens} An instance of the Tokens client.
+     */
+    tokens(): import("./tokens/tokens.js").Tokens;
     /**
      * Returns the Apis service instance, one typed method per i6 server API.
      * Each call resolves with `{status, ok, payload?, error?}` and does not throw on an HTTP error.

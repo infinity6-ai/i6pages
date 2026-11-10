@@ -6,8 +6,11 @@ const DEFAULT_CONFIG = {
     "tfinfer": "https://tfinfer.sandbox.rs.infinity6.ai",
     "userz": "https://userz.sandbox.rs.infinity6.ai"
   }
-  // baseUrl: "https://decsuite.app.rs.infinity6.ai",
   // baseUrl: "http://localhost:9021",
+  // servUrls: {
+  //   "tfinfer": "http://localhost:9022",
+  //   "userz": "http://localhost:9023"
+  // },
 };
 class I6Sdk {
   /**
@@ -59,10 +62,24 @@ class I6Sdk {
   }
   /**
    * Returns an Auth service instance.
-   * @returns {Auth} An instance of the Auth client.
+   * @returns {import("./auth/authv2.js").AuthV2} An instance of the Auth client.
    */
   auth() {
     return this._service.auth();
+  }
+  /**
+   * Returns an AuthV2 service instance.
+   * @returns {import("./auth/authv2.js").AuthV2} An instance of the Auth client.
+   */
+  authv2() {
+    return this._service.authv2();
+  }
+  /**
+   * Returns a Tokens service instance.
+   * @returns {import("./tokens/tokens.js").Tokens} An instance of the Tokens client.
+   */
+  tokens() {
+    return this._service.tokens();
   }
   /**
    * Returns the Apis service instance, one typed method per i6 server API.
