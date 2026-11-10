@@ -56,14 +56,9 @@ declare class I6Sdk {
     dash(): Dash;
     /**
      * Returns an Auth service instance.
-     * @returns {import("./auth/authv2.js").AuthV2} An instance of the Auth client.
+     * @returns {import("./auth/auth.js").Auth} An instance of the Auth client.
      */
-    auth(): import("./auth/authv2.js").AuthV2;
-    /**
-     * Returns an AuthV2 service instance.
-     * @returns {import("./auth/authv2.js").AuthV2} An instance of the Auth client.
-     */
-    authv2(): import("./auth/authv2.js").AuthV2;
+    auth(): import("./auth/auth.js").Auth;
     /**
      * Returns a Tokens service instance.
      * @returns {import("./tokens/tokens.js").Tokens} An instance of the Tokens client.

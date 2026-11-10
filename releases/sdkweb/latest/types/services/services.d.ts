@@ -2,7 +2,7 @@
  * @fileoverview Service container managing SDK service instances and configuration.
  */
 import { Invoker } from "../invoker/invoker.js";
-import { AuthV2 } from "../auth/authv2.js";
+import { Auth } from "../auth/auth.js";
 import { Tokens } from "../tokens/tokens.js";
 import { Ingest } from "../ingest/ingest.js";
 import { Apis, SdkFuncs } from "../sdkapis/sdkapis.js";
@@ -23,7 +23,7 @@ declare class Services {
      * @type {I6SdkConfig}
      */
     _config;
-    _auth: AuthV2 | undefined;
+    _auth: Auth | undefined;
     _tokens: Tokens | undefined;
     /**
      * Constructs a Services instance.
@@ -56,14 +56,9 @@ declare class Services {
     invoker(): Invoker;
     /**
      * Creates and returns an Auth service instance.
-     * @returns {AuthV2} An instance of the AuthV2 client.
+     * @returns {Auth} An instance of the Auth client.
      */
-    auth(): AuthV2;
-    /**
-     * Creates and returns an AuthV2 service instance.
-     * @returns {AuthV2} An instance of the AuthV2 client.
-     */
-    authv2(): AuthV2;
+    auth(): Auth;
     /**
      * Creates and returns a Tokens service instance.
      * @returns {Tokens} An instance of the Tokens client.
