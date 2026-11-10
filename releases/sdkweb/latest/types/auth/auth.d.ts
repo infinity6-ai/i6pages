@@ -81,8 +81,30 @@ declare class Auth {
      * @returns {import("../index.js").I6Storage|null} The active session storage adapter or null if unavailable.
      */
     private _getSessionStorage;
-    _navigate(url: any): void;
-    _redirect(url: any): void;
+    /**
+     * Navigates the browser window to a target URL.
+     * @private
+     * @param {string} url - Target URL.
+     * @returns {void}
+     */
+    private _navigate;
+    /**
+     * Redirects the browser location to a callback URL.
+     * @private
+     * @param {string} url - Target redirect URL.
+     * @returns {void}
+     */
+    private _redirect;
+    /**
+     * Validates whether a redirect URL is safe to prevent open redirect vulnerabilities.
+     * A URL is considered safe if:
+     * 1. It is a relative path starting with '/' (but not '//' or '/\\').
+     * 2. It is an absolute URL whose origin matches window.location.origin or configured callback URLs.
+     * @private
+     * @param {string} url - The URL to validate.
+     * @returns {boolean} True if the redirect target is safe, false otherwise.
+     */
+    private _isSafeRedirect;
     /**
      * Generates a cryptographically random standard PKCE code verifier (RFC 7636 §4.1).
      * Uses unreserved URL characters (`[A-Z]`, `[a-z]`, `[0-9]`, `-`, `.`, `_`, `~`).
@@ -119,22 +141,23 @@ declare class Auth {
      *
      * @param {string} [callbackUrl] - The final destination URL to return to after login and token exchange complete.
      *   Defaults to `window.location.href`.
-     * @returns {Promise<void>}
+     * @returns {Promise<string>} The generated login URL.
      * @throws {string} If `config.userExchangeCallbackUrl` is not defined in the SDK configuration.
      */
-    login(callbackUrl?: string): Promise<void>;
+    login(callbackUrl?: string): Promise<string>;
     /**
      * Processes the authorization code present in the URL query string, exchanging it for tokens via
      * the Tokens service (`POST /api/userz/auth/exchange`), and redirecting to the post-exchange `callback` URL.
      *
-     * Retrieves the PKCE `code_verifier` from session storage. If found, deletes it from session storage.
+     * Validates the CSRF `state` parameter against session storage, and retrieves the PKCE `code_verifier`
+     * from session storage. Deletes both from session storage upon processing.
      *
      * Note: This method must be called explicitly by the exchange callback page
      * (configured via `config.userExchangeCallbackUrl`). It is not called automatically by `user()`.
      *
      * @returns {Promise<boolean>} True if handling tokens completed (code was exchanged and redirect initiated),
      *   false if not an auth callback (no authorization `code` in the URL query parameters).
-     * @throws {Error} If the token exchange request fails or the server returns an error status.
+     * @throws {Error} If state mismatch occurs, token exchange fails, or server returns an error.
      */
     handleCallback(): Promise<boolean>;
     /**
@@ -167,7 +190,7 @@ declare class Auth {
     refresh(): Promise<UserToken | null>;
     /**
      * Clears all stored authentication tokens and credentials via the Tokens service,
-     * and clears any pending PKCE code verifier in session storage.
+     * and clears any pending PKCE code verifier and CSRF state in session storage.
      * @returns {void}
      */
     clearTokens(): void;
@@ -192,7 +215,8 @@ declare class Auth {
      */
     requireUser(): Promise<AuthPayload | null>;
     /**
-     * Logs out the current user by clearing stored tokens and navigating to `backurl`.
+     * Logs out the current user by revoking the session family server-side via `POST /api/userz/auth/logout`,
+     * clearing stored credentials and session storage, and navigating to `backurl`.
      *
      * @param {string} [backurl] - The URL to return to after logging out.
      *   Defaults to `config.callbackUrl` or the current window URL (`window.location.href`).

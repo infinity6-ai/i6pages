@@ -14,7 +14,8 @@ export type I6SdkConfig = import("../index.js").I6SdkConfig;
  */
 /**
  * Service container that instantiates and provides access to SDK service clients.
- * Every accessor returns a new client sharing this container's config and dispatcher.
+ * `auth` and `tokens` return cached singleton instances; other accessors instantiate a new client
+ * sharing this container's config and dispatcher.
  */
 declare class Services {
     _dispatcher: EventTarget;

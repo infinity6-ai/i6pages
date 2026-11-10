@@ -27,6 +27,30 @@ export type I6SdkConfig = {
      */
     servUrls?: Record<string, string>;
     /**
+     * - Direct base URL override for the i6userz authentication service.
+     */
+    userzUrl?: string;
+    /**
+     * - Absolute URL of the application's exchange callback page handling PKCE token exchange.
+     */
+    userExchangeCallbackUrl?: string;
+    /**
+     * - Default application redirect URL after logout.
+     */
+    callbackUrl?: string;
+    /**
+     * - Client application identifier registered in i6userz (e.g. 'default').
+     */
+    app?: string;
+    /**
+     * - Default dataset authorization token string for API requests.
+     */
+    datasetToken?: string;
+    /**
+     * - Default user bearer token JWT string for API requests.
+     */
+    bearerToken?: string;
+    /**
      * - Optional storage adapter for persistent token storage. Defaults to global `localStorage` when omitted.
      */
     storage?: I6Storage | (() => I6Storage);
@@ -38,6 +62,10 @@ export type I6SdkConfig = {
      * - Optional storage adapter for session-scoped data such as PKCE code verifier. Defaults to global `sessionStorage` when omitted.
      */
     sessionStorage?: I6Storage | (() => I6Storage);
+    /**
+     * - Optional alias for session storage adapter.
+     */
+    storageSession?: I6Storage | (() => I6Storage);
 };
 /**
  * Main SDK class providing access to i6 services.
@@ -67,19 +95,19 @@ declare class I6Sdk {
     setConfig(config: Partial<I6SdkConfig>): void;
     /**
      * Returns an Ingest service instance.
-     * @returns {Ingest} An instance of the Ingest client.
+     * @returns {import("./ingest/ingest.js").Ingest} An instance of the Ingest client.
      */
-    ingest(): Ingest;
+    ingest(): import("./ingest/ingest.js").Ingest;
     /**
      * Returns an Infer service instance, which runs an i6 model in the browser and returns the result.
-     * @returns {Infer} An instance of the Infer client.
+     * @returns {import("./infer/infer.js").Infer} An instance of the Infer client.
      */
-    infer(): Infer;
+    infer(): import("./infer/infer.js").Infer;
     /**
      * Returns a Dash service instance, which queries an i6 dash in the browser and returns the result.
-     * @returns {Dash} An instance of the Dash client.
+     * @returns {import("./dash/dash.js").Dash} An instance of the Dash client.
      */
-    dash(): Dash;
+    dash(): import("./dash/dash.js").Dash;
     /**
      * Returns an Auth service instance.
      * @returns {import("./auth/auth.js").Auth} An instance of the Auth client.
@@ -98,7 +126,7 @@ declare class I6Sdk {
     apis(): Apis;
     /**
      * Returns the Funcs service instance.
-     * @returns {SdkFuncs} An instance of the generated Apis client.
+     * @returns {SdkFuncs} An instance of the SdkFuncs client.
      */
     funcs(): SdkFuncs;
     /**

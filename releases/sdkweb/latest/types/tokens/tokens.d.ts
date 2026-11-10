@@ -163,6 +163,14 @@ declare class Tokens {
      */
     refresh(): Promise<UserToken | null>;
     /**
+     * Revokes the active user session server-side via `POST /api/userz/auth/logout`.
+     * Sends the stored `user_refresh_token` to revoke the entire session token family in userzsession.
+     * Clears local tokens regardless of server response to guarantee client session cleanup.
+     *
+     * @returns {Promise<boolean>} True if revocation completed and tokens were cleared.
+     */
+    logout(): Promise<boolean>;
+    /**
      * Retrieves a guaranteed-valid user access token JWT string.
      *
      * If the stored access token is still valid (not expired within `skewSeconds`), it is returned immediately.

@@ -208,6 +208,35 @@ class Tokens {
     return this._refreshPromise;
   }
   /**
+   * Revokes the active user session server-side via `POST /api/userz/auth/logout`.
+   * Sends the stored `user_refresh_token` to revoke the entire session token family in userzsession.
+   * Clears local tokens regardless of server response to guarantee client session cleanup.
+   *
+   * @returns {Promise<boolean>} True if revocation completed and tokens were cleared.
+   */
+  async logout() {
+    const token = this.getUserToken();
+    const refreshToken = token?.user_refresh_token;
+    if (refreshToken) {
+      try {
+        const userzUrl = this._getUserzUrl();
+        const logoutUrl = `${userzUrl}/api/userz/auth/logout`;
+        await fetch(logoutUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            refresh_token: refreshToken
+          })
+        });
+      } catch {
+      }
+    }
+    this.clearTokens();
+    return true;
+  }
+  /**
    * Retrieves a guaranteed-valid user access token JWT string.
    *
    * If the stored access token is still valid (not expired within `skewSeconds`), it is returned immediately.

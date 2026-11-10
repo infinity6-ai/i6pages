@@ -1,4 +1,5 @@
 const CODE_VERIFIER_KEY = "i6_auth_code_verifier";
+const AUTH_STATE_KEY = "i6_auth_state";
 class Auth {
   /**
    * Constructs an Auth client instance.
@@ -43,15 +44,64 @@ class Auth {
     }
     return typeof sessionStorage !== "undefined" ? sessionStorage : null;
   }
+  /**
+   * Navigates the browser window to a target URL.
+   * @private
+   * @param {string} url - Target URL.
+   * @returns {void}
+   */
   _navigate(url) {
     if (typeof window !== "undefined") {
       window.location.href = url;
     }
   }
+  /**
+   * Redirects the browser location to a callback URL.
+   * @private
+   * @param {string} url - Target redirect URL.
+   * @returns {void}
+   */
   _redirect(url) {
     if (typeof location !== "undefined") {
       location = url;
     }
+  }
+  /**
+   * Validates whether a redirect URL is safe to prevent open redirect vulnerabilities.
+   * A URL is considered safe if:
+   * 1. It is a relative path starting with '/' (but not '//' or '/\\').
+   * 2. It is an absolute URL whose origin matches window.location.origin or configured callback URLs.
+   * @private
+   * @param {string} url - The URL to validate.
+   * @returns {boolean} True if the redirect target is safe, false otherwise.
+   */
+  _isSafeRedirect(url) {
+    if (!url || typeof url !== "string") {
+      return false;
+    }
+    if (url.startsWith("/") && !url.startsWith("//") && !url.startsWith("/\\")) {
+      return true;
+    }
+    if (typeof window !== "undefined" && window.location) {
+      try {
+        const parsed = new URL(url, window.location.origin);
+        if (parsed.origin === window.location.origin) {
+          return true;
+        }
+        const config = this._services.config();
+        if (config.callbackUrl) {
+          const cbOrigin = new URL(config.callbackUrl, window.location.origin).origin;
+          if (parsed.origin === cbOrigin) return true;
+        }
+        if (config.userExchangeCallbackUrl) {
+          const excOrigin = new URL(config.userExchangeCallbackUrl, window.location.origin).origin;
+          if (parsed.origin === excOrigin) return true;
+        }
+      } catch {
+        return false;
+      }
+    }
+    return false;
   }
   /**
    * Generates a cryptographically random standard PKCE code verifier (RFC 7636 §4.1).
@@ -127,7 +177,7 @@ class Auth {
    *
    * @param {string} [callbackUrl] - The final destination URL to return to after login and token exchange complete.
    *   Defaults to `window.location.href`.
-   * @returns {Promise<void>}
+   * @returns {Promise<string>} The generated login URL.
    * @throws {string} If `config.userExchangeCallbackUrl` is not defined in the SDK configuration.
    */
   async login(callbackUrl) {
@@ -139,9 +189,11 @@ class Auth {
     const app = config.app || "default";
     const codeVerifier = this._generateCodeVerifier();
     const codeChallenge = await this._generateCodeChallenge(codeVerifier);
+    const state = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : this._generateCodeVerifier(32);
     const storage = this._getSessionStorage();
     if (storage) {
       storage.setItem(CODE_VERIFIER_KEY, codeVerifier);
+      storage.setItem(AUTH_STATE_KEY, state);
     }
     let cbUrl = config.userExchangeCallbackUrl;
     if (cbUrl.includes("?")) {
@@ -154,7 +206,8 @@ class Auth {
     const params = new URLSearchParams({
       app,
       redirect: cbUrl,
-      code_challenge: codeChallenge
+      code_challenge: codeChallenge,
+      state
     });
     const loginUrl = `${userzUrl}/api/userz/auth?${params.toString()}`;
     this._navigate(loginUrl);
@@ -164,14 +217,15 @@ class Auth {
    * Processes the authorization code present in the URL query string, exchanging it for tokens via
    * the Tokens service (`POST /api/userz/auth/exchange`), and redirecting to the post-exchange `callback` URL.
    *
-   * Retrieves the PKCE `code_verifier` from session storage. If found, deletes it from session storage.
+   * Validates the CSRF `state` parameter against session storage, and retrieves the PKCE `code_verifier`
+   * from session storage. Deletes both from session storage upon processing.
    *
    * Note: This method must be called explicitly by the exchange callback page
    * (configured via `config.userExchangeCallbackUrl`). It is not called automatically by `user()`.
    *
    * @returns {Promise<boolean>} True if handling tokens completed (code was exchanged and redirect initiated),
    *   false if not an auth callback (no authorization `code` in the URL query parameters).
-   * @throws {Error} If the token exchange request fails or the server returns an error status.
+   * @throws {Error} If state mismatch occurs, token exchange fails, or server returns an error.
    */
   async handleCallback() {
     if (typeof window === "undefined") return false;
@@ -181,6 +235,16 @@ class Auth {
       return false;
     }
     const storage = this._getSessionStorage();
+    const storedState = storage ? storage.getItem(AUTH_STATE_KEY) : null;
+    if (storage) {
+      storage.removeItem(AUTH_STATE_KEY);
+    }
+    const returnedState = params.get("state");
+    if (storedState || returnedState) {
+      if (!storedState || returnedState !== storedState) {
+        throw new Error("State mismatch / CSRF attempt");
+      }
+    }
     let codeVerifier = storage ? storage.getItem(CODE_VERIFIER_KEY) : null;
     if (storage) {
       storage.removeItem(CODE_VERIFIER_KEY);
@@ -191,6 +255,9 @@ class Auth {
     await this._services.tokens().exchange(code, codeVerifier);
     const callback = params.get("callback");
     if (callback) {
+      if (!this._isSafeRedirect(callback)) {
+        throw new Error("Untrusted callback URL: " + callback);
+      }
       this._redirect(callback);
     }
     return true;
@@ -233,13 +300,14 @@ class Auth {
   }
   /**
    * Clears all stored authentication tokens and credentials via the Tokens service,
-   * and clears any pending PKCE code verifier in session storage.
+   * and clears any pending PKCE code verifier and CSRF state in session storage.
    * @returns {void}
    */
   clearTokens() {
     const storage = this._getSessionStorage();
     if (storage) {
       storage.removeItem(CODE_VERIFIER_KEY);
+      storage.removeItem(AUTH_STATE_KEY);
     }
     this._services.tokens().clearTokens();
   }
@@ -287,15 +355,19 @@ class Auth {
     return user;
   }
   /**
-   * Logs out the current user by clearing stored tokens and navigating to `backurl`.
+   * Logs out the current user by revoking the session family server-side via `POST /api/userz/auth/logout`,
+   * clearing stored credentials and session storage, and navigating to `backurl`.
    *
    * @param {string} [backurl] - The URL to return to after logging out.
    *   Defaults to `config.callbackUrl` or the current window URL (`window.location.href`).
    * @returns {Promise<void>}
    */
   async logout(backurl = typeof window !== "undefined" ? this._services.config().callbackUrl || window.location.href : "") {
+    await this._services.tokens().logout();
     this.clearTokens();
-    window.location.href = backurl;
+    if (backurl) {
+      this._navigate(backurl);
+    }
   }
 }
 export { Auth };
