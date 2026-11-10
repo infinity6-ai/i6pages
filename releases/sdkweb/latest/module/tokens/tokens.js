@@ -26,6 +26,28 @@ class Tokens {
     return config.servUrls?.["userz"] || config.userzUrl || config.baseUrl || "";
   }
   /**
+   * Resolves the storage adapter for token persistence.
+   * Checks SDK configuration for a custom storage adapter or factory function,
+   * falling back to the browser's global `localStorage`.
+   * @private
+   * @returns {import("../index.js").I6Storage|null} The active storage adapter or null if unavailable.
+   */
+  _getStorage() {
+    const config = this._services.config();
+    const s = config.storage || config.localStorage;
+    if (typeof s === "function") {
+      try {
+        return s();
+      } catch {
+        return null;
+      }
+    }
+    if (s) {
+      return s;
+    }
+    return typeof localStorage !== "undefined" ? localStorage : null;
+  }
+  /**
    * Checks whether the given user access token is expired or will expire within the given skew window.
    *
    * @param {UserToken|null} [token] - The token object to inspect. If omitted, inspects stored token.
@@ -54,7 +76,7 @@ class Tokens {
     return false;
   }
   /**
-   * Retrieves the stored user token credentials from localStorage.
+   * Retrieves the stored user token credentials from storage.
    *
    * @param {boolean} [refreshed] - Optional flag indicating whether to return
    *   a freshly refreshed token.
@@ -62,8 +84,9 @@ class Tokens {
    *   refresh tokens, or null if no valid session exists in storage.
    */
   getUserToken(refreshed) {
-    if (typeof localStorage === "undefined") return null;
-    const s = localStorage.getItem(USER_TOKEN_KEY);
+    const storage = this._getStorage();
+    if (!storage) return null;
+    const s = storage.getItem(USER_TOKEN_KEY);
     if (!s) {
       return null;
     }
@@ -74,14 +97,15 @@ class Tokens {
     }
   }
   /**
-   * Stores user token credentials in localStorage under `'i6_user_user_token'`.
+   * Stores user token credentials in storage under `'i6_user_user_token'`.
    *
    * @param {UserToken} token - The user token credentials to store.
    * @returns {void}
    */
   setUserToken(token) {
-    if (typeof localStorage === "undefined") return;
-    localStorage.setItem(USER_TOKEN_KEY, JSON.stringify(token));
+    const storage = this._getStorage();
+    if (!storage) return;
+    storage.setItem(USER_TOKEN_KEY, JSON.stringify(token));
   }
   /**
    * Retrieves the raw stored user access token JWT string without checking expiration or refreshing.
@@ -94,15 +118,16 @@ class Tokens {
     return this.getUserToken()?.user_access_token;
   }
   /**
-   * Clears all stored authentication and authorization tokens from localStorage.
+   * Clears all stored authentication and authorization tokens from storage.
    * Removes both the user token (`'i6_user_user_token'`) and all cached dataset
    * access tokens (`'i6_dataset_access_tokens'`).
    * @returns {void}
    */
   clearTokens() {
     this.clearDatasetTokens();
-    if (typeof localStorage === "undefined") return;
-    localStorage.removeItem(USER_TOKEN_KEY);
+    const storage = this._getStorage();
+    if (!storage) return;
+    storage.removeItem(USER_TOKEN_KEY);
   }
   /**
    * Exchanges an authorization code and PKCE code verifier for user token credentials
@@ -205,13 +230,14 @@ class Tokens {
     return refreshed?.user_access_token || null;
   }
   /**
-   * Retrieves the full map of cached dataset access tokens from localStorage.
+   * Retrieves the full map of cached dataset access tokens from storage.
    *
    * @returns {Record<string, DatasetToken>} A dictionary of cached dataset tokens keyed by dataset ID.
    */
   getAllDatasetTokens() {
-    if (typeof localStorage === "undefined") return {};
-    const s = localStorage.getItem(DATASET_TOKENS_KEY);
+    const storage = this._getStorage();
+    if (!storage) return {};
+    const s = storage.getItem(DATASET_TOKENS_KEY);
     if (!s) return {};
     try {
       return JSON.parse(s) || {};
@@ -220,7 +246,7 @@ class Tokens {
     }
   }
   /**
-   * Retrieves the cached dataset access token object for a specific dataset from localStorage.
+   * Retrieves the cached dataset access token object for a specific dataset from storage.
    *
    * @param {string} dataset - Target dataset ID.
    * @returns {DatasetToken|null} The cached dataset token object, or null if not found.
@@ -231,26 +257,29 @@ class Tokens {
     return all[dataset] || null;
   }
   /**
-   * Stores a dataset access token credentials object in localStorage under the given dataset ID.
+   * Stores a dataset access token credentials object in storage under the given dataset ID.
    *
    * @param {string} dataset - Target dataset ID.
    * @param {DatasetToken} token - The dataset access token credentials to cache.
    * @returns {void}
    */
   setDatasetToken(dataset, token) {
-    if (typeof localStorage === "undefined" || !dataset) return;
+    if (!dataset) return;
+    const storage = this._getStorage();
+    if (!storage) return;
     const all = this.getAllDatasetTokens();
     all[dataset] = token;
-    localStorage.setItem(DATASET_TOKENS_KEY, JSON.stringify(all));
+    storage.setItem(DATASET_TOKENS_KEY, JSON.stringify(all));
   }
   /**
-   * Clears all cached dataset access tokens from localStorage.
+   * Clears all cached dataset access tokens from storage.
    * @returns {void}
    */
   clearDatasetTokens() {
     this._datasetTokenPromises.clear();
-    if (typeof localStorage === "undefined") return;
-    localStorage.removeItem(DATASET_TOKENS_KEY);
+    const storage = this._getStorage();
+    if (!storage) return;
+    storage.removeItem(DATASET_TOKENS_KEY);
   }
   /**
    * Checks whether the given dataset access token is expired or will expire within the given skew window.

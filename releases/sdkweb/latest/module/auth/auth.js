@@ -1,3 +1,4 @@
+const CODE_VERIFIER_KEY = "i6_auth_code_verifier";
 class Auth {
   /**
    * Constructs an Auth client instance.
@@ -19,6 +20,38 @@ class Auth {
   _getUserzUrl() {
     const config = this._services.config();
     return config.servUrls?.["userz"] || config.userzUrl || config.baseUrl || "";
+  }
+  /**
+   * Resolves the session storage adapter for transient auth data (e.g. PKCE code verifier).
+   * Checks SDK configuration for a custom session storage adapter or factory function,
+   * falling back to the browser's global `sessionStorage`.
+   * @private
+   * @returns {import("../index.js").I6Storage|null} The active session storage adapter or null if unavailable.
+   */
+  _getSessionStorage() {
+    const config = this._services.config();
+    const s = config.sessionStorage || config.storageSession;
+    if (typeof s === "function") {
+      try {
+        return s();
+      } catch {
+        return null;
+      }
+    }
+    if (s) {
+      return s;
+    }
+    return typeof sessionStorage !== "undefined" ? sessionStorage : null;
+  }
+  _navigate(url) {
+    if (typeof window !== "undefined") {
+      window.location.href = url;
+    }
+  }
+  _redirect(url) {
+    if (typeof location !== "undefined") {
+      location = url;
+    }
   }
   /**
    * Generates a cryptographically random standard PKCE code verifier (RFC 7636 §4.1).
@@ -88,8 +121,9 @@ class Auth {
    * Redirects the browser to the i6userz login page (`GET /api/userz/auth`) to initiate the PKCE login flow.
    *
    * Validates that `config.userExchangeCallbackUrl` is configured, clears any existing token,
-   * generates a random PKCE `code_verifier` and S256 `code_challenge`, and redirects
-   * the browser with `app`, `redirect`, and `code_challenge` query parameters.
+   * generates a random PKCE `code_verifier` and S256 `code_challenge`, persists the `code_verifier`
+   * in session storage only, and redirects the browser with `app`, `redirect`, and `code_challenge`
+   * query parameters.
    *
    * @param {string} [callbackUrl] - The final destination URL to return to after login and token exchange complete.
    *   Defaults to `window.location.href`.
@@ -105,14 +139,17 @@ class Auth {
     const app = config.app || "default";
     const codeVerifier = this._generateCodeVerifier();
     const codeChallenge = await this._generateCodeChallenge(codeVerifier);
+    const storage = this._getSessionStorage();
+    if (storage) {
+      storage.setItem(CODE_VERIFIER_KEY, codeVerifier);
+    }
     let cbUrl = config.userExchangeCallbackUrl;
     if (cbUrl.includes("?")) {
       cbUrl += "&";
     } else {
       cbUrl += "?";
     }
-    cbUrl += "callback=" + encodeURIComponent(callbackUrl || window.location.href) + "&";
-    cbUrl += "code_verifier=" + encodeURIComponent(codeVerifier);
+    cbUrl += "callback=" + encodeURIComponent(callbackUrl || (typeof window !== "undefined" ? window.location.href : ""));
     const userzUrl = this._getUserzUrl();
     const params = new URLSearchParams({
       app,
@@ -120,11 +157,14 @@ class Auth {
       code_challenge: codeChallenge
     });
     const loginUrl = `${userzUrl}/api/userz/auth?${params.toString()}`;
-    window.location.href = loginUrl;
+    this._navigate(loginUrl);
+    return loginUrl;
   }
   /**
    * Processes the authorization code present in the URL query string, exchanging it for tokens via
    * the Tokens service (`POST /api/userz/auth/exchange`), and redirecting to the post-exchange `callback` URL.
+   *
+   * Retrieves the PKCE `code_verifier` from session storage. If found, deletes it from session storage.
    *
    * Note: This method must be called explicitly by the exchange callback page
    * (configured via `config.userExchangeCallbackUrl`). It is not called automatically by `user()`.
@@ -140,11 +180,18 @@ class Auth {
     if (!code) {
       return false;
     }
-    const codeVerifier = params.get("code_verifier") || "";
+    const storage = this._getSessionStorage();
+    let codeVerifier = storage ? storage.getItem(CODE_VERIFIER_KEY) : null;
+    if (storage) {
+      storage.removeItem(CODE_VERIFIER_KEY);
+    }
+    if (!codeVerifier) {
+      codeVerifier = params.get("code_verifier") || "";
+    }
     await this._services.tokens().exchange(code, codeVerifier);
     const callback = params.get("callback");
     if (callback) {
-      location = callback;
+      this._redirect(callback);
     }
     return true;
   }
@@ -185,10 +232,15 @@ class Auth {
     return this._services.tokens().refresh();
   }
   /**
-   * Clears all stored authentication tokens and credentials via the Tokens service.
+   * Clears all stored authentication tokens and credentials via the Tokens service,
+   * and clears any pending PKCE code verifier in session storage.
    * @returns {void}
    */
   clearTokens() {
+    const storage = this._getSessionStorage();
+    if (storage) {
+      storage.removeItem(CODE_VERIFIER_KEY);
+    }
     this._services.tokens().clearTokens();
   }
   /**

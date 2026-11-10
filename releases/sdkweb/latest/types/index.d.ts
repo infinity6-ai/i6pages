@@ -27,9 +27,17 @@ export type I6SdkConfig = {
      */
     servUrls?: Record<string, string>;
     /**
-     * - Optional storage adapter for token persistence. Defaults to global `localStorage` when omitted.
+     * - Optional storage adapter for persistent token storage. Defaults to global `localStorage` when omitted.
      */
     storage?: I6Storage | (() => I6Storage);
+    /**
+     * - Optional alias for persistent storage adapter (defaults to global `localStorage`).
+     */
+    localStorage?: I6Storage | (() => I6Storage);
+    /**
+     * - Optional storage adapter for session-scoped data such as PKCE code verifier. Defaults to global `sessionStorage` when omitted.
+     */
+    sessionStorage?: I6Storage | (() => I6Storage);
 };
 /**
  * Main SDK class providing access to i6 services.

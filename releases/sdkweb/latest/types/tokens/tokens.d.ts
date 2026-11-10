@@ -90,6 +90,14 @@ declare class Tokens {
      */
     private _getUserzUrl;
     /**
+     * Resolves the storage adapter for token persistence.
+     * Checks SDK configuration for a custom storage adapter or factory function,
+     * falling back to the browser's global `localStorage`.
+     * @private
+     * @returns {import("../index.js").I6Storage|null} The active storage adapter or null if unavailable.
+     */
+    private _getStorage;
+    /**
      * Checks whether the given user access token is expired or will expire within the given skew window.
      *
      * @param {UserToken|null} [token] - The token object to inspect. If omitted, inspects stored token.
@@ -105,7 +113,7 @@ declare class Tokens {
      */
     isRefreshTokenExpired(token?: UserToken | null): boolean;
     /**
-     * Retrieves the stored user token credentials from localStorage.
+     * Retrieves the stored user token credentials from storage.
      *
      * @param {boolean} [refreshed] - Optional flag indicating whether to return
      *   a freshly refreshed token.
@@ -114,7 +122,7 @@ declare class Tokens {
      */
     getUserToken(refreshed?: boolean): UserToken | null;
     /**
-     * Stores user token credentials in localStorage under `'i6_user_user_token'`.
+     * Stores user token credentials in storage under `'i6_user_user_token'`.
      *
      * @param {UserToken} token - The user token credentials to store.
      * @returns {void}
@@ -129,7 +137,7 @@ declare class Tokens {
      */
     getAccessToken(): string | undefined;
     /**
-     * Clears all stored authentication and authorization tokens from localStorage.
+     * Clears all stored authentication and authorization tokens from storage.
      * Removes both the user token (`'i6_user_user_token'`) and all cached dataset
      * access tokens (`'i6_dataset_access_tokens'`).
      * @returns {void}
@@ -167,20 +175,20 @@ declare class Tokens {
      */
     getValidAccessToken(skewSeconds?: number): Promise<string | null>;
     /**
-     * Retrieves the full map of cached dataset access tokens from localStorage.
+     * Retrieves the full map of cached dataset access tokens from storage.
      *
      * @returns {Record<string, DatasetToken>} A dictionary of cached dataset tokens keyed by dataset ID.
      */
     getAllDatasetTokens(): Record<string, DatasetToken>;
     /**
-     * Retrieves the cached dataset access token object for a specific dataset from localStorage.
+     * Retrieves the cached dataset access token object for a specific dataset from storage.
      *
      * @param {string} dataset - Target dataset ID.
      * @returns {DatasetToken|null} The cached dataset token object, or null if not found.
      */
     getDatasetToken(dataset: string): DatasetToken | null;
     /**
-     * Stores a dataset access token credentials object in localStorage under the given dataset ID.
+     * Stores a dataset access token credentials object in storage under the given dataset ID.
      *
      * @param {string} dataset - Target dataset ID.
      * @param {DatasetToken} token - The dataset access token credentials to cache.
@@ -188,7 +196,7 @@ declare class Tokens {
      */
     setDatasetToken(dataset: string, token: DatasetToken): void;
     /**
-     * Clears all cached dataset access tokens from localStorage.
+     * Clears all cached dataset access tokens from storage.
      * @returns {void}
      */
     clearDatasetTokens(): void;

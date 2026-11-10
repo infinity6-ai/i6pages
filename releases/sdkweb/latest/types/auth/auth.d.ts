@@ -1,15 +1,15 @@
 /**
- * @fileoverview Authentication client V2 using i6userz PKCE redirect flow.
+ * @fileoverview Authentication client using i6userz PKCE redirect flow.
  *
  * Flow Architecture:
  * 1. Login Initiation: {@link Auth#login} generates an RFC 7636 PKCE code verifier and S256 code
- *    challenge, appends the target application URL (`callback`) and `code_verifier` as query
- *    parameters to `config.userExchangeCallbackUrl`, and redirects the browser to `GET /api/userz/auth`.
+ *    challenge, persists `code_verifier` in sessionStorage, appends the target application URL (`callback`)
+ *    as a query parameter to `config.userExchangeCallbackUrl`, and redirects the browser to `GET /api/userz/auth`.
  * 2. Identity Provider Authentication: The user signs in via Google or Email/Password on the i6userz UI.
  * 3. Authorization Code Redirect: i6userz redirects the browser to the intermediate exchange URL
  *    (`config.userExchangeCallbackUrl`) with a short-lived authorization `code` appended.
- * 4. Token Exchange: The exchange callback page invokes {@link Auth#handleCallback}, which extracts
- *    the `code` and `code_verifier`, calls the Tokens service to exchange them via `POST /api/userz/auth/exchange`
+ * 4. Token Exchange: The exchange callback page invokes {@link Auth#handleCallback}, which retrieves
+ *    the `code_verifier` from sessionStorage, calls the Tokens service to exchange them via `POST /api/userz/auth/exchange`
  *    for active tokens (access token JWT, refresh token, user ID, expiration), persists them, and redirects the browser
  *    to the original application URL.
  * 5. Profile Retrieval: {@link Auth#user} fetches user identity metadata via `GET /api/userz/auth/me`
@@ -48,22 +48,7 @@ export type AuthPayload = {
     email?: string;
 };
 /**
- * @typedef {import("../services/services.js").Services} Services
- * @typedef {import("../tokens/tokens.js").UserToken} UserToken
- */
-/**
- * User profile metadata returned by the GET /api/userz/auth/me endpoint.
- * @typedef {Object} AuthPayload
- * @property {string} user_id - Authenticated user unique identifier UUID.
- * @property {string} [email_redacted] - Redacted email address for display (e.g. "u***@infinity6.ai").
- * @property {string[]} [providers] - List of linked identity providers (e.g. ["google", "password"]).
- * @property {number} [created_at] - Account creation timestamp in epoch milliseconds.
- * @property {string} [sub] - User ID (legacy alias for user_id).
- * @property {string} [display] - User display name (legacy alias).
- * @property {string} [email] - User email address (legacy alias).
- */
-/**
- * Authentication client V2 for handling browser redirects, PKCE, and user profile retrieval with i6userz.
+ * Authentication client for handling browser redirects, PKCE, and user profile retrieval with i6userz.
  * Configuration (callbackUrl, userExchangeCallbackUrl, app) is read directly from `i6sdk.config()`.
  */
 declare class Auth {
@@ -88,6 +73,16 @@ declare class Auth {
      * @returns {string} The base URL for userz.
      */
     private _getUserzUrl;
+    /**
+     * Resolves the session storage adapter for transient auth data (e.g. PKCE code verifier).
+     * Checks SDK configuration for a custom session storage adapter or factory function,
+     * falling back to the browser's global `sessionStorage`.
+     * @private
+     * @returns {import("../index.js").I6Storage|null} The active session storage adapter or null if unavailable.
+     */
+    private _getSessionStorage;
+    _navigate(url: any): void;
+    _redirect(url: any): void;
     /**
      * Generates a cryptographically random standard PKCE code verifier (RFC 7636 §4.1).
      * Uses unreserved URL characters (`[A-Z]`, `[a-z]`, `[0-9]`, `-`, `.`, `_`, `~`).
@@ -118,8 +113,9 @@ declare class Auth {
      * Redirects the browser to the i6userz login page (`GET /api/userz/auth`) to initiate the PKCE login flow.
      *
      * Validates that `config.userExchangeCallbackUrl` is configured, clears any existing token,
-     * generates a random PKCE `code_verifier` and S256 `code_challenge`, and redirects
-     * the browser with `app`, `redirect`, and `code_challenge` query parameters.
+     * generates a random PKCE `code_verifier` and S256 `code_challenge`, persists the `code_verifier`
+     * in session storage only, and redirects the browser with `app`, `redirect`, and `code_challenge`
+     * query parameters.
      *
      * @param {string} [callbackUrl] - The final destination URL to return to after login and token exchange complete.
      *   Defaults to `window.location.href`.
@@ -130,6 +126,8 @@ declare class Auth {
     /**
      * Processes the authorization code present in the URL query string, exchanging it for tokens via
      * the Tokens service (`POST /api/userz/auth/exchange`), and redirecting to the post-exchange `callback` URL.
+     *
+     * Retrieves the PKCE `code_verifier` from session storage. If found, deletes it from session storage.
      *
      * Note: This method must be called explicitly by the exchange callback page
      * (configured via `config.userExchangeCallbackUrl`). It is not called automatically by `user()`.
@@ -168,7 +166,8 @@ declare class Auth {
      */
     refresh(): Promise<UserToken | null>;
     /**
-     * Clears all stored authentication tokens and credentials via the Tokens service.
+     * Clears all stored authentication tokens and credentials via the Tokens service,
+     * and clears any pending PKCE code verifier in session storage.
      * @returns {void}
      */
     clearTokens(): void;
