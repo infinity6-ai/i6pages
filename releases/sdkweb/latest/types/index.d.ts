@@ -3,6 +3,20 @@
  */
 import { Apis, SdkFuncs } from "./services/services.js";
 import { I6Error } from "./errors.js";
+export type I6Storage = {
+    /**
+     * - Retrieves an item by key.
+     */
+    getItem: (key: string) => string | null;
+    /**
+     * - Stores an item by key and string value.
+     */
+    setItem: (key: string, value: string) => void;
+    /**
+     * - Removes an item by key.
+     */
+    removeItem: (key: string) => void;
+};
 export type I6SdkConfig = {
     /**
      * - Base URL of the i6 server. Defaults to the sandbox environment.
@@ -12,6 +26,10 @@ export type I6SdkConfig = {
      * - Base URL of the other services, by the `servname` label of the api (e.g. `tfinfer`). An api whose service is not listed uses `baseUrl`.
      */
     servUrls?: Record<string, string>;
+    /**
+     * - Optional storage adapter for token persistence. Defaults to global `localStorage` when omitted.
+     */
+    storage?: I6Storage | (() => I6Storage);
 };
 /**
  * Main SDK class providing access to i6 services.
