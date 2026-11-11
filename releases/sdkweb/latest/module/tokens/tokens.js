@@ -162,6 +162,37 @@ class Tokens {
     return data;
   }
   /**
+   * Redeems a checkout artifact ticket via `POST /api/decsuite/auth/checkoutredeem`,
+   * and persists the resulting user token credentials in localStorage.
+   * Automatically clears any existing dataset tokens before storing new session credentials.
+   *
+   * @param {string} checkoutCode - The encrypted checkout ticket issued by checkoutcallback.
+   * @returns {Promise<UserToken>} The redeemed user token credentials.
+   * @throws {Error} If the redemption request fails or the server returns an error status.
+   */
+  async redeemCheckout(checkoutCode) {
+    const config = this._services.config();
+    const baseUrl = config.servUrls?.["decsuite"] || config.decsuiteUrl || config.baseUrl || "";
+    const redeemUrl = `${baseUrl}/api/decsuite/auth/checkoutredeem`;
+    const resp = await fetch(redeemUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        checkout_code: checkoutCode
+      })
+    });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      throw new Error(`Checkout redeem failed (${resp.status}): ${errText}`);
+    }
+    const data = await resp.json();
+    this.clearDatasetTokens();
+    this.setUserToken(data);
+    return data;
+  }
+  /**
    * Refreshes the user access token using the stored user refresh token via `POST /api/userz/auth/refresh`.
    * Enforces token family rotation by storing the newly rotated refresh token and fresh access token.
    * Deduplicates concurrent in-flight refresh requests to prevent token reuse conflicts.

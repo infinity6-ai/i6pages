@@ -1,619 +1,526 @@
 /**
- * @fileoverview Authentication client using i6userz PKCE redirect flow.
- *
- * Flow Architecture:
- * 1. Login Initiation: {@link Auth#login} generates an RFC 7636 PKCE code verifier and S256 code
- *    challenge, persists `code_verifier` in sessionStorage, appends the target application URL (`callback`)
- *    as a query parameter to `config.userExchangeCallbackUrl`, and redirects the browser to `GET /api/userz/auth`.
- * 2. Identity Provider Authentication: The user signs in via Google or Email/Password on the i6userz UI.
- * 3. Authorization Code Redirect: i6userz redirects the browser to the intermediate exchange URL
- *    (`config.userExchangeCallbackUrl`) with a short-lived authorization `code` appended.
- * 4. Token Exchange: The exchange callback page invokes {@link Auth#handleCallback}, which retrieves
- *    the `code_verifier` from sessionStorage, calls the Tokens service to exchange them via `POST /api/userz/auth/exchange`
- *    for active tokens (access token JWT, refresh token, user ID, expiration), persists them, and redirects the browser
- *    to the original application URL.
- * 5. Profile Retrieval: {@link Auth#user} fetches user identity metadata via `GET /api/userz/auth/me`
- *    using Bearer token authentication.
+ * @fileoverview HTTP client for sending API requests to i6 services.
  */
 export type Services = import("../services/services.js").Services;
-export type UserToken = import("../tokens/tokens.js").UserToken;
-export type AuthPayload = {
+export type Fetcher = (url: string, opts: InvokeOptions) => Promise<Response>;
+export type PrepareRequest = (opts: InvokeOptions) => Promise<void> | void;
+export type ServiceOptions = {
     /**
-     * - Authenticated user unique identifier UUID.
+     * - [Go: string]
      */
-    user_id: string;
+    datasetToken?: string;
     /**
-     * - Redacted email address for display (e.g. "u***@infinity6.ai").
+     * - [Go: string]
      */
-    email_redacted?: string;
+    bearerToken?: string;
     /**
-     * - List of linked identity providers (e.g. ["google", "password"]).
+     * - Labels
      */
-    providers?: string[];
+    labels?: Record<string, string>;
     /**
-     * - Account creation timestamp in epoch milliseconds.
+     * - Custom fetch implementation.
      */
-    created_at?: number;
+    fetcher?: Fetcher;
     /**
-     * - User ID (legacy alias for user_id).
+     * - Hook to mutate request options before sending (e.g., adding `sig` query parameter).
      */
-    sub?: string;
+    prepareRequest?: PrepareRequest;
+};
+export type InvokeOptions = {
     /**
-     * - User display name (legacy alias).
+     * - The full URL to request. If omitted, defaults to `${baseUrl}/${path}`.
      */
-    display?: string;
+    url?: string;
     /**
-     * - User email address (legacy alias).
+     * - The path to append to the baseUrl if `url` is not provided.
      */
-    email?: string;
+    path?: string;
+    /**
+     * - Key-value pairs to append as query parameters.
+     */
+    query?: Record<string, any>;
+    /**
+     * - JSON-serializable body data. If provided, sets Content-Type header to application/json and serializes to body.
+     */
+    json?: any;
+    /**
+     * - HTTP method (e.g., 'GET', 'POST', 'PUT', 'DELETE').
+     */
+    method?: string;
+    /**
+     * - HTTP headers for the request.
+     */
+    headers?: HeadersInit;
+    /**
+     * - HTTP request body.
+     */
+    body?: BodyInit | null;
+    /**
+     * - Request credentials mode (e.g., 'include', 'same-origin', 'omit').
+     */
+    credentials?: RequestCredentials;
+    /**
+     * - Request mode (e.g., 'cors', 'no-cors', 'same-origin').
+     */
+    mode?: RequestMode;
+    /**
+     * - An AbortSignal to cancel the request.
+     */
+    signal?: AbortSignal | null;
+    opts?: ServiceOptions;
+    sinkable?: boolean;
 };
 /**
- * Authentication client for handling browser redirects, PKCE, and user profile retrieval with i6userz.
- * Configuration (callbackUrl, userExchangeCallbackUrl, app) is read directly from `i6sdk.config()`.
+ * Invoker client for executing HTTP requests against the i6 API.
  */
-declare class Auth {
+declare class Invoker {
     /**
      * @private
      * @type {Services}
      */
     _services;
     /**
-     * Constructs an Auth client instance.
+     * Constructs an Invoker instance.
      * @param {Services} services - The services manager instance.
      */
     constructor(services: Services);
     /**
-     * Retrieves the base URL for the i6userz authentication service from SDK configuration.
-     * Resolution precedence:
-     * 1. `config.servUrls["userz"]`
-     * 2. `config.userzUrl`
-     * 3. `config.baseUrl`
-     * 4. Empty string fallback
-     * @private
-     * @returns {string} The base URL for userz.
-     */
-    private _getUserzUrl;
-    /**
-     * Resolves the session storage adapter for transient auth data (e.g. PKCE code verifier).
-     * Checks SDK configuration for a custom session storage adapter or factory function,
-     * falling back to the browser's global `sessionStorage`.
-     * @private
-     * @returns {import("../index.js").I6Storage|null} The active session storage adapter or null if unavailable.
-     */
-    private _getSessionStorage;
-    /**
-     * Navigates the browser window to a target URL.
-     * @private
-     * @param {string} url - Target URL.
-     * @returns {void}
-     */
-    private _navigate;
-    /**
-     * Redirects the browser location to a callback URL.
-     * @private
-     * @param {string} url - Target redirect URL.
-     * @returns {void}
-     */
-    private _redirect;
-    /**
-     * Validates whether a redirect URL is safe to prevent open redirect vulnerabilities.
-     * A URL is considered safe if:
-     * 1. It is a relative path starting with '/' (but not '//' or '/\\').
-     * 2. It is an absolute URL whose origin matches window.location.origin or configured callback URLs.
-     * @private
-     * @param {string} url - The URL to validate.
-     * @returns {boolean} True if the redirect target is safe, false otherwise.
-     */
-    private _isSafeRedirect;
-    /**
-     * Generates a cryptographically random standard PKCE code verifier (RFC 7636 §4.1).
-     * Uses unreserved URL characters (`[A-Z]`, `[a-z]`, `[0-9]`, `-`, `.`, `_`, `~`).
-     * @private
-     * @param {number} [length=64] - The length of the code verifier (between 43 and 128 characters).
-     * @returns {string} The generated code verifier string.
-     */
-    private _generateCodeVerifier;
-    /**
-     * Generates an RFC 7636 S256 PKCE code challenge from a code verifier.
-     * Computes SHA-256 over the ASCII code verifier and base64url-encodes the digest without padding.
-     * @private
-     * @param {string} verifier - The plaintext code verifier.
-     * @returns {Promise<string>} The base64url-encoded code challenge.
-     * @throws {Error} If Web Crypto API (`crypto.subtle.digest`) is unavailable.
-     */
-    private _generateCodeChallenge;
-    /**
-     * Encodes a byte array as an unpadded base64url string (RFC 4648 §5).
-     * Replaces '+' with '-', '/' with '_', and strips trailing '=' padding.
-     * @private
-     * @param {Uint8Array|ArrayBuffer} bytes - The bytes to encode.
-     * @returns {string} The base64url-encoded string.
-     * @throws {Error} If no base64 encoder (`btoa` or Node.js `Buffer`) is available.
-     */
-    private _base64UrlEncode;
-    /**
-     * Redirects the browser to the i6userz login page (`GET /api/userz/auth`) to initiate the PKCE login flow.
+     * Sends an HTTP request using the Fetch API.
      *
-     * Validates that `config.userExchangeCallbackUrl` is configured, clears any existing token,
-     * generates a random PKCE `code_verifier` and S256 `code_challenge`, persists the `code_verifier`
-     * in session storage only, and redirects the browser with `app`, `redirect`, and `code_challenge`
-     * query parameters.
-     *
-     * @param {string} [callbackUrl] - The final destination URL to return to after login and token exchange complete.
-     *   Defaults to `window.location.href`.
-     * @returns {Promise<string>} The generated login URL.
-     * @throws {string} If `config.userExchangeCallbackUrl` is not defined in the SDK configuration.
+     * @param {InvokeOptions} opts - Request options including path/URL, query params, and fetch options.
+     * Credentials are always set to "include" so the session cookie is sent. Note that `opts`
+     * is modified (credentials, and headers/body when `json` is given). An HTTP error status
+     * does not throw; check `ok` on the returned Response.
+     * @returns {Promise<Response>} A promise that resolves to the fetch Response.
+     * @throws {TypeError} If the network request fails (from fetch).
      */
-    login(callbackUrl?: string): Promise<string>;
+    invoke(opts: InvokeOptions): Promise<Response>;
     /**
-     * Processes the authorization code present in the URL query string, exchanging it for tokens via
-     * the Tokens service (`POST /api/userz/auth/exchange`), and redirecting to the post-exchange `callback` URL.
-     *
-     * Validates the CSRF `state` parameter against session storage, and retrieves the PKCE `code_verifier`
-     * from session storage. Deletes both from session storage upon processing.
-     *
-     * Note: This method must be called explicitly by the exchange callback page
-     * (configured via `config.userExchangeCallbackUrl`). It is not called automatically by `user()`.
-     *
-     * @returns {Promise<boolean>} True if handling tokens completed (code was exchanged and redirect initiated),
-     *   false if not an auth callback (no authorization `code` in the URL query parameters).
-     * @throws {Error} If state mismatch occurs, token exchange fails, or server returns an error.
+     * Like `invoke`, but never throws: resolves with `{status, ok, <key>}` on success and with
+     * `{status, ok: false, error}` (see `I6ApiError`) on an HTTP error or a network failure.
+     * A success with status 204 or an empty body resolves with `{status, ok: true}` and no `<key>`.
+     * @param {InvokeOptions} opts - Same as `invoke`.
+     * @param {"payload"|"body"} [key] - Where the parsed JSON of a success is put.
+     * @returns {Promise<{status: number, ok: boolean, error?: import("../errors.js").I6ApiError} & Record<string, any>>}
      */
-    handleCallback(): Promise<boolean>;
-    /**
-     * Retrieves the stored user token credentials from the Tokens service.
-     *
-     * @param {boolean} [refreshed] - Optional flag indicating whether to return
-     *   a freshly refreshed token.
-     * @returns {UserToken|null} The stored user token object, or null if no valid session exists.
-     */
-    getUserToken(refreshed?: boolean): UserToken | null;
-    /**
-     * Retrieves the active user access token JWT string for authorizing API requests.
-     *
-     * @returns {string|undefined} The signed EdDSA user access token JWT,
-     *   or undefined if no user is authenticated.
-     */
-    getAccessToken(): string | undefined;
-    /**
-     * Retrieves a guaranteed-valid user access token JWT string, silently refreshing if expired.
-     *
-     * @param {number} [skewSeconds=30] - Safety margin in seconds before expiration.
-     * @returns {Promise<string|null>} The valid user access token JWT, or null if unauthenticated.
-     */
-    getValidAccessToken(skewSeconds?: number): Promise<string | null>;
-    /**
-     * Refreshes the active user access token using the stored refresh token.
-     *
-     * @returns {Promise<UserToken|null>} The refreshed user token credentials, or null if failed.
-     */
-    refresh(): Promise<UserToken | null>;
-    /**
-     * Clears all stored authentication tokens and credentials via the Tokens service,
-     * and clears any pending PKCE code verifier and CSRF state in session storage.
-     * @returns {void}
-     */
-    clearTokens(): void;
-    /**
-     * Fetches the current authenticated user profile metadata (`GET /api/userz/auth/me`).
-     * Sends a valid user access token in the `Authorization: Bearer <user_access_token>` header,
-     * automatically performing a silent renewal if the access token has expired.
-     * Does not redirect; use {@link Auth#requireUser} to automatically force a login redirect.
-     *
-     * Note: Expects tokens to already be present in storage. Call {@link Auth#handleCallback}
-     * on the exchange page before attempting to fetch the user profile.
-     *
-     * @returns {Promise<AuthPayload|null>} The user profile data, or null if unauthenticated.
-     * @throws {Error} If the network request fails or the userz service returns an error status.
-     */
-    user(): Promise<AuthPayload | null>;
-    /**
-     * Fetches the current user profile, automatically redirecting the browser to the login page
-     * via {@link Auth#login} when the user is unauthenticated.
-     *
-     * @returns {Promise<AuthPayload|null>} The user profile data, or null when redirecting to login.
-     */
-    requireUser(): Promise<AuthPayload | null>;
-    /**
-     * Logs out the current user by revoking the session family server-side via `POST /api/userz/auth/logout`,
-     * clearing stored credentials and session storage, and navigating to `backurl`.
-     *
-     * @param {string} [backurl] - The URL to return to after logging out.
-     *   Defaults to `config.callbackUrl` or the current window URL (`window.location.href`).
-     * @returns {Promise<void>}
-     */
-    logout(backurl?: string): Promise<void>;
+    invokeResult(opts: InvokeOptions, key?: "payload" | "body"): Promise<{
+        status: number;
+        ok: boolean;
+        error?: import("../errors.js").I6ApiError;
+    } & Record<string, any>>;
 }
-export { Auth };
+export { Invoker };
 /**
- * @fileoverview Base64 URL safe encoding utilities.
+ * @fileoverview Main entry point for the i6 Web Legacy SDK.
  */
-/**
- * Encodes a string or Uint8Array to a Base64 URL safe string.
- * @param {string|Uint8Array|ArrayBuffer} data
- * @returns {string}
- */
-export declare function encodeUrlSafe(data: string | Uint8Array | ArrayBuffer): string;
-/**
- * Decodes a Base64 URL safe string to a Uint8Array.
- * @param {string} b64UrlSafe
- * @returns {Uint8Array}
- */
-export declare function decodeUrlSafeToBytes(b64UrlSafe: string): Uint8Array;
-/**
- * Decodes a Base64 URL safe string to a UTF-8 string.
- * @param {string} b64UrlSafe
- * @returns {string}
- */
-export declare function decodeUrlSafe(b64UrlSafe: string): string;
-/**
- * @fileoverview Sqlite client for the SDK, running sqlite (sql.js, wasm) in the browser.
- *
- * Usage: get the file with the downloader, open it by its OPFS path and always close the
- * connection when done:
- *
- *   const ref = await downloader.update({ name, url })
- *   const conn = await sqlitez.open({ path: await fs.resolve(ref) })
- *   try {
- *     const rows = await conn.query({ query: 'SELECT * FROM t WHERE id = ?', params: [1] })
- *   } finally {
- *     await conn.close()
- *   }
- *
- * The database lives in memory: `update` changes the memory copy, the file is never written back.
- * Every method takes a single `opts` object with the real parameters inside it.
- */
-export type SqliteValue = number | string | null | Uint8Array;
-export type SqliteRow = Record<string, SqliteValue>;
-/**
- * An open sqlite database. Get one with `sqlitez.open` and always call `close()` in a `finally`.
- */
-declare class SqliteConn {
-    #private;
-    /** @private */
-    db;
+import { Apis, SdkFuncs } from "./services/services.js";
+import { I6Error } from "./errors.js";
+export type I6Storage = {
     /**
-     * Use `sqlitez.open`, not this constructor.
-     * @param {Object} db - The sql.js database.
+     * - Retrieves an item by key.
      */
-    constructor(db: Object);
+    getItem: (key: string) => string | null;
     /**
-     * Closes the connection, freeing the database. Closing twice is fine.
-     * @returns {Promise<void>}
+     * - Stores an item by key and string value.
      */
-    close(): Promise<void>;
+    setItem: (key: string, value: string) => void;
     /**
-     * Runs a query and returns its rows.
-     * @param {Object} opts
-     * @param {string} opts.query - required, the SQL; use `?` for values.
-     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query (never concatenate them).
-     * @returns {Promise<SqliteRow[]>} The rows (empty array when none), each one an object by column name.
-     * @throws {TypeError} If opts.query is missing.
-     * @throws {I6Error} With code "query" if the connection is closed or sqlite rejects the query.
+     * - Removes an item by key.
      */
-    query(opts: {
-        query: string;
-        params?: SqliteValue[];
-    }): Promise<SqliteRow[]>;
+    removeItem: (key: string) => void;
+};
+export type I6SdkConfig = {
     /**
-     * Runs a statement that returns no data (INSERT, UPDATE, CREATE, ...). Only the memory copy changes.
-     * @param {Object} opts
-     * @param {string} opts.query - required, the SQL; use `?` for values.
-     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query.
-     * @returns {Promise<void>}
-     * @throws {TypeError} If opts.query is missing.
-     * @throws {I6Error} With code "query" if the connection is closed or sqlite rejects the statement.
+     * - Base URL of the i6 server. Defaults to the sandbox environment.
      */
-    update(opts: {
-        query: string;
-        params?: SqliteValue[];
-    }): Promise<void>;
+    baseUrl?: string;
     /**
-     * Runs a query stored in the `namedqueries` table of the sqlite (columns `name` and `query`).
-     * @param {Object} opts
-     * @param {string} opts.name - required, the `name` of the stored query.
-     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the stored query.
-     * @returns {Promise<SqliteRow[]>} The rows of the stored query, like `query`.
-     * @throws {TypeError} If opts.name is missing.
-     * @throws {I6Error} With code "query" if the connection is closed, there is no such table or named query, or the query fails.
+     * - Base URL of the other services, by the `servname` label of the api (e.g. `tfinfer`). An api whose service is not listed uses `baseUrl`.
      */
-    namedQuery(opts: {
-        name: string;
-        params?: SqliteValue[];
-    }): Promise<SqliteRow[]>;
+    servUrls?: Record<string, string>;
     /**
-     * Like `namedQuery`, but with JSON in and JSON out: each value of `opts.params`
-     * is bound as a JSON string to the positional `?1`, `?2`, ... of the stored query, in order (read them in SQL with
-     * `json_extract(?1, '$.field')`, `json_each(?2)`, ...). The stored query must return a row with a column `ret`
-     * holding a JSON string. That JSON is parsed and returned.
-     * The stored query must have a placeholder for every value, otherwise sqlite rejects the bind ("column index out of range").
-     * @param {Object} opts
-     * @param {string} opts.name - required, the `name` of the stored query (see `namedQuery`).
-     * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
-     * @returns {Promise<*>} The parsed `ret` of the first row, or null if there is no row or `ret` is null.
-     * @throws {TypeError} If opts.name is missing or opts.params is not an array.
-     * @throws {I6Error} With code "query" if `namedQuery` fails, the rows have no `ret` column, or `ret` is not valid JSON.
+     * - Direct base URL override for the i6userz authentication service.
      */
-    namedJsonQuery(opts: {
-        name: string;
-        params?: Array<any>;
-    }): Promise<any>;
+    userzUrl?: string;
     /**
-     * Like `namedJsonQuery` (same JSON params bound as `?1`, `?2`, ...), but the `ret` column is returned as is,
-     * without JSON.parse. Use it when the stored query returns plain text (e.g. for models); use `namedJsonQuery` when it returns JSON (e.g. for dash).
-     * @param {Object} opts
-     * @param {string} opts.name - required, the `name` of the stored query (see `namedQuery`).
-     * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
-     * @returns {Promise<string|null>} The `ret` of the first row as a string, or null if there is no row or `ret` is null.
-     * @throws {TypeError} If opts.name is missing or opts.params is not an array.
-     * @throws {I6Error} With code "query" if `namedQuery` fails or the rows have no `ret` column.
+     * - Absolute URL of the application's exchange callback page handling PKCE token exchange.
      */
-    namedStringQuery(opts: {
-        name: string;
-        params?: Array<any>;
-    }): Promise<string | null>;
-}
-/**
- * Sqlitez client. Use the `sqlitez` singleton.
- */
-declare class Sqlitez {
+    userExchangeCallbackUrl?: string;
     /**
-     * Opens a sqlite file of the browser file system into memory.
-     * @param {Object} opts
-     * @param {string} opts.path - required, OPFS path of the file (what `fs.resolve` returns for a downloaded file).
-     * @returns {Promise<SqliteConn>} The connection. The caller must `close()` it.
-     * @throws {TypeError} If opts.path is missing.
-     * @throws {I6Error} With code "asset" if the file cannot be read or is not a sqlite file.
+     * - Default application redirect URL after logout.
      */
-    open(opts: {
-        path: string;
-    }): Promise<SqliteConn>;
-}
-/** Shared Sqlitez instance. */
-declare const sqlitez: Sqlitez;
-export { sqlitez };
-/**
- * @fileoverview Gzip compression utilities.
- */
-/**
- * Compresses data (string, Uint8Array, or ArrayBuffer) using gzip.
- * @param {string|Uint8Array|ArrayBuffer} data - The data to compress.
- * @returns {Promise<Uint8Array>} The gzipped bytes.
- */
-export declare function gzip(data: string | Uint8Array | ArrayBuffer): Promise<Uint8Array>;
-/**
- * Decompresses gzipped bytes to a UTF-8 string.
- * @param {Uint8Array|ArrayBuffer} compressedBytes - The gzipped data.
- * @returns {Promise<string>} The decompressed string.
- */
-export declare function gunzipString(compressedBytes: Uint8Array | ArrayBuffer): Promise<string>;
-/**
- * Decompresses gzipped bytes and returns raw Uint8Array.
- * @param {Uint8Array|ArrayBuffer} compressedBytes - The gzipped data.
- * @returns {Promise<Uint8Array>} The decompressed bytes.
- */
-export declare function gunzip(compressedBytes: Uint8Array | ArrayBuffer): Promise<Uint8Array>;
-/**
- * Gzips a string and encodes it as a Base64 URL safe string.
- * @param {string} str - The string to compress and encode.
- * @returns {Promise<string>} The Base64 URL safe string.
- */
-export declare function gzipStringToBase64Url(str: string): Promise<string>;
-/**
- * Decodes a Base64 URL safe string and decompresses it as a UTF-8 string.
- * @param {string} b64Str - The Base64 URL safe string.
- * @returns {Promise<string>} The decompressed string.
- */
-export declare function gunzipStringFromBase64Url(b64Str: string): Promise<string>;
-/**
- * Gzips a given JSON object or array.
- * @param {any} obj - The JSON serializable object to compress.
- * @returns {Promise<Uint8Array>} The gzipped bytes.
- */
-export declare function gzipJson(obj: any): Promise<Uint8Array>;
-/**
- * Decompresses a gzipped byte array into a JSON object.
- * @param {Uint8Array|ArrayBuffer} compressedBytes - The gzipped data.
- * @returns {Promise<any>} The parsed JSON object.
- */
-export declare function gunzipJson(compressedBytes: Uint8Array | ArrayBuffer): Promise<any>;
-/**
- * Gzips a JSON object and encodes it as a Base64 URL safe string.
- * @param {any} obj - The JSON serializable object.
- * @returns {Promise<string>} The Base64 URL safe encoded string of the gzipped JSON.
- */
-export declare function gzipJsonToBase64Url(obj: any): Promise<string>;
-/**
- * Decodes a Base64 URL safe string, gunzips it, and parses it as JSON.
- * @param {string} b64Str - The Base64 URL safe string containing gzipped JSON.
- * @returns {Promise<any>} The parsed JSON object.
- */
-export declare function gunzipJsonFromBase64Url(b64Str: string): Promise<any>;
-/**
- * @fileoverview Debug logging of the SDK. Set `window.I6_DEBUG = true` to see it in the console.
- */
-/**
- * @param {string} prefix - Printed first, followed by ":" (e.g. "infer").
- * @returns {(...args: *) => void} A logger that prints only when `window.I6_DEBUG` is true.
- */
-declare const debugLogger: (prefix: string) => (...args: any) => void;
-export { debugLogger };
-/**
- * @fileoverview Keeps a remote file cached in the browser's file system (see fs.js),
- * downloading it only when its etag changes.
- */
-export type FileRef = import('../fs/fs.js').FileRef;
-/**
- * Downloads remote files into the versioned file store. Use the `downloader` singleton.
- */
-declare class Downloader {
+    callbackUrl?: string;
     /**
-     * Downloads the file by name if necessary (checking etag): sends a HEAD request, and
-     * if the etag differs from the released version, streams the body into a new version
-     * and releases it.
-     * @param {Object} opts
-     * @param {string} opts.name - required, name to store the file under (see fs.js)
-     * @param {string} opts.url - required, URL of the file; must answer HEAD with an etag
-     * @returns {Promise<FileRef>} the FileRef of the up-to-date file (basically to get the version)
-     * @throws {TypeError} If name or url is missing.
-     * @throws {Error} If the HEAD or GET request fails, or the HEAD response has no etag.
-     *   When the server answered, the error has `status` (the HTTP status code).
-    */
-    update(opts: {
-        name: string;
-        url: string;
-    }): Promise<FileRef>;
-}
-/** Shared Downloader instance. */
-declare const downloader: Downloader;
-export { downloader };
-/**
- * @fileoverview Versioned file store on the browser's origin private file system (OPFS).
- *
- * Layout under `i6/fs`:
- *   {name}/version.txt          the released (current) version, if any
- *   {name}/v{version}/etag.txt  the etag the version was created for
- *   {name}/v{version}/blob.bin  the content (written by the caller, see `resolve`)
- *
- * Versions are ISO timestamps, so they sort in creation order.
- */
-export type FileRef = {
-    /**
-     * - File name, a single OPFS directory name (e.g. "model").
+     * - Client application identifier registered in i6userz (e.g. 'default').
      */
-    name: string;
+    app?: string;
     /**
-     * - Version id, an ISO timestamp (e.g. "2026-09-29T12:00:00.000Z").
+     * - Default dataset authorization token string for API requests.
      */
-    version: string;
+    datasetToken?: string;
     /**
-     * - Etag of the remote content this version was created for.
+     * - Default user bearer token JWT string for API requests.
      */
-    etag: string;
+    bearerToken?: string;
+    /**
+     * - Optional storage adapter for persistent token storage. Defaults to global `localStorage` when omitted.
+     */
+    storage?: I6Storage | (() => I6Storage);
+    /**
+     * - Optional alias for persistent storage adapter (defaults to global `localStorage`).
+     */
+    localStorage?: I6Storage | (() => I6Storage);
+    /**
+     * - Optional storage adapter for session-scoped data such as PKCE code verifier. Defaults to global `sessionStorage` when omitted.
+     */
+    sessionStorage?: I6Storage | (() => I6Storage);
+    /**
+     * - Optional alias for session storage adapter.
+     */
+    storageSession?: I6Storage | (() => I6Storage);
 };
 /**
- * Versioned file store. Use the `fs` singleton.
- *
- * A file is created as a new unreleased version, filled, then released to become the
- * current one; releasing removes the older versions.
+ * Main SDK class providing access to i6 services.
  */
-declare class FS {
+declare class I6Sdk {
     /**
-     * Removes the versions older than version.txt, and the whole file if it is left empty.
-     * Without version.txt no version is removed.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @returns {Promise<void>}
+     * @private
+     * @type {Services}
      */
-    cleanFile(opts: {
-        name: string;
-    }): Promise<void>;
+    _service;
     /**
-     * Cleans all files, see cleanFile.
-     * @returns {Promise<void>}
+     * Constructs an instance of the i6 SDK.
+     * @param {I6SdkConfig} [config] - Configuration options for the SDK.
      */
-    clean(): Promise<void>;
+    constructor(config?: I6SdkConfig);
     /**
-     * Resolves a version of a file.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} [opts.version] - defaults to the content of version.txt
-     * @returns {Promise<FileRef|null>} a new full FileRef, or null if it does not exist.
+     * Returns a copy of the configuration the SDK is running with.
+     * @returns {I6SdkConfig} The current configuration.
      */
-    get(opts: {
-        name: string;
-        version?: string;
-    }): Promise<FileRef | null>;
+    config(): I6SdkConfig;
     /**
-     * Creates a new version, unless the latest version already has this etag.
-     * The new version is not released.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.etag - required
-     * @param {Blob|BufferSource|string} [opts.data] - content, required when a new version is created
-     * @returns {Promise<FileRef>} a new full FileRef.
+     * Overwrites the given keys of the configuration; the other keys are kept.
+     * Can be called at any time, the next call of the SDK uses the new values.
+     * @param {Partial<I6SdkConfig>} config - The keys to overwrite.
+     * @returns {void}
      */
-    create(opts: {
-        name: string;
-        etag: string;
-        data?: Blob | BufferSource | string;
-    }): Promise<FileRef>;
+    setConfig(config: Partial<I6SdkConfig>): void;
     /**
-     * Returns the bin file path, full (with base). Does not check that it exists, see get.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.version - required
-     * @returns {Promise<string>} e.g. "i6/fs/{name}/v{version}/blob.bin"
+     * Returns an Ingest service instance.
+     * @returns {import("./ingest/ingest.js").Ingest} An instance of the Ingest client.
      */
-    resolve(opts: {
-        name: string;
-        version: string;
-    }): Promise<string>;
+    ingest(): import("./ingest/ingest.js").Ingest;
     /**
-     * Reads the content (blob.bin) of a version.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.version - required
-     * @returns {Promise<Uint8Array>} the bytes of the file.
-     * @throws {DOMException} NotFoundError if the version or its blob does not exist.
+     * Returns an Infer service instance, which runs an i6 model in the browser and returns the result.
+     * @returns {import("./infer/infer.js").Infer} An instance of the Infer client.
      */
-    read(opts: {
-        name: string;
-        version: string;
-    }): Promise<Uint8Array>;
+    infer(): import("./infer/infer.js").Infer;
     /**
-     * Makes a version the current one (version.txt), then cleans the older versions.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.version - required, must exist
-     * @returns {Promise<FileRef>} a new full FileRef of the released version.
+     * Returns a Dash service instance, which queries an i6 dash in the browser and returns the result.
+     * @returns {import("./dash/dash.js").Dash} An instance of the Dash client.
      */
-    release(opts: {
-        name: string;
-        version: string;
-    }): Promise<FileRef>;
+    dash(): import("./dash/dash.js").Dash;
     /**
-     * Removes a version that was never released (e.g. its download failed). Does nothing if it does not exist.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.version - required, must not be the released one
-     * @returns {Promise<void>}
+     * Returns an Auth service instance.
+     * @returns {import("./auth/auth.js").Auth} An instance of the Auth client.
      */
-    discard(opts: {
-        name: string;
-        version: string;
-    }): Promise<void>;
+    auth(): import("./auth/auth.js").Auth;
+    /**
+     * Returns a Tokens service instance.
+     * @returns {import("./tokens/tokens.js").Tokens} An instance of the Tokens client.
+     */
+    tokens(): import("./tokens/tokens.js").Tokens;
+    /**
+     * Returns the Apis service instance, one typed method per i6 server API.
+     * Each call resolves with `{status, ok, payload?, error?}` and does not throw on an HTTP error.
+     * @returns {Apis} An instance of the generated Apis client.
+     */
+    apis(): Apis;
+    /**
+     * Returns the Funcs service instance.
+     * @returns {SdkFuncs} An instance of the SdkFuncs client.
+     */
+    funcs(): SdkFuncs;
+    /**
+     * Registers an event listener on the SDK's internal event dispatcher (an EventTarget).
+     * @param {string} evt - The event type or name to listen for.
+     * @param {EventListenerOrEventListenerObject|Function} fn - The callback function or event listener object invoked when the event occurs.
+     * @returns {void}
+     */
+    bind(evt: string, fn: EventListenerOrEventListenerObject | Function): void;
 }
-/** Shared FS instance. */
-declare const fs: FS;
-export { fs };
+declare namespace I6Sdk {
+    export { I6Error };
+}
+export { I6Sdk, I6Error };
 /**
- * @fileoverview Helpers shared by the services that run on files downloaded from i6 (infer, dash).
+ * @fileoverview Ingest client for uploading files to the ingestion service.
  */
-export type FileRef = import("../fs/fs.js").FileRef;
+export type Services = import("../services/services.js").Services;
+export type ServiceOptions = import("../invoker/invoker.js").ServiceOptions;
+export type Partitions = Record<string, string>;
+export type GetUrlParams = {
+    /**
+     * - Dataset name.
+     */
+    dataset: string;
+    /**
+     * - Inbox table name.
+     */
+    table: string;
+    /**
+     * - Values for the table partitions, except the ingest id one.
+     */
+    partitions: Partitions;
+    /**
+     * - Given to the ingestz-get-url API call.
+     */
+    serviceOpts?: ServiceOptions;
+};
+export type UploadProgress = {
+    /**
+     * - Bytes sent so far.
+     */
+    loaded: number;
+    /**
+     * - Total bytes to send (the file size when the browser can't tell).
+     */
+    total: number;
+    /**
+     * - Progress from 0 to 100.
+     */
+    percent: number;
+};
+export type UploadParams = {
+    /**
+     * - Dataset the file is ingested into.
+     */
+    dataset: string;
+    /**
+     * - Inbox table name.
+     */
+    table: string;
+    /**
+     * - Values for the table partitions, except the ingest id one.
+     */
+    partitions: Partitions;
+    /**
+     * - The single file to upload.
+     */
+    file: File;
+    /**
+     * - Called as the file is sent.
+     */
+    onProgress?: (progress: UploadProgress) => void;
+    /**
+     * - Aborts the upload; the promise then rejects with the signal's reason (an AbortError by default).
+     */
+    signal?: AbortSignal;
+    /**
+     * - Content-Type of the PUT. Defaults to the file's own type.
+     */
+    contentType?: string;
+    /**
+     * - Given to the ingestz-get-url API call (the PUT to the signed URL needs none).
+     */
+    serviceOpts?: ServiceOptions;
+};
+export type UploadResult = {
+    /**
+     * - Id the server assigned to this ingest.
+     */
+    ingestId: string;
+};
 /**
- * @typedef {import("../fs/fs.js").FileRef} FileRef
+ * @typedef {import("../services/services.js").Services} Services
+ * @typedef {import("../invoker/invoker.js").ServiceOptions} ServiceOptions
  */
 /**
- * @param {Object<string, string>} partitions - Partitions, name -> value.
- * @returns {string} A stable key of the partitions, safe as part of a cache file name (e.g. "store_id%3Ds1-version%3Dv1").
+ * Key-value mapping representing dataset table partition values, except the ingest ID.
+ * @typedef {Record<string, string>} Partitions
  */
-declare function partitionsKey(partitions: Record<string, string>): string;
 /**
- * @param {*} partitions - Value to check.
- * @returns {boolean} True if it is an object (not an array) whose values are all strings.
+ * Parameters for requesting a signed upload URL from the ingest service.
+ * @typedef {Object} GetUrlParams
+ * @property {string} dataset - Dataset name.
+ * @property {string} table - Inbox table name.
+ * @property {Partitions} partitions - Values for the table partitions, except the ingest id one.
+ * @property {ServiceOptions} [serviceOpts] - Given to the ingestz-get-url API call.
  */
-declare function isPartitions(partitions: any): boolean;
 /**
- * Brings one remote file to the browser cache, downloading it only if its etag changed.
- * @param {string} name - Name of the cached file.
- * @param {string} url - URL of the file.
- * @returns {Promise<FileRef>} The cached file.
- * @throws {I6Error} With code "asset" if the download fails; `status` is the HTTP status when the server answered
- *   (404 when the file does not exist, e.g. a store or month without data) and `cause` is the underlying error.
+ * Progress of an upload in flight.
+ * @typedef {Object} UploadProgress
+ * @property {number} loaded - Bytes sent so far.
+ * @property {number} total - Total bytes to send (the file size when the browser can't tell).
+ * @property {number} percent - Progress from 0 to 100.
  */
-declare function downloadFile(name: string, url: string): Promise<FileRef>;
-export { partitionsKey, isPartitions, downloadFile };
+/**
+ * Parameters for uploading a single file to the ingest service.
+ * @typedef {Object} UploadParams
+ * @property {string} dataset - Dataset the file is ingested into.
+ * @property {string} table - Inbox table name.
+ * @property {Partitions} partitions - Values for the table partitions, except the ingest id one.
+ * @property {File} file - The single file to upload.
+ * @property {(progress: UploadProgress) => void} [onProgress] - Called as the file is sent.
+ * @property {AbortSignal} [signal] - Aborts the upload; the promise then rejects with the signal's reason (an AbortError by default).
+ * @property {string} [contentType] - Content-Type of the PUT. Defaults to the file's own type.
+ * @property {ServiceOptions} [serviceOpts] - Given to the ingestz-get-url API call (the PUT to the signed URL needs none).
+ */
+/**
+ * Result of a successful upload.
+ * @typedef {Object} UploadResult
+ * @property {string} ingestId - Id the server assigned to this ingest.
+ */
+/**
+ * Client for handling file uploads to the ingest service.
+ */
+declare class Ingest {
+    #private;
+    /**
+     * @private
+     * @type {Services}
+     */
+    _services;
+    /**
+     * Constructs an Ingest client instance.
+     * @param {Services} services - The services manager instance.
+     */
+    constructor(services: Services);
+    /**
+     * Asks ingestz for a signed upload URL (ingestz-get-url API) and uploads a single file to it.
+     * @param {UploadParams} params - Upload parameters.
+     * @returns {Promise<UploadResult>} Resolves with the ingest id on a successful upload.
+     * @throws {I6Error} With code "invalid_argument" if file is not a single File, "http" or
+     *   "network" if a request fails. Rejects with an AbortError if `signal` aborts.
+     */
+    upload({ dataset, table, partitions, file, onProgress, signal, contentType, serviceOpts }: UploadParams): Promise<UploadResult>;
+    /**
+     * Gets one signed PUT URL from the ingestz-get-url API.
+     * @private
+     * @param {GetUrlParams} params - Parameters for requesting the upload URL.
+     * @returns {Promise<{ingestId: string, url: string}>} The ingest id and the signed PUT URL.
+     * @throws {I6Error} If the request fails or no upload URL is returned.
+     */
+    private #getUrl;
+    /**
+     * Uploads a file to a signed PUT URL using XMLHttpRequest (fetch has no upload progress).
+     * @private
+     * @param {string} signedPutUrl - The signed URL to PUT the file to.
+     * @param {File} file - The file to upload.
+     * @param {Pick<UploadParams, "onProgress"|"signal"|"contentType">} opts
+     * @returns {Promise<void>} Resolves on a successful upload, rejects on network or HTTP error or abort.
+     */
+    private #put;
+}
+export { Ingest };
+/**
+ * @fileoverview Error types thrown by the i6 Web Legacy SDK.
+ */
+export type I6ErrorCode = "http" | "network" | "invalid_argument" | "no_upload_url" | "asset" | "model" | "query";
+export type I6ApiErrorCode = "unauthenticated" | "forbidden" | "not_found" | "bad_request" | "unavailable" | "network";
+export type I6ApiError = {
+    /**
+     * - HTTP status; 0 when the server did not answer (network failure).
+     */
+    status: number;
+    /**
+     * - Failure kind, from the status: 401 "unauthenticated" (session expired),
+     * 403 "forbidden" (no permission), 404 "not_found" (no data), other 4xx "bad_request", 5xx "unavailable".
+     */
+    code: I6ApiErrorCode;
+    /**
+     * - The server response text as is (e.g. the Stripe reason), or "HTTP <status>" if empty.
+     */
+    message: string;
+    /**
+     * - The raw response text, or the underlying error on a network failure.
+     */
+    cause?: any;
+};
+export type I6Result<R> = ({
+    status: number;
+    ok: true;
+    body?: any;
+} & R) | {
+    status: number;
+    ok: false;
+    error: I6ApiError;
+};
+/**
+ * @typedef {"http"|"network"|"invalid_argument"|"no_upload_url"|"asset"|"model"|"query"} I6ErrorCode
+ */
+/**
+ * Why an API call failed, derived from the HTTP status alone; the server message is never parsed.
+ * @typedef {"unauthenticated"|"forbidden"|"not_found"|"bad_request"|"unavailable"|"network"} I6ApiErrorCode
+ */
+/**
+ * Error of an API call that did not succeed, as returned in `I6Result.error`.
+ * @typedef {Object} I6ApiError
+ * @property {number} status - HTTP status; 0 when the server did not answer (network failure).
+ * @property {I6ApiErrorCode} code - Failure kind, from the status: 401 "unauthenticated" (session expired),
+ *   403 "forbidden" (no permission), 404 "not_found" (no data), other 4xx "bad_request", 5xx "unavailable".
+ * @property {string} message - The server response text as is (e.g. the Stripe reason), or "HTTP <status>" if empty.
+ * @property {*} [cause] - The raw response text, or the underlying error on a network failure.
+ */
+/**
+ * What every generated API call resolves with; it does not throw on an HTTP error or a network failure.
+ * Check `ok` to tell the two shapes apart. `body` is the parsed JSON of an API that has no declared payload.
+ * @template R - The generated response type of the API (`{payload}`).
+ * @typedef {({status: number, ok: true, body?: *} & R) | {status: number, ok: false, error: I6ApiError}} I6Result
+ */
+/**
+ * Error thrown by the SDK when a call fails.
+ *
+ * `code` tells what kind of failure it was, so callers can branch on it instead of parsing
+ * the message. `status` and `body` are set for `"http"` failures. `"asset"` failures also have `status`
+ * when a file download was answered with an error (404: the file does not exist), and always `cause`.
+ */
+declare class I6Error extends Error {
+    /** @type {I6ErrorCode|undefined} */
+    code: I6ErrorCode | undefined;
+    /** @type {number|undefined} */
+    status: number | undefined;
+    /** @type {*} */
+    body: any;
+    /**
+     * @param {string} message - Human readable description.
+     * @param {Object} [details]
+     * @param {I6ErrorCode} [details.code] - Failure kind. Defaults to "http" when a status is given.
+     * @param {number} [details.status] - HTTP status code, when the server answered.
+     * @param {*} [details.body] - Error body of the response (parsed JSON, or raw text).
+     * @param {*} [details.cause] - The underlying error, if any.
+     */
+    constructor(message: string, { code, status, body, cause }?: {
+        code?: I6ErrorCode;
+        status?: number;
+        body?: any;
+        cause?: any;
+    });
+    /**
+     * Builds an "http" error from a failed generated-client result ({status, error}).
+     * @param {string} message
+     * @param {{status: number, error?: *}} result
+     * @returns {I6Error}
+     */
+    static fromResult(message: string, result: {
+        status: number;
+        error?: any;
+    }): I6Error;
+}
+/**
+ * Builds the error of a failed HTTP response, keeping the server text untouched.
+ * @param {number} status - HTTP status.
+ * @param {string} text - Response body as text.
+ * @returns {I6ApiError}
+ */
+declare function apiErrorFromResponse(status: number, text: string): I6ApiError;
+/**
+ * Builds the error of a request that got no answer.
+ * @param {*} cause - The error thrown by fetch.
+ * @returns {I6ApiError}
+ */
+declare function apiErrorFromNetwork(cause: any): I6ApiError;
+export { I6Error, apiErrorFromResponse, apiErrorFromNetwork };
 /**
  * @typedef {import("../services/services.js").Services} Services
  */
@@ -1543,6 +1450,10 @@ export type apiDszStripeCheckoutReqPayload = {
      * - [Go: string] Url to go after a successful checkout
      */
     success_url: string;
+    /**
+     * - [Go: string] Optional exchange callback URL for redeeming checkout artifact ticket
+     */
+    user_exchange_callback_url: string;
 };
 export type apiDszStripeCheckoutResp = {
     payload: apiDszStripeCheckoutRespPayload;
@@ -3393,6 +3304,7 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {string} payment_phone - [Go: string] Phone of the buyer
  * @property {string} plan - [Go: string] Plan key to buy, like relevance_growth_monthly_2027; the service gets the prices {plan}_lic and {plan}_req from the Stripe prices api and sends both to the checkout
  * @property {string} success_url - [Go: string] Url to go after a successful checkout
+ * @property {string} user_exchange_callback_url - [Go: string] Optional exchange callback URL for redeeming checkout artifact ticket
  */
 /**
  * apiDszStripeCheckout Response
@@ -4240,35 +4152,75 @@ declare class Apis {
      */
     constructor(services: Services);
     /**
-     * Sample Fraction
+     * Start Pipeline
      *
-     * Sample API that performs a fraction operation
+     * Starts a pipeline on a dataset with the given params and returns its id.
      *
-     * @param {apiSampleFractionReq} req
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiSampleFractionResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
      */
-    sampleFraction(req: apiSampleFractionReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiSampleFractionResp>>;
+    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
     /**
-     * List Active Dataset Solutions
+     * List Stores
      *
-     * Lists all active solutions configured for a specific dataset.
+     * Lists all stores configured under a specific dataset.
      *
-     * @param {apiDszDatasetSolutionsReq} req
+     * @param {apiDszListStoresReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
      */
-    dszDatasetSolutions(req: apiDszDatasetSolutionsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
+    dszListStores(req: apiDszListStoresReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
     /**
-     * Update Payment Auto Renew
+     * Create Recsys Token
      *
-     * Turns auto renew on or off for the Stripe subscription of a dataset product/solution.
+     * Creates a read/recommendation token for the recommendation system associated with a specific dataset.
      *
-     * @param {apiDszUpdatePaymentAutoRenewReq} req
+     * @param {apiDszCreateRecsysTokenReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszUpdatePaymentAutoRenewResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
      */
-    dszUpdatePaymentAutoRenew(req: apiDszUpdatePaymentAutoRenewReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszUpdatePaymentAutoRenewResp>>;
+    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>;
+    /**
+     * Update Subscription Plan
+     *
+     * Updates the plan (price) of the Stripe subscription for a dataset product/solution.
+     *
+     * @param {apiDszUpdateSubscriptionPlanReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszUpdateSubscriptionPlanResp>>}
+     */
+    dszUpdateSubscriptionPlan(req: apiDszUpdateSubscriptionPlanReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszUpdateSubscriptionPlanResp>>;
+    /**
+     * Create Customer Portal
+     *
+     * Creates a Stripe billing portal session URL where the user can manage cards, auto-renew, and plans.
+     *
+     * @param {apiDszCreateCustomerPortalReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateCustomerPortalResp>>}
+     */
+    dszCreateCustomerPortal(req: apiDszCreateCustomerPortalReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateCustomerPortalResp>>;
+    /**
+     * Event Ingestion
+     *
+     * Ingests events data into a target dataset table.
+     *
+     * @param {apiIngestzEventRelevanceFashionEventReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>}
+     */
+    ingestzEventRelevanceFashionEvent(req: apiIngestzEventRelevanceFashionEventReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>;
+    /**
+     * List Dataset Tables
+     *
+     * Lists files and tables in the specified dataset.
+     *
+     * @param {apiDszTableListReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
+     */
+    dszTableList(req: apiDszTableListReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableListResp>>;
     /**
      * Get Pipeline
      *
@@ -4280,35 +4232,45 @@ declare class Apis {
      */
     pipezGet(req: apiPipezGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezGetResp>>;
     /**
-     * List Recsys Tokens
+     * List Ingestion Tokens
      *
-     * Lists all active recommendation system tokens for a specific dataset.
+     * Lists all active data ingestion tokens for a specific dataset.
      *
-     * @param {apiDszListRecsysTokensReq} req
+     * @param {apiDszListIngestionTokensReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
      */
-    dszListRecsysTokens(req: apiDszListRecsysTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
+    dszListIngestionTokens(req: apiDszListIngestionTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
     /**
-     * List Plans
+     * Get Subscription
      *
-     * Lists the plans a subscription of a solution can be switched to, with the price data from Stripe.
+     * Gets the plan and the status of the Stripe subscription of a dataset product/solution. The payload is empty for contracts without Stripe.
      *
-     * @param {apiDszListPlansReq} req
+     * @param {apiDszGetSubscriptionReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListPlansResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszGetSubscriptionResp>>}
      */
-    dszListPlans(req: apiDszListPlansReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListPlansResp>>;
+    dszGetSubscription(req: apiDszGetSubscriptionReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszGetSubscriptionResp>>;
     /**
-     * Get Dataset Signed URLs
+     * Get Dataset Table File
      *
-     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     * Get table file by redirecting to its signed URL.
      *
-     * @param {apiDszSignedUrlReq} req
+     * @param {apiDszTableGetReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
      */
-    dszSignedUrl(req: apiDszSignedUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
+    dszTableGet(req: apiDszTableGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
+    /**
+     * Load Table File as JSON
+     *
+     * Load a table file from the datalake as JSON and return it.
+     *
+     * @param {apiDszResultRelevanceFashionCatalogReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>}
+     */
+    dszResultRelevanceFashionCatalog(req: apiDszResultRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>;
     /**
      * Create Store
      *
@@ -4330,105 +4292,15 @@ declare class Apis {
      */
     pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
     /**
-     * List Stores
+     * List Active Dataset Solutions
      *
-     * Lists all stores configured under a specific dataset.
+     * Lists all active solutions configured for a specific dataset.
      *
-     * @param {apiDszListStoresReq} req
+     * @param {apiDszDatasetSolutionsReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
      */
-    dszListStores(req: apiDszListStoresReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListStoresResp>>;
-    /**
-     * List Ingestion Tokens
-     *
-     * Lists all active data ingestion tokens for a specific dataset.
-     *
-     * @param {apiDszListIngestionTokensReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
-     */
-    dszListIngestionTokens(req: apiDszListIngestionTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>;
-    /**
-     * Delete Token
-     *
-     * Deletes (revokes) a specific token (e.g. ingestion or recsys token) associated with a dataset.
-     *
-     * @param {apiDszDeleteTokenReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
-     */
-    dszDeleteToken(req: apiDszDeleteTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>;
-    /**
-     * Get Subscription
-     *
-     * Gets the plan and the status of the Stripe subscription of a dataset product/solution. The payload is empty for contracts without Stripe.
-     *
-     * @param {apiDszGetSubscriptionReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszGetSubscriptionResp>>}
-     */
-    dszGetSubscription(req: apiDszGetSubscriptionReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszGetSubscriptionResp>>;
-    /**
-     * List Payments
-     *
-     * Lists the Stripe payments (invoices) of a dataset. The list is empty for datasets without a Stripe customer.
-     *
-     * @param {apiDszListPaymentsReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListPaymentsResp>>}
-     */
-    dszListPayments(req: apiDszListPaymentsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListPaymentsResp>>;
-    /**
-     * Load Table File as JSON
-     *
-     * Load a table file from the datalake as JSON and return it.
-     *
-     * @param {apiDszResultRelevanceFashionCatalogReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>}
-     */
-    dszResultRelevanceFashionCatalog(req: apiDszResultRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>;
-    /**
-     * Start Pipeline
-     *
-     * Starts a pipeline on a dataset with the given params and returns its id.
-     *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
-     */
-    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
-    /**
-     * Create Ingestion Token
-     *
-     * Creates a write token for data ingestion into a specific dataset.
-     *
-     * @param {apiDszCreateIngestionTokenReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>}
-     */
-    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>;
-    /**
-     * Get Model Signed URLs
-     *
-     * Generates presigned URLs for accessing model files in the specified dataset.
-     *
-     * @param {apiDszModelGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
-     */
-    dszModelGet(req: apiDszModelGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszModelGetResp>>;
-    /**
-     * Model Predict
-     *
-     * Runs a prediction of a dataset model version on the inference service (tfinfer), sending the model inputs and the model partitions and returning the model outputs.
-     *
-     * @param {apiTfzModelPredictReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiTfzModelPredictResp>>}
-     */
-    tfzModelPredict(req: apiTfzModelPredictReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiTfzModelPredictResp>>;
+    dszDatasetSolutions(req: apiDszDatasetSolutionsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>;
     /**
      * Create Stripe Checkout
      *
@@ -4440,35 +4312,35 @@ declare class Apis {
      */
     dszStripeCheckout(req: apiDszStripeCheckoutReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>;
     /**
-     * Create Customer Portal
+     * Update Payment Auto Renew
      *
-     * Creates a Stripe billing portal session URL where the user can manage cards, auto-renew, and plans.
+     * Turns auto renew on or off for the Stripe subscription of a dataset product/solution.
      *
-     * @param {apiDszCreateCustomerPortalReq} req
+     * @param {apiDszUpdatePaymentAutoRenewReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateCustomerPortalResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszUpdatePaymentAutoRenewResp>>}
      */
-    dszCreateCustomerPortal(req: apiDszCreateCustomerPortalReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateCustomerPortalResp>>;
+    dszUpdatePaymentAutoRenew(req: apiDszUpdatePaymentAutoRenewReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszUpdatePaymentAutoRenewResp>>;
     /**
-     * Event Ingestion
+     * Get Ingestion Upload URLs
      *
-     * Ingests events data into a target dataset table.
+     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
      *
-     * @param {apiIngestzEventRelevanceFashionCatalogReq} req
+     * @param {apiIngestzGetUrlReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
      */
-    ingestzEventRelevanceFashionCatalog(req: apiIngestzEventRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>;
+    ingestzGetUrl(req: apiIngestzGetUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
     /**
-     * Event Ingestion
+     * Load Table File as JSON
      *
-     * Ingests events data into a target dataset table.
+     * Load a table file from the datalake as JSON and return it.
      *
-     * @param {apiIngestzEventRelevanceFashionEventReq} req
+     * @param {apiDszResultLastBatchSummaryReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>}
      */
-    ingestzEventRelevanceFashionEvent(req: apiIngestzEventRelevanceFashionEventReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>;
+    dszResultLastBatchSummary(req: apiDszResultLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>;
     /**
      * List Pipelines
      *
@@ -4479,16 +4351,6 @@ declare class Apis {
      * @returns {Promise<import("../errors.js").I6Result<apiPipezListResp>>}
      */
     pipezList(req: apiPipezListReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiPipezListResp>>;
-    /**
-     * Create Store Display
-     *
-     * Creates a store display configuration mapping for a store under a specific dataset.
-     *
-     * @param {apiDszStoreDisplayCreateReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
-     */
-    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>;
     /**
      * List Store Displays
      *
@@ -4510,65 +4372,115 @@ declare class Apis {
      */
     dszListDatasets(req: apiDszListDatasetsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>;
     /**
-     * Create Recsys Token
+     * Delete Token
      *
-     * Creates a read/recommendation token for the recommendation system associated with a specific dataset.
+     * Deletes (revokes) a specific token (e.g. ingestion or recsys token) associated with a dataset.
      *
-     * @param {apiDszCreateRecsysTokenReq} req
+     * @param {apiDszDeleteTokenReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
      */
-    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>;
+    dszDeleteToken(req: apiDszDeleteTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>;
     /**
-     * Get Ingestion Upload URLs
+     * List Payments
      *
-     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
+     * Lists the Stripe payments (invoices) of a dataset. The list is empty for datasets without a Stripe customer.
      *
-     * @param {apiIngestzGetUrlReq} req
+     * @param {apiDszListPaymentsReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListPaymentsResp>>}
      */
-    ingestzGetUrl(req: apiIngestzGetUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>;
+    dszListPayments(req: apiDszListPaymentsReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListPaymentsResp>>;
     /**
-     * Get Dataset Table File
+     * Event Ingestion
      *
-     * Get table file by redirecting to its signed URL.
+     * Ingests events data into a target dataset table.
      *
-     * @param {apiDszTableGetReq} req
+     * @param {apiIngestzEventRelevanceFashionCatalogReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>}
      */
-    dszTableGet(req: apiDszTableGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableGetResp>>;
+    ingestzEventRelevanceFashionCatalog(req: apiIngestzEventRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>;
     /**
-     * List Dataset Tables
+     * Get Dataset Signed URLs
      *
-     * Lists files and tables in the specified dataset.
+     * Generates presigned URLs for accessing or mutating files in the specified dataset.
      *
-     * @param {apiDszTableListReq} req
+     * @param {apiDszSignedUrlReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
      */
-    dszTableList(req: apiDszTableListReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszTableListResp>>;
+    dszSignedUrl(req: apiDszSignedUrlReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>;
     /**
-     * Load Table File as JSON
+     * List Recsys Tokens
      *
-     * Load a table file from the datalake as JSON and return it.
+     * Lists all active recommendation system tokens for a specific dataset.
      *
-     * @param {apiDszResultLastBatchSummaryReq} req
+     * @param {apiDszListRecsysTokensReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
      */
-    dszResultLastBatchSummary(req: apiDszResultLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>;
+    dszListRecsysTokens(req: apiDszListRecsysTokensReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>;
     /**
-     * Update Subscription Plan
+     * Create Ingestion Token
      *
-     * Updates the plan (price) of the Stripe subscription for a dataset product/solution.
+     * Creates a write token for data ingestion into a specific dataset.
      *
-     * @param {apiDszUpdateSubscriptionPlanReq} req
+     * @param {apiDszCreateIngestionTokenReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszUpdateSubscriptionPlanResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>}
      */
-    dszUpdateSubscriptionPlan(req: apiDszUpdateSubscriptionPlanReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszUpdateSubscriptionPlanResp>>;
+    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>;
+    /**
+     * Sample Fraction
+     *
+     * Sample API that performs a fraction operation
+     *
+     * @param {apiSampleFractionReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiSampleFractionResp>>}
+     */
+    sampleFraction(req: apiSampleFractionReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiSampleFractionResp>>;
+    /**
+     * Create Store Display
+     *
+     * Creates a store display configuration mapping for a store under a specific dataset.
+     *
+     * @param {apiDszStoreDisplayCreateReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
+     */
+    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>;
+    /**
+     * Model Predict
+     *
+     * Runs a prediction of a dataset model version on the inference service (tfinfer), sending the model inputs and the model partitions and returning the model outputs.
+     *
+     * @param {apiTfzModelPredictReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiTfzModelPredictResp>>}
+     */
+    tfzModelPredict(req: apiTfzModelPredictReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiTfzModelPredictResp>>;
+    /**
+     * List Plans
+     *
+     * Lists the plans a subscription of a solution can be switched to, with the price data from Stripe.
+     *
+     * @param {apiDszListPlansReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListPlansResp>>}
+     */
+    dszListPlans(req: apiDszListPlansReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszListPlansResp>>;
+    /**
+     * Get Model Signed URLs
+     *
+     * Generates presigned URLs for accessing model files in the specified dataset.
+     *
+     * @param {apiDszModelGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
+     */
+    dszModelGet(req: apiDszModelGetReq, opts?: ServiceOptions): Promise<import("../errors.js").I6Result<apiDszModelGetResp>>;
 }
 export { Apis };
 declare class SdkFuncs {
@@ -4582,37 +4494,6 @@ declare class SdkFuncs {
      * @param {Services} services - The services manager instance.
      */
     constructor(services: Services);
-    /**
-     * Get Bought Together
-     *
-     * Infers the SKUs frequently bought together with the given SKUs for a store.
-     *
-     * @param {sdkFuncProductRelevanceFashionFbtReq} req
-     * @param {(req: sdkFuncProductRelevanceFashionFbtReq, results: sdkFuncProductRelevanceFashionFbtOutput) => Promise<sdkFuncProductRelevanceFashionFbtSelected>} [selectResults] - picks which of the recommended skus are shown and may attach your own data to each in enriched; default: for each result, in order, the first sku not in req.input.skus (the cart) and not already picked, with the rating of that result; no duplicates, and results with no such sku are skipped
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<sdkFuncProductRelevanceFashionFbtSelected>}
-     */
-    productRelevanceFashionFbtV1(req: sdkFuncProductRelevanceFashionFbtReq, selectResults?: (req: sdkFuncProductRelevanceFashionFbtReq, results: sdkFuncProductRelevanceFashionFbtOutput) => Promise<sdkFuncProductRelevanceFashionFbtSelected>, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionFbtSelected>;
-    /**
-     * Get Funnel
-     *
-     * Gets the event counts of the recommendation funnel for a store and period.
-     *
-     * @param {sdkFuncProductRelevanceFashionDashFunnelReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>}
-     */
-    productRelevanceFashionDashFunnelV1(req: sdkFuncProductRelevanceFashionDashFunnelReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>;
-    /**
-     * Get Attached Revenue
-     *
-     * Gets the revenue attached to recommendations for a store and period.
-     *
-     * @param {sdkFuncProductRelevanceFashionDashAttachedRevenueReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>}
-     */
-    productRelevanceFashionDashAttachedRevenueV1(req: sdkFuncProductRelevanceFashionDashAttachedRevenueReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>;
     /**
      * List Showcase Categories
      *
@@ -4653,245 +4534,39 @@ declare class SdkFuncs {
      * @returns {Promise<sdkFuncProductRelevanceFashionDashCoverageOutput>}
      */
     productRelevanceFashionDashCoverageV1(req: sdkFuncProductRelevanceFashionDashCoverageReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashCoverageOutput>;
+    /**
+     * Get Bought Together
+     *
+     * Infers the SKUs frequently bought together with the given SKUs for a store.
+     *
+     * @param {sdkFuncProductRelevanceFashionFbtReq} req
+     * @param {(req: sdkFuncProductRelevanceFashionFbtReq, results: sdkFuncProductRelevanceFashionFbtOutput) => Promise<sdkFuncProductRelevanceFashionFbtSelected>} [selectResults] - picks which of the recommended skus are shown and may attach your own data to each in enriched; default: for each result, in order, the first sku not in req.input.skus (the cart) and not already picked, with the rating of that result; no duplicates, and results with no such sku are skipped
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<sdkFuncProductRelevanceFashionFbtSelected>}
+     */
+    productRelevanceFashionFbtV1(req: sdkFuncProductRelevanceFashionFbtReq, selectResults?: (req: sdkFuncProductRelevanceFashionFbtReq, results: sdkFuncProductRelevanceFashionFbtOutput) => Promise<sdkFuncProductRelevanceFashionFbtSelected>, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionFbtSelected>;
+    /**
+     * Get Funnel
+     *
+     * Gets the event counts of the recommendation funnel for a store and period.
+     *
+     * @param {sdkFuncProductRelevanceFashionDashFunnelReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>}
+     */
+    productRelevanceFashionDashFunnelV1(req: sdkFuncProductRelevanceFashionDashFunnelReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashFunnelOutput>;
+    /**
+     * Get Attached Revenue
+     *
+     * Gets the revenue attached to recommendations for a store and period.
+     *
+     * @param {sdkFuncProductRelevanceFashionDashAttachedRevenueReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>}
+     */
+    productRelevanceFashionDashAttachedRevenueV1(req: sdkFuncProductRelevanceFashionDashAttachedRevenueReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>;
 }
 export { SdkFuncs };
-/**
- * @fileoverview Token management client for i6 SDK.
- * Manages storage, retrieval, exchange, and silent renewal of authentication (user) and authorization (dataset) tokens.
- */
-export type Services = import("../services/services.js").Services;
-export type UserToken = {
-    /**
-     * - Signed EdDSA user access token JWT.
-     */
-    user_access_token: string;
-    /**
-     * - Opaque user refresh token used for session extension.
-     */
-    user_refresh_token: string;
-    /**
-     * - Authenticated user unique identifier UUID.
-     */
-    user_id: string;
-    /**
-     * - Access token expiration timestamp in epoch milliseconds.
-     */
-    expires_at: number;
-    /**
-     * - Refresh token expiration timestamp in epoch milliseconds.
-     */
-    refresh_token_expires_at?: number;
-};
-export type DatasetToken = {
-    /**
-     * - Binary packed and signed dataset access token string.
-     */
-    access_token: string;
-    /**
-     * - Target dataset ID.
-     */
-    dataset: string;
-    /**
-     * - Solution domain restriction.
-     */
-    solution?: string;
-    /**
-     * - Compact uint8 grant bitmask held over dataset.
-     */
-    grants: number;
-    /**
-     * - Access token expiration timestamp in epoch milliseconds.
-     */
-    expires_at: number;
-    /**
-     * - Contextual metadata labels.
-     */
-    labels?: Record<string, string>;
-};
-/**
- * Client for managing authentication tokens, local storage persistence, token exchanges,
- * automatic user session renewal, and dataset access token derivation.
- */
-declare class Tokens {
-    /**
-     * @private
-     * @type {Services}
-     */
-    _services;
-    /**
-     * In-flight user refresh promise to prevent duplicate refresh calls during concurrent operations.
-     * @private
-     * @type {Promise<UserToken|null>|null}
-     */
-    _refreshPromise;
-    /**
-     * In-flight dataset token request promises by dataset ID to deduplicate concurrent requests.
-     * @private
-     * @type {Map<string, Promise<DatasetToken|null>>}
-     */
-    _datasetTokenPromises;
-    /**
-     * Constructs a Tokens client instance.
-     * @param {Services} services - The services manager instance.
-     */
-    constructor(services: Services);
-    /**
-     * Retrieves the base URL for the i6userz authentication service from SDK configuration.
-     * Resolution precedence:
-     * 1. `config.servUrls["userz"]`
-     * 2. `config.userzUrl`
-     * 3. `config.baseUrl`
-     * 4. Empty string fallback
-     * @private
-     * @returns {string} The base URL for userz.
-     */
-    private _getUserzUrl;
-    /**
-     * Resolves the storage adapter for token persistence.
-     * Checks SDK configuration for a custom storage adapter or factory function,
-     * falling back to the browser's global `localStorage`.
-     * @private
-     * @returns {import("../index.js").I6Storage|null} The active storage adapter or null if unavailable.
-     */
-    private _getStorage;
-    /**
-     * Checks whether the given user access token is expired or will expire within the given skew window.
-     *
-     * @param {UserToken|null} [token] - The token object to inspect. If omitted, inspects stored token.
-     * @param {number} [skewSeconds=30] - Safety margin in seconds before actual expiration timestamp.
-     * @returns {boolean} True if the access token is missing, expired, or expiring within skewSeconds.
-     */
-    isAccessTokenExpired(token?: UserToken | null, skewSeconds?: number): boolean;
-    /**
-     * Checks whether the user refresh token is expired.
-     *
-     * @param {UserToken|null} [token] - The token object to inspect. If omitted, inspects stored token.
-     * @returns {boolean} True if the refresh token is missing or its expiration timestamp has elapsed.
-     */
-    isRefreshTokenExpired(token?: UserToken | null): boolean;
-    /**
-     * Retrieves the stored user token credentials from storage.
-     *
-     * @param {boolean} [refreshed] - Optional flag indicating whether to return
-     *   a freshly refreshed token.
-     * @returns {UserToken|null} The stored user token object containing access and
-     *   refresh tokens, or null if no valid session exists in storage.
-     */
-    getUserToken(refreshed?: boolean): UserToken | null;
-    /**
-     * Stores user token credentials in storage under `'i6_user_user_token'`.
-     *
-     * @param {UserToken} token - The user token credentials to store.
-     * @returns {void}
-     */
-    setUserToken(token: UserToken): void;
-    /**
-     * Retrieves the raw stored user access token JWT string without checking expiration or refreshing.
-     * Use {@link Tokens#getValidAccessToken} when fresh/valid credentials are required.
-     *
-     * @returns {string|undefined} The signed EdDSA user access token JWT,
-     *   or undefined if no user is authenticated.
-     */
-    getAccessToken(): string | undefined;
-    /**
-     * Clears all stored authentication and authorization tokens from storage.
-     * Removes both the user token (`'i6_user_user_token'`) and all cached dataset
-     * access tokens (`'i6_dataset_access_tokens'`).
-     * @returns {void}
-     */
-    clearTokens(): void;
-    /**
-     * Exchanges an authorization code and PKCE code verifier for user token credentials
-     * via `POST /api/userz/auth/exchange`, and persists them in localStorage.
-     * Automatically clears any existing dataset tokens before storing new session credentials.
-     *
-     * @param {string} code - The authorization code returned by i6userz auth.
-     * @param {string} codeVerifier - The PKCE code verifier matching the login challenge.
-     * @returns {Promise<UserToken>} The exchanged user token credentials.
-     * @throws {Error} If the token exchange request fails or the server returns an error status.
-     */
-    exchange(code: string, codeVerifier: string): Promise<UserToken>;
-    /**
-     * Refreshes the user access token using the stored user refresh token via `POST /api/userz/auth/refresh`.
-     * Enforces token family rotation by storing the newly rotated refresh token and fresh access token.
-     * Deduplicates concurrent in-flight refresh requests to prevent token reuse conflicts.
-     *
-     * @returns {Promise<UserToken|null>} The refreshed token credentials, or null if refresh failed / token revoked.
-     */
-    refresh(): Promise<UserToken | null>;
-    /**
-     * Revokes the active user session server-side via `POST /api/userz/auth/logout`.
-     * Sends the stored `user_refresh_token` to revoke the entire session token family in userzsession.
-     * Clears local tokens regardless of server response to guarantee client session cleanup.
-     *
-     * @returns {Promise<boolean>} True if revocation completed and tokens were cleared.
-     */
-    logout(): Promise<boolean>;
-    /**
-     * Retrieves a guaranteed-valid user access token JWT string.
-     *
-     * If the stored access token is still valid (not expired within `skewSeconds`), it is returned immediately.
-     * If the access token is expired or close to expiring, an automatic silent refresh is performed
-     * using the user refresh token.
-     * If the user is unauthenticated or the refresh token has expired/been revoked, returns null.
-     *
-     * @param {number} [skewSeconds=30] - Safety margin in seconds before expiration.
-     * @returns {Promise<string|null>} The valid user access token JWT, or null if unauthenticated or session expired.
-     */
-    getValidAccessToken(skewSeconds?: number): Promise<string | null>;
-    /**
-     * Retrieves the full map of cached dataset access tokens from storage.
-     *
-     * @returns {Record<string, DatasetToken>} A dictionary of cached dataset tokens keyed by dataset ID.
-     */
-    getAllDatasetTokens(): Record<string, DatasetToken>;
-    /**
-     * Retrieves the cached dataset access token object for a specific dataset from storage.
-     *
-     * @param {string} dataset - Target dataset ID.
-     * @returns {DatasetToken|null} The cached dataset token object, or null if not found.
-     */
-    getDatasetToken(dataset: string): DatasetToken | null;
-    /**
-     * Stores a dataset access token credentials object in storage under the given dataset ID.
-     *
-     * @param {string} dataset - Target dataset ID.
-     * @param {DatasetToken} token - The dataset access token credentials to cache.
-     * @returns {void}
-     */
-    setDatasetToken(dataset: string, token: DatasetToken): void;
-    /**
-     * Clears all cached dataset access tokens from storage.
-     * @returns {void}
-     */
-    clearDatasetTokens(): void;
-    /**
-     * Checks whether the given dataset access token is expired or will expire within the given skew window.
-     *
-     * @param {DatasetToken|null} [token] - The dataset token object to inspect.
-     * @param {number} [skewSeconds=30] - Safety margin in seconds before expiration.
-     * @returns {boolean} True if the token is missing, expired, or expiring within skewSeconds.
-     */
-    isDatasetTokenExpired(token?: DatasetToken | null, skewSeconds?: number): boolean;
-    /**
-     * Retrieves a guaranteed-valid dataset access token string for the target dataset.
-     *
-     * 1. Checks localStorage for a cached dataset token for `dataset`. If present and valid
-     *    (not expiring within `skewSeconds`), returns its `access_token` immediately.
-     * 2. If expired or not yet cached, retrieves a valid user access token via {@link Tokens#getValidAccessToken}.
-     *    If unauthenticated or user session cannot be renewed, returns null.
-     * 3. Calls `POST /api/userz/dataset/access-token` on userz requesting all grants (`0x0F`),
-     *    which the server clamps to the user's actual grants on that dataset.
-     * 4. Caches the resulting {@link DatasetToken} in localStorage under `dataset` and returns the token string.
-     * 5. Deduplicates concurrent requests for the same dataset so only a single network request is made.
-     *
-     * @param {string} dataset - Target dataset ID.
-     * @param {number} [skewSeconds=30] - Safety margin in seconds before expiration.
-     * @returns {Promise<string|null>} The active dataset access token string, or null if unauthorized/error.
-     */
-    getValidDatasetAccessToken(dataset: string, skewSeconds?: number): Promise<string | null>;
-}
-export { Tokens };
 /**
  * @fileoverview Service container managing SDK service instances and configuration.
  */
@@ -4986,6 +4661,299 @@ declare class Services {
     funcs(): SdkFuncs;
 }
 export { Services, Apis, SdkFuncs };
+/**
+ * @fileoverview Authentication client using i6userz PKCE redirect flow.
+ *
+ * Flow Architecture:
+ * 1. Login Initiation: {@link Auth#login} generates an RFC 7636 PKCE code verifier and S256 code
+ *    challenge, persists `code_verifier` in sessionStorage, appends the target application URL (`callback`)
+ *    as a query parameter to `config.userExchangeCallbackUrl`, and redirects the browser to `GET /api/userz/auth`.
+ * 2. Identity Provider Authentication: The user signs in via Google or Email/Password on the i6userz UI.
+ * 3. Authorization Code Redirect: i6userz redirects the browser to the intermediate exchange URL
+ *    (`config.userExchangeCallbackUrl`) with a short-lived authorization `code` appended.
+ * 4. Token Exchange: The exchange callback page invokes {@link Auth#handleCallback}, which retrieves
+ *    the `code_verifier` from sessionStorage, calls the Tokens service to exchange them via `POST /api/userz/auth/exchange`
+ *    for active tokens (access token JWT, refresh token, user ID, expiration), persists them, and redirects the browser
+ *    to the original application URL.
+ * 5. Profile Retrieval: {@link Auth#user} fetches user identity metadata via `GET /api/userz/auth/me`
+ *    using Bearer token authentication.
+ */
+export type Services = import("../services/services.js").Services;
+export type UserToken = import("../tokens/tokens.js").UserToken;
+export type AuthPayload = {
+    /**
+     * - Authenticated user unique identifier UUID.
+     */
+    user_id: string;
+    /**
+     * - Redacted email address for display (e.g. "u***@infinity6.ai").
+     */
+    email_redacted?: string;
+    /**
+     * - List of linked identity providers (e.g. ["google", "password"]).
+     */
+    providers?: string[];
+    /**
+     * - Account creation timestamp in epoch milliseconds.
+     */
+    created_at?: number;
+    /**
+     * - User ID (legacy alias for user_id).
+     */
+    sub?: string;
+    /**
+     * - User display name (legacy alias).
+     */
+    display?: string;
+    /**
+     * - User email address (legacy alias).
+     */
+    email?: string;
+};
+/**
+ * Authentication client for handling browser redirects, PKCE, and user profile retrieval with i6userz.
+ * Configuration (callbackUrl, userExchangeCallbackUrl, app) is read directly from `i6sdk.config()`.
+ */
+declare class Auth {
+    /**
+     * @private
+     * @type {Services}
+     */
+    _services;
+    /**
+     * Constructs an Auth client instance.
+     * @param {Services} services - The services manager instance.
+     */
+    constructor(services: Services);
+    /**
+     * Retrieves the base URL for the i6userz authentication service from SDK configuration.
+     * Resolution precedence:
+     * 1. `config.servUrls["userz"]`
+     * 2. `config.userzUrl`
+     * 3. `config.baseUrl`
+     * 4. Empty string fallback
+     * @private
+     * @returns {string} The base URL for userz.
+     */
+    private _getUserzUrl;
+    /**
+     * Resolves the session storage adapter for transient auth data (e.g. PKCE code verifier).
+     * Checks SDK configuration for a custom session storage adapter or factory function,
+     * falling back to the browser's global `sessionStorage`.
+     * @private
+     * @returns {import("../index.js").I6Storage|null} The active session storage adapter or null if unavailable.
+     */
+    private _getSessionStorage;
+    /**
+     * Navigates the browser window to a target URL.
+     * @private
+     * @param {string} url - Target URL.
+     * @returns {void}
+     */
+    private _navigate;
+    /**
+     * Redirects the browser location to a callback URL.
+     * @private
+     * @param {string} url - Target redirect URL.
+     * @returns {void}
+     */
+    private _redirect;
+    /**
+     * Validates whether a redirect URL is safe to prevent open redirect vulnerabilities.
+     * A URL is considered safe if:
+     * 1. It is a relative path starting with '/' (but not '//' or '/\\').
+     * 2. It is an absolute URL whose origin matches window.location.origin or configured callback URLs.
+     * @private
+     * @param {string} url - The URL to validate.
+     * @returns {boolean} True if the redirect target is safe, false otherwise.
+     */
+    private _isSafeRedirect;
+    /**
+     * Generates a cryptographically random standard PKCE code verifier (RFC 7636 §4.1).
+     * Uses unreserved URL characters (`[A-Z]`, `[a-z]`, `[0-9]`, `-`, `.`, `_`, `~`).
+     * @private
+     * @param {number} [length=64] - The length of the code verifier (between 43 and 128 characters).
+     * @returns {string} The generated code verifier string.
+     */
+    private _generateCodeVerifier;
+    /**
+     * Generates an RFC 7636 S256 PKCE code challenge from a code verifier.
+     * Computes SHA-256 over the ASCII code verifier and base64url-encodes the digest without padding.
+     * @private
+     * @param {string} verifier - The plaintext code verifier.
+     * @returns {Promise<string>} The base64url-encoded code challenge.
+     * @throws {Error} If Web Crypto API (`crypto.subtle.digest`) is unavailable.
+     */
+    private _generateCodeChallenge;
+    /**
+     * Encodes a byte array as an unpadded base64url string (RFC 4648 §5).
+     * Replaces '+' with '-', '/' with '_', and strips trailing '=' padding.
+     * @private
+     * @param {Uint8Array|ArrayBuffer} bytes - The bytes to encode.
+     * @returns {string} The base64url-encoded string.
+     * @throws {Error} If no base64 encoder (`btoa` or Node.js `Buffer`) is available.
+     */
+    private _base64UrlEncode;
+    /**
+     * Redirects the browser to the i6userz login page (`GET /api/userz/auth`) to initiate the PKCE login flow.
+     *
+     * Validates that `config.userExchangeCallbackUrl` is configured, clears any existing token,
+     * generates a random PKCE `code_verifier` and S256 `code_challenge`, persists the `code_verifier`
+     * in session storage only, and redirects the browser with `app`, `redirect`, and `code_challenge`
+     * query parameters.
+     *
+     * @param {string} [callbackUrl] - The final destination URL to return to after login and token exchange complete.
+     *   Defaults to `window.location.href`.
+     * @returns {Promise<string>} The generated login URL.
+     * @throws {string} If `config.userExchangeCallbackUrl` is not defined in the SDK configuration.
+     */
+    login(callbackUrl?: string): Promise<string>;
+    /**
+     * Processes the authorization code present in the URL query string, exchanging it for tokens via
+     * the Tokens service (`POST /api/userz/auth/exchange`), and redirecting to the post-exchange `callback` URL.
+     *
+     * Validates the CSRF `state` parameter against session storage, and retrieves the PKCE `code_verifier`
+     * from session storage. Deletes both from session storage upon processing.
+     *
+     * Note: This method must be called explicitly by the exchange callback page
+     * (configured via `config.userExchangeCallbackUrl`). It is not called automatically by `user()`.
+     *
+     * @returns {Promise<boolean>} True if handling tokens completed (code was exchanged and redirect initiated),
+     *   false if not an auth callback (no authorization `code` in the URL query parameters).
+     * @throws {Error} If state mismatch occurs, token exchange fails, or server returns an error.
+     */
+    handleCallback(): Promise<boolean>;
+    /**
+     * Retrieves the stored user token credentials from the Tokens service.
+     *
+     * @param {boolean} [refreshed] - Optional flag indicating whether to return
+     *   a freshly refreshed token.
+     * @returns {UserToken|null} The stored user token object, or null if no valid session exists.
+     */
+    getUserToken(refreshed?: boolean): UserToken | null;
+    /**
+     * Retrieves the active user access token JWT string for authorizing API requests.
+     *
+     * @returns {string|undefined} The signed EdDSA user access token JWT,
+     *   or undefined if no user is authenticated.
+     */
+    getAccessToken(): string | undefined;
+    /**
+     * Retrieves a guaranteed-valid user access token JWT string, silently refreshing if expired.
+     *
+     * @param {number} [skewSeconds=30] - Safety margin in seconds before expiration.
+     * @returns {Promise<string|null>} The valid user access token JWT, or null if unauthenticated.
+     */
+    getValidAccessToken(skewSeconds?: number): Promise<string | null>;
+    /**
+     * Refreshes the active user access token using the stored refresh token.
+     *
+     * @returns {Promise<UserToken|null>} The refreshed user token credentials, or null if failed.
+     */
+    refresh(): Promise<UserToken | null>;
+    /**
+     * Clears all stored authentication tokens and credentials via the Tokens service,
+     * and clears any pending PKCE code verifier and CSRF state in session storage.
+     * @returns {void}
+     */
+    clearTokens(): void;
+    /**
+     * Fetches the current authenticated user profile metadata (`GET /api/userz/auth/me`).
+     * Sends a valid user access token in the `Authorization: Bearer <user_access_token>` header,
+     * automatically performing a silent renewal if the access token has expired.
+     * Does not redirect; use {@link Auth#requireUser} to automatically force a login redirect.
+     *
+     * Note: Expects tokens to already be present in storage. Call {@link Auth#handleCallback}
+     * on the exchange page before attempting to fetch the user profile.
+     *
+     * @returns {Promise<AuthPayload|null>} The user profile data, or null if unauthenticated.
+     * @throws {Error} If the network request fails or the userz service returns an error status.
+     */
+    user(): Promise<AuthPayload | null>;
+    /**
+     * Fetches the current user profile, automatically redirecting the browser to the login page
+     * via {@link Auth#login} when the user is unauthenticated.
+     *
+     * @returns {Promise<AuthPayload|null>} The user profile data, or null when redirecting to login.
+     */
+    requireUser(): Promise<AuthPayload | null>;
+    /**
+     * Logs out the current user by revoking the session family server-side via `POST /api/userz/auth/logout`,
+     * clearing stored credentials and session storage, and navigating to `backurl`.
+     *
+     * @param {string} [backurl] - The URL to return to after logging out.
+     *   Defaults to `config.callbackUrl` or the current window URL (`window.location.href`).
+     * @returns {Promise<void>}
+     */
+    logout(backurl?: string): Promise<void>;
+}
+export { Auth };
+/**
+ * @fileoverview Queries an i6 dash in the browser: downloads the dash's sqlite, runs the named query
+ * `dash-${dashName}` on it and returns its result as is. Nothing here is dash specific.
+ *
+ * Set `window.I6_DEBUG = true` to see what happens in the console.
+ */
+export type Services = import("../services/services.js").Services;
+export type ServiceOptions = import("../invoker/invoker.js").ServiceOptions;
+export type DashOptions = {
+    /**
+     * - Dash name (e.g. "product-relevance-fashion-dash-funnel"); names the cached sqlite and the named query.
+     */
+    dashName: string;
+    /**
+     * - Partitions of the dash, name -> value (e.g. `{ store_id: "s1", version: "v1" }`).
+     */
+    partitions: Record<string, string>;
+    /**
+     * - Dataset that holds the dash file.
+     */
+    dataset: string;
+    /**
+     * - Query input, any JSON. Bound as `?1` of the named query. Omit it for a query that takes none.
+     */
+    params?: any;
+    /**
+     * - Tests only: URL of the sqlite (must answer HEAD with an etag). Default: the model API.
+     */
+    sqliteUrl?: string;
+    /**
+     * - Given to the API call that signs the sqlite URL.
+     */
+    serviceOpts?: ServiceOptions;
+};
+/**
+ * Dash client.
+ */
+declare class Dash {
+    /**
+     * @private
+     * @type {Services}
+     */
+    _services;
+    /**
+     * Constructs a Dash client instance.
+     * @param {Services} services - The services manager instance.
+     */
+    constructor(services: Services);
+    /**
+     * Downloads the dash sqlite (cached by etag), runs the named query `dash-${dashName}` with `params` and returns its result.
+     * @param {DashOptions} opts - Dash options.
+     * @returns {Promise<*>} The `ret` of the named query.
+     * @throws {I6Error} With code "invalid_argument" if opts is malformed, "asset" if the download fails,
+     *   "query" if the sqlite fails.
+     */
+    query(opts: DashOptions): Promise<any>;
+    /**
+     * Finds where the dash sqlite is: the signed URL of the model API (like Infer), unless opts has `sqliteUrl` (tests).
+     * @private
+     * @param {DashOptions} opts - Dash options.
+     * @returns {Promise<string>} Download URL of the sqlite.
+     * @throws {I6Error} With code "asset" if the API gave no URL.
+     */
+    private _sqliteUrl;
+}
+export { Dash };
 /**
  * @fileoverview The LiteRT side of infer: loads the tflite model and runs it. Everything that touches the
  * LiteRT library (runtime, model, tensors) is in this file. The caller only gives data and gets values back.
@@ -5207,591 +5175,638 @@ declare class Infer {
 }
 export { Infer };
 /**
- * @fileoverview HTTP client for sending API requests to i6 services.
+ * @fileoverview Token management client for i6 SDK.
+ * Manages storage, retrieval, exchange, and silent renewal of authentication (user) and authorization (dataset) tokens.
  */
 export type Services = import("../services/services.js").Services;
-export type Fetcher = (url: string, opts: InvokeOptions) => Promise<Response>;
-export type PrepareRequest = (opts: InvokeOptions) => Promise<void> | void;
-export type ServiceOptions = {
+export type UserToken = {
     /**
-     * - [Go: string]
+     * - Signed EdDSA user access token JWT.
      */
-    datasetToken?: string;
+    user_access_token: string;
     /**
-     * - [Go: string]
+     * - Opaque user refresh token used for session extension.
      */
-    bearerToken?: string;
+    user_refresh_token: string;
     /**
-     * - Labels
+     * - Authenticated user unique identifier UUID.
+     */
+    user_id: string;
+    /**
+     * - Access token expiration timestamp in epoch milliseconds.
+     */
+    expires_at: number;
+    /**
+     * - Refresh token expiration timestamp in epoch milliseconds.
+     */
+    refresh_token_expires_at?: number;
+};
+export type DatasetToken = {
+    /**
+     * - Binary packed and signed dataset access token string.
+     */
+    access_token: string;
+    /**
+     * - Target dataset ID.
+     */
+    dataset: string;
+    /**
+     * - Solution domain restriction.
+     */
+    solution?: string;
+    /**
+     * - Compact uint8 grant bitmask held over dataset.
+     */
+    grants: number;
+    /**
+     * - Access token expiration timestamp in epoch milliseconds.
+     */
+    expires_at: number;
+    /**
+     * - Contextual metadata labels.
      */
     labels?: Record<string, string>;
-    /**
-     * - Custom fetch implementation.
-     */
-    fetcher?: Fetcher;
-    /**
-     * - Hook to mutate request options before sending (e.g., adding `sig` query parameter).
-     */
-    prepareRequest?: PrepareRequest;
-};
-export type InvokeOptions = {
-    /**
-     * - The full URL to request. If omitted, defaults to `${baseUrl}/${path}`.
-     */
-    url?: string;
-    /**
-     * - The path to append to the baseUrl if `url` is not provided.
-     */
-    path?: string;
-    /**
-     * - Key-value pairs to append as query parameters.
-     */
-    query?: Record<string, any>;
-    /**
-     * - JSON-serializable body data. If provided, sets Content-Type header to application/json and serializes to body.
-     */
-    json?: any;
-    /**
-     * - HTTP method (e.g., 'GET', 'POST', 'PUT', 'DELETE').
-     */
-    method?: string;
-    /**
-     * - HTTP headers for the request.
-     */
-    headers?: HeadersInit;
-    /**
-     * - HTTP request body.
-     */
-    body?: BodyInit | null;
-    /**
-     * - Request credentials mode (e.g., 'include', 'same-origin', 'omit').
-     */
-    credentials?: RequestCredentials;
-    /**
-     * - Request mode (e.g., 'cors', 'no-cors', 'same-origin').
-     */
-    mode?: RequestMode;
-    /**
-     * - An AbortSignal to cancel the request.
-     */
-    signal?: AbortSignal | null;
-    opts?: ServiceOptions;
-    sinkable?: boolean;
 };
 /**
- * Invoker client for executing HTTP requests against the i6 API.
+ * Client for managing authentication tokens, local storage persistence, token exchanges,
+ * automatic user session renewal, and dataset access token derivation.
  */
-declare class Invoker {
+declare class Tokens {
     /**
      * @private
      * @type {Services}
      */
     _services;
     /**
-     * Constructs an Invoker instance.
+     * In-flight user refresh promise to prevent duplicate refresh calls during concurrent operations.
+     * @private
+     * @type {Promise<UserToken|null>|null}
+     */
+    _refreshPromise;
+    /**
+     * In-flight dataset token request promises by dataset ID to deduplicate concurrent requests.
+     * @private
+     * @type {Map<string, Promise<DatasetToken|null>>}
+     */
+    _datasetTokenPromises;
+    /**
+     * Constructs a Tokens client instance.
      * @param {Services} services - The services manager instance.
      */
     constructor(services: Services);
     /**
-     * Sends an HTTP request using the Fetch API.
+     * Retrieves the base URL for the i6userz authentication service from SDK configuration.
+     * Resolution precedence:
+     * 1. `config.servUrls["userz"]`
+     * 2. `config.userzUrl`
+     * 3. `config.baseUrl`
+     * 4. Empty string fallback
+     * @private
+     * @returns {string} The base URL for userz.
+     */
+    private _getUserzUrl;
+    /**
+     * Resolves the storage adapter for token persistence.
+     * Checks SDK configuration for a custom storage adapter or factory function,
+     * falling back to the browser's global `localStorage`.
+     * @private
+     * @returns {import("../index.js").I6Storage|null} The active storage adapter or null if unavailable.
+     */
+    private _getStorage;
+    /**
+     * Checks whether the given user access token is expired or will expire within the given skew window.
      *
-     * @param {InvokeOptions} opts - Request options including path/URL, query params, and fetch options.
-     * Credentials are always set to "include" so the session cookie is sent. Note that `opts`
-     * is modified (credentials, and headers/body when `json` is given). An HTTP error status
-     * does not throw; check `ok` on the returned Response.
-     * @returns {Promise<Response>} A promise that resolves to the fetch Response.
-     * @throws {TypeError} If the network request fails (from fetch).
+     * @param {UserToken|null} [token] - The token object to inspect. If omitted, inspects stored token.
+     * @param {number} [skewSeconds=30] - Safety margin in seconds before actual expiration timestamp.
+     * @returns {boolean} True if the access token is missing, expired, or expiring within skewSeconds.
      */
-    invoke(opts: InvokeOptions): Promise<Response>;
+    isAccessTokenExpired(token?: UserToken | null, skewSeconds?: number): boolean;
     /**
-     * Like `invoke`, but never throws: resolves with `{status, ok, <key>}` on success and with
-     * `{status, ok: false, error}` (see `I6ApiError`) on an HTTP error or a network failure.
-     * A success with status 204 or an empty body resolves with `{status, ok: true}` and no `<key>`.
-     * @param {InvokeOptions} opts - Same as `invoke`.
-     * @param {"payload"|"body"} [key] - Where the parsed JSON of a success is put.
-     * @returns {Promise<{status: number, ok: boolean, error?: import("../errors.js").I6ApiError} & Record<string, any>>}
+     * Checks whether the user refresh token is expired.
+     *
+     * @param {UserToken|null} [token] - The token object to inspect. If omitted, inspects stored token.
+     * @returns {boolean} True if the refresh token is missing or its expiration timestamp has elapsed.
      */
-    invokeResult(opts: InvokeOptions, key?: "payload" | "body"): Promise<{
-        status: number;
-        ok: boolean;
-        error?: import("../errors.js").I6ApiError;
-    } & Record<string, any>>;
-}
-export { Invoker };
-/**
- * @fileoverview Error types thrown by the i6 Web Legacy SDK.
- */
-export type I6ErrorCode = "http" | "network" | "invalid_argument" | "no_upload_url" | "asset" | "model" | "query";
-export type I6ApiErrorCode = "unauthenticated" | "forbidden" | "not_found" | "bad_request" | "unavailable" | "network";
-export type I6ApiError = {
+    isRefreshTokenExpired(token?: UserToken | null): boolean;
     /**
-     * - HTTP status; 0 when the server did not answer (network failure).
+     * Retrieves the stored user token credentials from storage.
+     *
+     * @param {boolean} [refreshed] - Optional flag indicating whether to return
+     *   a freshly refreshed token.
+     * @returns {UserToken|null} The stored user token object containing access and
+     *   refresh tokens, or null if no valid session exists in storage.
      */
-    status: number;
+    getUserToken(refreshed?: boolean): UserToken | null;
     /**
-     * - Failure kind, from the status: 401 "unauthenticated" (session expired),
-     * 403 "forbidden" (no permission), 404 "not_found" (no data), other 4xx "bad_request", 5xx "unavailable".
-     */
-    code: I6ApiErrorCode;
-    /**
-     * - The server response text as is (e.g. the Stripe reason), or "HTTP <status>" if empty.
-     */
-    message: string;
-    /**
-     * - The raw response text, or the underlying error on a network failure.
-     */
-    cause?: any;
-};
-export type I6Result<R> = ({
-    status: number;
-    ok: true;
-    body?: any;
-} & R) | {
-    status: number;
-    ok: false;
-    error: I6ApiError;
-};
-/**
- * @typedef {"http"|"network"|"invalid_argument"|"no_upload_url"|"asset"|"model"|"query"} I6ErrorCode
- */
-/**
- * Why an API call failed, derived from the HTTP status alone; the server message is never parsed.
- * @typedef {"unauthenticated"|"forbidden"|"not_found"|"bad_request"|"unavailable"|"network"} I6ApiErrorCode
- */
-/**
- * Error of an API call that did not succeed, as returned in `I6Result.error`.
- * @typedef {Object} I6ApiError
- * @property {number} status - HTTP status; 0 when the server did not answer (network failure).
- * @property {I6ApiErrorCode} code - Failure kind, from the status: 401 "unauthenticated" (session expired),
- *   403 "forbidden" (no permission), 404 "not_found" (no data), other 4xx "bad_request", 5xx "unavailable".
- * @property {string} message - The server response text as is (e.g. the Stripe reason), or "HTTP <status>" if empty.
- * @property {*} [cause] - The raw response text, or the underlying error on a network failure.
- */
-/**
- * What every generated API call resolves with; it does not throw on an HTTP error or a network failure.
- * Check `ok` to tell the two shapes apart. `body` is the parsed JSON of an API that has no declared payload.
- * @template R - The generated response type of the API (`{payload}`).
- * @typedef {({status: number, ok: true, body?: *} & R) | {status: number, ok: false, error: I6ApiError}} I6Result
- */
-/**
- * Error thrown by the SDK when a call fails.
- *
- * `code` tells what kind of failure it was, so callers can branch on it instead of parsing
- * the message. `status` and `body` are set for `"http"` failures. `"asset"` failures also have `status`
- * when a file download was answered with an error (404: the file does not exist), and always `cause`.
- */
-declare class I6Error extends Error {
-    /** @type {I6ErrorCode|undefined} */
-    code: I6ErrorCode | undefined;
-    /** @type {number|undefined} */
-    status: number | undefined;
-    /** @type {*} */
-    body: any;
-    /**
-     * @param {string} message - Human readable description.
-     * @param {Object} [details]
-     * @param {I6ErrorCode} [details.code] - Failure kind. Defaults to "http" when a status is given.
-     * @param {number} [details.status] - HTTP status code, when the server answered.
-     * @param {*} [details.body] - Error body of the response (parsed JSON, or raw text).
-     * @param {*} [details.cause] - The underlying error, if any.
-     */
-    constructor(message: string, { code, status, body, cause }?: {
-        code?: I6ErrorCode;
-        status?: number;
-        body?: any;
-        cause?: any;
-    });
-    /**
-     * Builds an "http" error from a failed generated-client result ({status, error}).
-     * @param {string} message
-     * @param {{status: number, error?: *}} result
-     * @returns {I6Error}
-     */
-    static fromResult(message: string, result: {
-        status: number;
-        error?: any;
-    }): I6Error;
-}
-/**
- * Builds the error of a failed HTTP response, keeping the server text untouched.
- * @param {number} status - HTTP status.
- * @param {string} text - Response body as text.
- * @returns {I6ApiError}
- */
-declare function apiErrorFromResponse(status: number, text: string): I6ApiError;
-/**
- * Builds the error of a request that got no answer.
- * @param {*} cause - The error thrown by fetch.
- * @returns {I6ApiError}
- */
-declare function apiErrorFromNetwork(cause: any): I6ApiError;
-export { I6Error, apiErrorFromResponse, apiErrorFromNetwork };
-/**
- * @fileoverview Queries an i6 dash in the browser: downloads the dash's sqlite, runs the named query
- * `dash-${dashName}` on it and returns its result as is. Nothing here is dash specific.
- *
- * Set `window.I6_DEBUG = true` to see what happens in the console.
- */
-export type Services = import("../services/services.js").Services;
-export type ServiceOptions = import("../invoker/invoker.js").ServiceOptions;
-export type DashOptions = {
-    /**
-     * - Dash name (e.g. "product-relevance-fashion-dash-funnel"); names the cached sqlite and the named query.
-     */
-    dashName: string;
-    /**
-     * - Partitions of the dash, name -> value (e.g. `{ store_id: "s1", version: "v1" }`).
-     */
-    partitions: Record<string, string>;
-    /**
-     * - Dataset that holds the dash file.
-     */
-    dataset: string;
-    /**
-     * - Query input, any JSON. Bound as `?1` of the named query. Omit it for a query that takes none.
-     */
-    params?: any;
-    /**
-     * - Tests only: URL of the sqlite (must answer HEAD with an etag). Default: the model API.
-     */
-    sqliteUrl?: string;
-    /**
-     * - Given to the API call that signs the sqlite URL.
-     */
-    serviceOpts?: ServiceOptions;
-};
-/**
- * Dash client.
- */
-declare class Dash {
-    /**
-     * @private
-     * @type {Services}
-     */
-    _services;
-    /**
-     * Constructs a Dash client instance.
-     * @param {Services} services - The services manager instance.
-     */
-    constructor(services: Services);
-    /**
-     * Downloads the dash sqlite (cached by etag), runs the named query `dash-${dashName}` with `params` and returns its result.
-     * @param {DashOptions} opts - Dash options.
-     * @returns {Promise<*>} The `ret` of the named query.
-     * @throws {I6Error} With code "invalid_argument" if opts is malformed, "asset" if the download fails,
-     *   "query" if the sqlite fails.
-     */
-    query(opts: DashOptions): Promise<any>;
-    /**
-     * Finds where the dash sqlite is: the signed URL of the model API (like Infer), unless opts has `sqliteUrl` (tests).
-     * @private
-     * @param {DashOptions} opts - Dash options.
-     * @returns {Promise<string>} Download URL of the sqlite.
-     * @throws {I6Error} With code "asset" if the API gave no URL.
-     */
-    private _sqliteUrl;
-}
-export { Dash };
-/**
- * @fileoverview Main entry point for the i6 Web Legacy SDK.
- */
-import { Apis, SdkFuncs } from "./services/services.js";
-import { I6Error } from "./errors.js";
-export type I6Storage = {
-    /**
-     * - Retrieves an item by key.
-     */
-    getItem: (key: string) => string | null;
-    /**
-     * - Stores an item by key and string value.
-     */
-    setItem: (key: string, value: string) => void;
-    /**
-     * - Removes an item by key.
-     */
-    removeItem: (key: string) => void;
-};
-export type I6SdkConfig = {
-    /**
-     * - Base URL of the i6 server. Defaults to the sandbox environment.
-     */
-    baseUrl?: string;
-    /**
-     * - Base URL of the other services, by the `servname` label of the api (e.g. `tfinfer`). An api whose service is not listed uses `baseUrl`.
-     */
-    servUrls?: Record<string, string>;
-    /**
-     * - Direct base URL override for the i6userz authentication service.
-     */
-    userzUrl?: string;
-    /**
-     * - Absolute URL of the application's exchange callback page handling PKCE token exchange.
-     */
-    userExchangeCallbackUrl?: string;
-    /**
-     * - Default application redirect URL after logout.
-     */
-    callbackUrl?: string;
-    /**
-     * - Client application identifier registered in i6userz (e.g. 'default').
-     */
-    app?: string;
-    /**
-     * - Default dataset authorization token string for API requests.
-     */
-    datasetToken?: string;
-    /**
-     * - Default user bearer token JWT string for API requests.
-     */
-    bearerToken?: string;
-    /**
-     * - Optional storage adapter for persistent token storage. Defaults to global `localStorage` when omitted.
-     */
-    storage?: I6Storage | (() => I6Storage);
-    /**
-     * - Optional alias for persistent storage adapter (defaults to global `localStorage`).
-     */
-    localStorage?: I6Storage | (() => I6Storage);
-    /**
-     * - Optional storage adapter for session-scoped data such as PKCE code verifier. Defaults to global `sessionStorage` when omitted.
-     */
-    sessionStorage?: I6Storage | (() => I6Storage);
-    /**
-     * - Optional alias for session storage adapter.
-     */
-    storageSession?: I6Storage | (() => I6Storage);
-};
-/**
- * Main SDK class providing access to i6 services.
- */
-declare class I6Sdk {
-    /**
-     * @private
-     * @type {Services}
-     */
-    _service;
-    /**
-     * Constructs an instance of the i6 SDK.
-     * @param {I6SdkConfig} [config] - Configuration options for the SDK.
-     */
-    constructor(config?: I6SdkConfig);
-    /**
-     * Returns a copy of the configuration the SDK is running with.
-     * @returns {I6SdkConfig} The current configuration.
-     */
-    config(): I6SdkConfig;
-    /**
-     * Overwrites the given keys of the configuration; the other keys are kept.
-     * Can be called at any time, the next call of the SDK uses the new values.
-     * @param {Partial<I6SdkConfig>} config - The keys to overwrite.
+     * Stores user token credentials in storage under `'i6_user_user_token'`.
+     *
+     * @param {UserToken} token - The user token credentials to store.
      * @returns {void}
      */
-    setConfig(config: Partial<I6SdkConfig>): void;
+    setUserToken(token: UserToken): void;
     /**
-     * Returns an Ingest service instance.
-     * @returns {import("./ingest/ingest.js").Ingest} An instance of the Ingest client.
+     * Retrieves the raw stored user access token JWT string without checking expiration or refreshing.
+     * Use {@link Tokens#getValidAccessToken} when fresh/valid credentials are required.
+     *
+     * @returns {string|undefined} The signed EdDSA user access token JWT,
+     *   or undefined if no user is authenticated.
      */
-    ingest(): import("./ingest/ingest.js").Ingest;
+    getAccessToken(): string | undefined;
     /**
-     * Returns an Infer service instance, which runs an i6 model in the browser and returns the result.
-     * @returns {import("./infer/infer.js").Infer} An instance of the Infer client.
-     */
-    infer(): import("./infer/infer.js").Infer;
-    /**
-     * Returns a Dash service instance, which queries an i6 dash in the browser and returns the result.
-     * @returns {import("./dash/dash.js").Dash} An instance of the Dash client.
-     */
-    dash(): import("./dash/dash.js").Dash;
-    /**
-     * Returns an Auth service instance.
-     * @returns {import("./auth/auth.js").Auth} An instance of the Auth client.
-     */
-    auth(): import("./auth/auth.js").Auth;
-    /**
-     * Returns a Tokens service instance.
-     * @returns {import("./tokens/tokens.js").Tokens} An instance of the Tokens client.
-     */
-    tokens(): import("./tokens/tokens.js").Tokens;
-    /**
-     * Returns the Apis service instance, one typed method per i6 server API.
-     * Each call resolves with `{status, ok, payload?, error?}` and does not throw on an HTTP error.
-     * @returns {Apis} An instance of the generated Apis client.
-     */
-    apis(): Apis;
-    /**
-     * Returns the Funcs service instance.
-     * @returns {SdkFuncs} An instance of the SdkFuncs client.
-     */
-    funcs(): SdkFuncs;
-    /**
-     * Registers an event listener on the SDK's internal event dispatcher (an EventTarget).
-     * @param {string} evt - The event type or name to listen for.
-     * @param {EventListenerOrEventListenerObject|Function} fn - The callback function or event listener object invoked when the event occurs.
+     * Clears all stored authentication and authorization tokens from storage.
+     * Removes both the user token (`'i6_user_user_token'`) and all cached dataset
+     * access tokens (`'i6_dataset_access_tokens'`).
      * @returns {void}
      */
-    bind(evt: string, fn: EventListenerOrEventListenerObject | Function): void;
+    clearTokens(): void;
+    /**
+     * Exchanges an authorization code and PKCE code verifier for user token credentials
+     * via `POST /api/userz/auth/exchange`, and persists them in localStorage.
+     * Automatically clears any existing dataset tokens before storing new session credentials.
+     *
+     * @param {string} code - The authorization code returned by i6userz auth.
+     * @param {string} codeVerifier - The PKCE code verifier matching the login challenge.
+     * @returns {Promise<UserToken>} The exchanged user token credentials.
+     * @throws {Error} If the token exchange request fails or the server returns an error status.
+     */
+    exchange(code: string, codeVerifier: string): Promise<UserToken>;
+    /**
+     * Redeems a checkout artifact ticket via `POST /api/decsuite/auth/checkoutredeem`,
+     * and persists the resulting user token credentials in localStorage.
+     * Automatically clears any existing dataset tokens before storing new session credentials.
+     *
+     * @param {string} checkoutCode - The encrypted checkout ticket issued by checkoutcallback.
+     * @returns {Promise<UserToken>} The redeemed user token credentials.
+     * @throws {Error} If the redemption request fails or the server returns an error status.
+     */
+    redeemCheckout(checkoutCode: string): Promise<UserToken>;
+    /**
+     * Refreshes the user access token using the stored user refresh token via `POST /api/userz/auth/refresh`.
+     * Enforces token family rotation by storing the newly rotated refresh token and fresh access token.
+     * Deduplicates concurrent in-flight refresh requests to prevent token reuse conflicts.
+     *
+     * @returns {Promise<UserToken|null>} The refreshed token credentials, or null if refresh failed / token revoked.
+     */
+    refresh(): Promise<UserToken | null>;
+    /**
+     * Revokes the active user session server-side via `POST /api/userz/auth/logout`.
+     * Sends the stored `user_refresh_token` to revoke the entire session token family in userzsession.
+     * Clears local tokens regardless of server response to guarantee client session cleanup.
+     *
+     * @returns {Promise<boolean>} True if revocation completed and tokens were cleared.
+     */
+    logout(): Promise<boolean>;
+    /**
+     * Retrieves a guaranteed-valid user access token JWT string.
+     *
+     * If the stored access token is still valid (not expired within `skewSeconds`), it is returned immediately.
+     * If the access token is expired or close to expiring, an automatic silent refresh is performed
+     * using the user refresh token.
+     * If the user is unauthenticated or the refresh token has expired/been revoked, returns null.
+     *
+     * @param {number} [skewSeconds=30] - Safety margin in seconds before expiration.
+     * @returns {Promise<string|null>} The valid user access token JWT, or null if unauthenticated or session expired.
+     */
+    getValidAccessToken(skewSeconds?: number): Promise<string | null>;
+    /**
+     * Retrieves the full map of cached dataset access tokens from storage.
+     *
+     * @returns {Record<string, DatasetToken>} A dictionary of cached dataset tokens keyed by dataset ID.
+     */
+    getAllDatasetTokens(): Record<string, DatasetToken>;
+    /**
+     * Retrieves the cached dataset access token object for a specific dataset from storage.
+     *
+     * @param {string} dataset - Target dataset ID.
+     * @returns {DatasetToken|null} The cached dataset token object, or null if not found.
+     */
+    getDatasetToken(dataset: string): DatasetToken | null;
+    /**
+     * Stores a dataset access token credentials object in storage under the given dataset ID.
+     *
+     * @param {string} dataset - Target dataset ID.
+     * @param {DatasetToken} token - The dataset access token credentials to cache.
+     * @returns {void}
+     */
+    setDatasetToken(dataset: string, token: DatasetToken): void;
+    /**
+     * Clears all cached dataset access tokens from storage.
+     * @returns {void}
+     */
+    clearDatasetTokens(): void;
+    /**
+     * Checks whether the given dataset access token is expired or will expire within the given skew window.
+     *
+     * @param {DatasetToken|null} [token] - The dataset token object to inspect.
+     * @param {number} [skewSeconds=30] - Safety margin in seconds before expiration.
+     * @returns {boolean} True if the token is missing, expired, or expiring within skewSeconds.
+     */
+    isDatasetTokenExpired(token?: DatasetToken | null, skewSeconds?: number): boolean;
+    /**
+     * Retrieves a guaranteed-valid dataset access token string for the target dataset.
+     *
+     * 1. Checks localStorage for a cached dataset token for `dataset`. If present and valid
+     *    (not expiring within `skewSeconds`), returns its `access_token` immediately.
+     * 2. If expired or not yet cached, retrieves a valid user access token via {@link Tokens#getValidAccessToken}.
+     *    If unauthenticated or user session cannot be renewed, returns null.
+     * 3. Calls `POST /api/userz/dataset/access-token` on userz requesting all grants (`0x0F`),
+     *    which the server clamps to the user's actual grants on that dataset.
+     * 4. Caches the resulting {@link DatasetToken} in localStorage under `dataset` and returns the token string.
+     * 5. Deduplicates concurrent requests for the same dataset so only a single network request is made.
+     *
+     * @param {string} dataset - Target dataset ID.
+     * @param {number} [skewSeconds=30] - Safety margin in seconds before expiration.
+     * @returns {Promise<string|null>} The active dataset access token string, or null if unauthorized/error.
+     */
+    getValidDatasetAccessToken(dataset: string, skewSeconds?: number): Promise<string | null>;
 }
-declare namespace I6Sdk {
-    export { I6Error };
+export { Tokens };
+/**
+ * @fileoverview Base64 URL safe encoding utilities.
+ */
+/**
+ * Encodes a string or Uint8Array to a Base64 URL safe string.
+ * @param {string|Uint8Array|ArrayBuffer} data
+ * @returns {string}
+ */
+export declare function encodeUrlSafe(data: string | Uint8Array | ArrayBuffer): string;
+/**
+ * Decodes a Base64 URL safe string to a Uint8Array.
+ * @param {string} b64UrlSafe
+ * @returns {Uint8Array}
+ */
+export declare function decodeUrlSafeToBytes(b64UrlSafe: string): Uint8Array;
+/**
+ * Decodes a Base64 URL safe string to a UTF-8 string.
+ * @param {string} b64UrlSafe
+ * @returns {string}
+ */
+export declare function decodeUrlSafe(b64UrlSafe: string): string;
+/**
+ * @fileoverview Gzip compression utilities.
+ */
+/**
+ * Compresses data (string, Uint8Array, or ArrayBuffer) using gzip.
+ * @param {string|Uint8Array|ArrayBuffer} data - The data to compress.
+ * @returns {Promise<Uint8Array>} The gzipped bytes.
+ */
+export declare function gzip(data: string | Uint8Array | ArrayBuffer): Promise<Uint8Array>;
+/**
+ * Decompresses gzipped bytes to a UTF-8 string.
+ * @param {Uint8Array|ArrayBuffer} compressedBytes - The gzipped data.
+ * @returns {Promise<string>} The decompressed string.
+ */
+export declare function gunzipString(compressedBytes: Uint8Array | ArrayBuffer): Promise<string>;
+/**
+ * Decompresses gzipped bytes and returns raw Uint8Array.
+ * @param {Uint8Array|ArrayBuffer} compressedBytes - The gzipped data.
+ * @returns {Promise<Uint8Array>} The decompressed bytes.
+ */
+export declare function gunzip(compressedBytes: Uint8Array | ArrayBuffer): Promise<Uint8Array>;
+/**
+ * Gzips a string and encodes it as a Base64 URL safe string.
+ * @param {string} str - The string to compress and encode.
+ * @returns {Promise<string>} The Base64 URL safe string.
+ */
+export declare function gzipStringToBase64Url(str: string): Promise<string>;
+/**
+ * Decodes a Base64 URL safe string and decompresses it as a UTF-8 string.
+ * @param {string} b64Str - The Base64 URL safe string.
+ * @returns {Promise<string>} The decompressed string.
+ */
+export declare function gunzipStringFromBase64Url(b64Str: string): Promise<string>;
+/**
+ * Gzips a given JSON object or array.
+ * @param {any} obj - The JSON serializable object to compress.
+ * @returns {Promise<Uint8Array>} The gzipped bytes.
+ */
+export declare function gzipJson(obj: any): Promise<Uint8Array>;
+/**
+ * Decompresses a gzipped byte array into a JSON object.
+ * @param {Uint8Array|ArrayBuffer} compressedBytes - The gzipped data.
+ * @returns {Promise<any>} The parsed JSON object.
+ */
+export declare function gunzipJson(compressedBytes: Uint8Array | ArrayBuffer): Promise<any>;
+/**
+ * Gzips a JSON object and encodes it as a Base64 URL safe string.
+ * @param {any} obj - The JSON serializable object.
+ * @returns {Promise<string>} The Base64 URL safe encoded string of the gzipped JSON.
+ */
+export declare function gzipJsonToBase64Url(obj: any): Promise<string>;
+/**
+ * Decodes a Base64 URL safe string, gunzips it, and parses it as JSON.
+ * @param {string} b64Str - The Base64 URL safe string containing gzipped JSON.
+ * @returns {Promise<any>} The parsed JSON object.
+ */
+export declare function gunzipJsonFromBase64Url(b64Str: string): Promise<any>;
+/**
+ * @fileoverview Versioned file store on the browser's origin private file system (OPFS).
+ *
+ * Layout under `i6/fs`:
+ *   {name}/version.txt          the released (current) version, if any
+ *   {name}/v{version}/etag.txt  the etag the version was created for
+ *   {name}/v{version}/blob.bin  the content (written by the caller, see `resolve`)
+ *
+ * Versions are ISO timestamps, so they sort in creation order.
+ */
+export type FileRef = {
+    /**
+     * - File name, a single OPFS directory name (e.g. "model").
+     */
+    name: string;
+    /**
+     * - Version id, an ISO timestamp (e.g. "2026-09-29T12:00:00.000Z").
+     */
+    version: string;
+    /**
+     * - Etag of the remote content this version was created for.
+     */
+    etag: string;
+};
+/**
+ * Versioned file store. Use the `fs` singleton.
+ *
+ * A file is created as a new unreleased version, filled, then released to become the
+ * current one; releasing removes the older versions.
+ */
+declare class FS {
+    /**
+     * Removes the versions older than version.txt, and the whole file if it is left empty.
+     * Without version.txt no version is removed.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @returns {Promise<void>}
+     */
+    cleanFile(opts: {
+        name: string;
+    }): Promise<void>;
+    /**
+     * Cleans all files, see cleanFile.
+     * @returns {Promise<void>}
+     */
+    clean(): Promise<void>;
+    /**
+     * Resolves a version of a file.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} [opts.version] - defaults to the content of version.txt
+     * @returns {Promise<FileRef|null>} a new full FileRef, or null if it does not exist.
+     */
+    get(opts: {
+        name: string;
+        version?: string;
+    }): Promise<FileRef | null>;
+    /**
+     * Creates a new version, unless the latest version already has this etag.
+     * The new version is not released.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.etag - required
+     * @param {Blob|BufferSource|string} [opts.data] - content, required when a new version is created
+     * @returns {Promise<FileRef>} a new full FileRef.
+     */
+    create(opts: {
+        name: string;
+        etag: string;
+        data?: Blob | BufferSource | string;
+    }): Promise<FileRef>;
+    /**
+     * Returns the bin file path, full (with base). Does not check that it exists, see get.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.version - required
+     * @returns {Promise<string>} e.g. "i6/fs/{name}/v{version}/blob.bin"
+     */
+    resolve(opts: {
+        name: string;
+        version: string;
+    }): Promise<string>;
+    /**
+     * Reads the content (blob.bin) of a version.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.version - required
+     * @returns {Promise<Uint8Array>} the bytes of the file.
+     * @throws {DOMException} NotFoundError if the version or its blob does not exist.
+     */
+    read(opts: {
+        name: string;
+        version: string;
+    }): Promise<Uint8Array>;
+    /**
+     * Makes a version the current one (version.txt), then cleans the older versions.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.version - required, must exist
+     * @returns {Promise<FileRef>} a new full FileRef of the released version.
+     */
+    release(opts: {
+        name: string;
+        version: string;
+    }): Promise<FileRef>;
+    /**
+     * Removes a version that was never released (e.g. its download failed). Does nothing if it does not exist.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.version - required, must not be the released one
+     * @returns {Promise<void>}
+     */
+    discard(opts: {
+        name: string;
+        version: string;
+    }): Promise<void>;
 }
-export { I6Sdk, I6Error };
+/** Shared FS instance. */
+declare const fs: FS;
+export { fs };
 /**
- * @fileoverview Ingest client for uploading files to the ingestion service.
+ * @fileoverview Helpers shared by the services that run on files downloaded from i6 (infer, dash).
  */
-export type Services = import("../services/services.js").Services;
-export type ServiceOptions = import("../invoker/invoker.js").ServiceOptions;
-export type Partitions = Record<string, string>;
-export type GetUrlParams = {
-    /**
-     * - Dataset name.
-     */
-    dataset: string;
-    /**
-     * - Inbox table name.
-     */
-    table: string;
-    /**
-     * - Values for the table partitions, except the ingest id one.
-     */
-    partitions: Partitions;
-    /**
-     * - Given to the ingestz-get-url API call.
-     */
-    serviceOpts?: ServiceOptions;
-};
-export type UploadProgress = {
-    /**
-     * - Bytes sent so far.
-     */
-    loaded: number;
-    /**
-     * - Total bytes to send (the file size when the browser can't tell).
-     */
-    total: number;
-    /**
-     * - Progress from 0 to 100.
-     */
-    percent: number;
-};
-export type UploadParams = {
-    /**
-     * - Dataset the file is ingested into.
-     */
-    dataset: string;
-    /**
-     * - Inbox table name.
-     */
-    table: string;
-    /**
-     * - Values for the table partitions, except the ingest id one.
-     */
-    partitions: Partitions;
-    /**
-     * - The single file to upload.
-     */
-    file: File;
-    /**
-     * - Called as the file is sent.
-     */
-    onProgress?: (progress: UploadProgress) => void;
-    /**
-     * - Aborts the upload; the promise then rejects with the signal's reason (an AbortError by default).
-     */
-    signal?: AbortSignal;
-    /**
-     * - Content-Type of the PUT. Defaults to the file's own type.
-     */
-    contentType?: string;
-    /**
-     * - Given to the ingestz-get-url API call (the PUT to the signed URL needs none).
-     */
-    serviceOpts?: ServiceOptions;
-};
-export type UploadResult = {
-    /**
-     * - Id the server assigned to this ingest.
-     */
-    ingestId: string;
-};
+export type FileRef = import("../fs/fs.js").FileRef;
 /**
- * @typedef {import("../services/services.js").Services} Services
- * @typedef {import("../invoker/invoker.js").ServiceOptions} ServiceOptions
+ * @typedef {import("../fs/fs.js").FileRef} FileRef
  */
 /**
- * Key-value mapping representing dataset table partition values, except the ingest ID.
- * @typedef {Record<string, string>} Partitions
+ * @param {Object<string, string>} partitions - Partitions, name -> value.
+ * @returns {string} A stable key of the partitions, safe as part of a cache file name (e.g. "store_id%3Ds1-version%3Dv1").
  */
+declare function partitionsKey(partitions: Record<string, string>): string;
 /**
- * Parameters for requesting a signed upload URL from the ingest service.
- * @typedef {Object} GetUrlParams
- * @property {string} dataset - Dataset name.
- * @property {string} table - Inbox table name.
- * @property {Partitions} partitions - Values for the table partitions, except the ingest id one.
- * @property {ServiceOptions} [serviceOpts] - Given to the ingestz-get-url API call.
+ * @param {*} partitions - Value to check.
+ * @returns {boolean} True if it is an object (not an array) whose values are all strings.
  */
+declare function isPartitions(partitions: any): boolean;
 /**
- * Progress of an upload in flight.
- * @typedef {Object} UploadProgress
- * @property {number} loaded - Bytes sent so far.
- * @property {number} total - Total bytes to send (the file size when the browser can't tell).
- * @property {number} percent - Progress from 0 to 100.
+ * Brings one remote file to the browser cache, downloading it only if its etag changed.
+ * @param {string} name - Name of the cached file.
+ * @param {string} url - URL of the file.
+ * @returns {Promise<FileRef>} The cached file.
+ * @throws {I6Error} With code "asset" if the download fails; `status` is the HTTP status when the server answered
+ *   (404 when the file does not exist, e.g. a store or month without data) and `cause` is the underlying error.
  */
+declare function downloadFile(name: string, url: string): Promise<FileRef>;
+export { partitionsKey, isPartitions, downloadFile };
 /**
- * Parameters for uploading a single file to the ingest service.
- * @typedef {Object} UploadParams
- * @property {string} dataset - Dataset the file is ingested into.
- * @property {string} table - Inbox table name.
- * @property {Partitions} partitions - Values for the table partitions, except the ingest id one.
- * @property {File} file - The single file to upload.
- * @property {(progress: UploadProgress) => void} [onProgress] - Called as the file is sent.
- * @property {AbortSignal} [signal] - Aborts the upload; the promise then rejects with the signal's reason (an AbortError by default).
- * @property {string} [contentType] - Content-Type of the PUT. Defaults to the file's own type.
- * @property {ServiceOptions} [serviceOpts] - Given to the ingestz-get-url API call (the PUT to the signed URL needs none).
+ * @fileoverview Sqlite client for the SDK, running sqlite (sql.js, wasm) in the browser.
+ *
+ * Usage: get the file with the downloader, open it by its OPFS path and always close the
+ * connection when done:
+ *
+ *   const ref = await downloader.update({ name, url })
+ *   const conn = await sqlitez.open({ path: await fs.resolve(ref) })
+ *   try {
+ *     const rows = await conn.query({ query: 'SELECT * FROM t WHERE id = ?', params: [1] })
+ *   } finally {
+ *     await conn.close()
+ *   }
+ *
+ * The database lives in memory: `update` changes the memory copy, the file is never written back.
+ * Every method takes a single `opts` object with the real parameters inside it.
  */
+export type SqliteValue = number | string | null | Uint8Array;
+export type SqliteRow = Record<string, SqliteValue>;
 /**
- * Result of a successful upload.
- * @typedef {Object} UploadResult
- * @property {string} ingestId - Id the server assigned to this ingest.
+ * An open sqlite database. Get one with `sqlitez.open` and always call `close()` in a `finally`.
  */
-/**
- * Client for handling file uploads to the ingest service.
- */
-declare class Ingest {
+declare class SqliteConn {
     #private;
+    /** @private */
+    db;
     /**
-     * @private
-     * @type {Services}
+     * Use `sqlitez.open`, not this constructor.
+     * @param {Object} db - The sql.js database.
      */
-    _services;
+    constructor(db: Object);
     /**
-     * Constructs an Ingest client instance.
-     * @param {Services} services - The services manager instance.
+     * Closes the connection, freeing the database. Closing twice is fine.
+     * @returns {Promise<void>}
      */
-    constructor(services: Services);
+    close(): Promise<void>;
     /**
-     * Asks ingestz for a signed upload URL (ingestz-get-url API) and uploads a single file to it.
-     * @param {UploadParams} params - Upload parameters.
-     * @returns {Promise<UploadResult>} Resolves with the ingest id on a successful upload.
-     * @throws {I6Error} With code "invalid_argument" if file is not a single File, "http" or
-     *   "network" if a request fails. Rejects with an AbortError if `signal` aborts.
+     * Runs a query and returns its rows.
+     * @param {Object} opts
+     * @param {string} opts.query - required, the SQL; use `?` for values.
+     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query (never concatenate them).
+     * @returns {Promise<SqliteRow[]>} The rows (empty array when none), each one an object by column name.
+     * @throws {TypeError} If opts.query is missing.
+     * @throws {I6Error} With code "query" if the connection is closed or sqlite rejects the query.
      */
-    upload({ dataset, table, partitions, file, onProgress, signal, contentType, serviceOpts }: UploadParams): Promise<UploadResult>;
+    query(opts: {
+        query: string;
+        params?: SqliteValue[];
+    }): Promise<SqliteRow[]>;
     /**
-     * Gets one signed PUT URL from the ingestz-get-url API.
-     * @private
-     * @param {GetUrlParams} params - Parameters for requesting the upload URL.
-     * @returns {Promise<{ingestId: string, url: string}>} The ingest id and the signed PUT URL.
-     * @throws {I6Error} If the request fails or no upload URL is returned.
+     * Runs a statement that returns no data (INSERT, UPDATE, CREATE, ...). Only the memory copy changes.
+     * @param {Object} opts
+     * @param {string} opts.query - required, the SQL; use `?` for values.
+     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query.
+     * @returns {Promise<void>}
+     * @throws {TypeError} If opts.query is missing.
+     * @throws {I6Error} With code "query" if the connection is closed or sqlite rejects the statement.
      */
-    private #getUrl;
+    update(opts: {
+        query: string;
+        params?: SqliteValue[];
+    }): Promise<void>;
     /**
-     * Uploads a file to a signed PUT URL using XMLHttpRequest (fetch has no upload progress).
-     * @private
-     * @param {string} signedPutUrl - The signed URL to PUT the file to.
-     * @param {File} file - The file to upload.
-     * @param {Pick<UploadParams, "onProgress"|"signal"|"contentType">} opts
-     * @returns {Promise<void>} Resolves on a successful upload, rejects on network or HTTP error or abort.
+     * Runs a query stored in the `namedqueries` table of the sqlite (columns `name` and `query`).
+     * @param {Object} opts
+     * @param {string} opts.name - required, the `name` of the stored query.
+     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the stored query.
+     * @returns {Promise<SqliteRow[]>} The rows of the stored query, like `query`.
+     * @throws {TypeError} If opts.name is missing.
+     * @throws {I6Error} With code "query" if the connection is closed, there is no such table or named query, or the query fails.
      */
-    private #put;
+    namedQuery(opts: {
+        name: string;
+        params?: SqliteValue[];
+    }): Promise<SqliteRow[]>;
+    /**
+     * Like `namedQuery`, but with JSON in and JSON out: each value of `opts.params`
+     * is bound as a JSON string to the positional `?1`, `?2`, ... of the stored query, in order (read them in SQL with
+     * `json_extract(?1, '$.field')`, `json_each(?2)`, ...). The stored query must return a row with a column `ret`
+     * holding a JSON string. That JSON is parsed and returned.
+     * The stored query must have a placeholder for every value, otherwise sqlite rejects the bind ("column index out of range").
+     * @param {Object} opts
+     * @param {string} opts.name - required, the `name` of the stored query (see `namedQuery`).
+     * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
+     * @returns {Promise<*>} The parsed `ret` of the first row, or null if there is no row or `ret` is null.
+     * @throws {TypeError} If opts.name is missing or opts.params is not an array.
+     * @throws {I6Error} With code "query" if `namedQuery` fails, the rows have no `ret` column, or `ret` is not valid JSON.
+     */
+    namedJsonQuery(opts: {
+        name: string;
+        params?: Array<any>;
+    }): Promise<any>;
+    /**
+     * Like `namedJsonQuery` (same JSON params bound as `?1`, `?2`, ...), but the `ret` column is returned as is,
+     * without JSON.parse. Use it when the stored query returns plain text (e.g. for models); use `namedJsonQuery` when it returns JSON (e.g. for dash).
+     * @param {Object} opts
+     * @param {string} opts.name - required, the `name` of the stored query (see `namedQuery`).
+     * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
+     * @returns {Promise<string|null>} The `ret` of the first row as a string, or null if there is no row or `ret` is null.
+     * @throws {TypeError} If opts.name is missing or opts.params is not an array.
+     * @throws {I6Error} With code "query" if `namedQuery` fails or the rows have no `ret` column.
+     */
+    namedStringQuery(opts: {
+        name: string;
+        params?: Array<any>;
+    }): Promise<string | null>;
 }
-export { Ingest };
+/**
+ * Sqlitez client. Use the `sqlitez` singleton.
+ */
+declare class Sqlitez {
+    /**
+     * Opens a sqlite file of the browser file system into memory.
+     * @param {Object} opts
+     * @param {string} opts.path - required, OPFS path of the file (what `fs.resolve` returns for a downloaded file).
+     * @returns {Promise<SqliteConn>} The connection. The caller must `close()` it.
+     * @throws {TypeError} If opts.path is missing.
+     * @throws {I6Error} With code "asset" if the file cannot be read or is not a sqlite file.
+     */
+    open(opts: {
+        path: string;
+    }): Promise<SqliteConn>;
+}
+/** Shared Sqlitez instance. */
+declare const sqlitez: Sqlitez;
+export { sqlitez };
+/**
+ * @fileoverview Keeps a remote file cached in the browser's file system (see fs.js),
+ * downloading it only when its etag changes.
+ */
+export type FileRef = import('../fs/fs.js').FileRef;
+/**
+ * Downloads remote files into the versioned file store. Use the `downloader` singleton.
+ */
+declare class Downloader {
+    /**
+     * Downloads the file by name if necessary (checking etag): sends a HEAD request, and
+     * if the etag differs from the released version, streams the body into a new version
+     * and releases it.
+     * @param {Object} opts
+     * @param {string} opts.name - required, name to store the file under (see fs.js)
+     * @param {string} opts.url - required, URL of the file; must answer HEAD with an etag
+     * @returns {Promise<FileRef>} the FileRef of the up-to-date file (basically to get the version)
+     * @throws {TypeError} If name or url is missing.
+     * @throws {Error} If the HEAD or GET request fails, or the HEAD response has no etag.
+     *   When the server answered, the error has `status` (the HTTP status code).
+    */
+    update(opts: {
+        name: string;
+        url: string;
+    }): Promise<FileRef>;
+}
+/** Shared Downloader instance. */
+declare const downloader: Downloader;
+export { downloader };
+/**
+ * @fileoverview Debug logging of the SDK. Set `window.I6_DEBUG = true` to see it in the console.
+ */
+/**
+ * @param {string} prefix - Printed first, followed by ":" (e.g. "infer").
+ * @returns {(...args: *) => void} A logger that prints only when `window.I6_DEBUG` is true.
+ */
+declare const debugLogger: (prefix: string) => (...args: any) => void;
+export { debugLogger };

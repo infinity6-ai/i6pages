@@ -155,6 +155,16 @@ declare class Tokens {
      */
     exchange(code: string, codeVerifier: string): Promise<UserToken>;
     /**
+     * Redeems a checkout artifact ticket via `POST /api/decsuite/auth/checkoutredeem`,
+     * and persists the resulting user token credentials in localStorage.
+     * Automatically clears any existing dataset tokens before storing new session credentials.
+     *
+     * @param {string} checkoutCode - The encrypted checkout ticket issued by checkoutcallback.
+     * @returns {Promise<UserToken>} The redeemed user token credentials.
+     * @throws {Error} If the redemption request fails or the server returns an error status.
+     */
+    redeemCheckout(checkoutCode: string): Promise<UserToken>;
+    /**
      * Refreshes the user access token using the stored user refresh token via `POST /api/userz/auth/refresh`.
      * Enforces token family rotation by storing the newly rotated refresh token and fresh access token.
      * Deduplicates concurrent in-flight refresh requests to prevent token reuse conflicts.

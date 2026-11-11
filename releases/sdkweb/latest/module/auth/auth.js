@@ -230,6 +230,18 @@ class Auth {
   async handleCallback() {
     if (typeof window === "undefined") return false;
     const params = new URLSearchParams(window.location.search);
+    const checkoutCode = params.get("checkout_code");
+    if (checkoutCode) {
+      await this._services.tokens().redeemCheckout(checkoutCode);
+      const callback2 = params.get("callback");
+      if (callback2) {
+        if (!this._isSafeRedirect(callback2)) {
+          throw new Error("Untrusted callback URL: " + callback2);
+        }
+        this._redirect(callback2);
+      }
+      return true;
+    }
     const code = params.get("code");
     if (!code) {
       return false;
