@@ -1,5 +1,6 @@
 import { Invoker } from "../invoker/invoker.js";
 import { Auth } from "../auth/auth.js";
+import { Tokens } from "../tokens/tokens.js";
 import { Ingest } from "../ingest/ingest.js";
 import { Apis, SdkFuncs } from "../sdkapis/sdkapis.js";
 import { Infer } from "../infer/infer.js";
@@ -54,11 +55,26 @@ class Services {
    * @returns {Auth} An instance of the Auth client.
    */
   auth() {
-    const ret = new Auth(this);
-    if (ret.prepare) {
-      ret.prepare();
+    if (!this._auth) {
+      this._auth = new Auth(this);
+      if (this._auth.prepare) {
+        this._auth.prepare();
+      }
     }
-    return ret;
+    return this._auth;
+  }
+  /**
+   * Creates and returns a Tokens service instance.
+   * @returns {Tokens} An instance of the Tokens client.
+   */
+  tokens() {
+    if (!this._tokens) {
+      this._tokens = new Tokens(this);
+      if (this._tokens.prepare) {
+        this._tokens.prepare();
+      }
+    }
+    return this._tokens;
   }
   /**
    * Creates and returns an Ingest service instance.

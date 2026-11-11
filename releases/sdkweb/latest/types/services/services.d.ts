@@ -3,6 +3,7 @@
  */
 import { Invoker } from "../invoker/invoker.js";
 import { Auth } from "../auth/auth.js";
+import { Tokens } from "../tokens/tokens.js";
 import { Ingest } from "../ingest/ingest.js";
 import { Apis, SdkFuncs } from "../sdkapis/sdkapis.js";
 import { Infer } from "../infer/infer.js";
@@ -13,7 +14,8 @@ export type I6SdkConfig = import("../index.js").I6SdkConfig;
  */
 /**
  * Service container that instantiates and provides access to SDK service clients.
- * Every accessor returns a new client sharing this container's config and dispatcher.
+ * `auth` and `tokens` return cached singleton instances; other accessors instantiate a new client
+ * sharing this container's config and dispatcher.
  */
 declare class Services {
     _dispatcher: EventTarget;
@@ -22,6 +24,8 @@ declare class Services {
      * @type {I6SdkConfig}
      */
     _config;
+    _auth: Auth | undefined;
+    _tokens: Tokens | undefined;
     /**
      * Constructs a Services instance.
      * @param {I6SdkConfig} config - Configuration object for the SDK services.
@@ -56,6 +60,11 @@ declare class Services {
      * @returns {Auth} An instance of the Auth client.
      */
     auth(): Auth;
+    /**
+     * Creates and returns a Tokens service instance.
+     * @returns {Tokens} An instance of the Tokens client.
+     */
+    tokens(): Tokens;
     /**
      * Creates and returns an Ingest service instance.
      * @returns {Ingest} An instance of the Ingest client.

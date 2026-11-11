@@ -6,8 +6,11 @@ const DEFAULT_CONFIG = {
     "tfinfer": "https://tfinfer.sandbox.rs.infinity6.ai",
     "userz": "https://userz.sandbox.rs.infinity6.ai"
   }
-  // baseUrl: "https://decsuite.app.rs.infinity6.ai",
   // baseUrl: "http://localhost:9021",
+  // servUrls: {
+  //   "tfinfer": "http://localhost:9022",
+  //   "userz": "http://localhost:9023"
+  // },
 };
 class I6Sdk {
   /**
@@ -38,31 +41,38 @@ class I6Sdk {
   }
   /**
    * Returns an Ingest service instance.
-   * @returns {Ingest} An instance of the Ingest client.
+   * @returns {import("./ingest/ingest.js").Ingest} An instance of the Ingest client.
    */
   ingest() {
     return this._service.ingest();
   }
   /**
    * Returns an Infer service instance, which runs an i6 model in the browser and returns the result.
-   * @returns {Infer} An instance of the Infer client.
+   * @returns {import("./infer/infer.js").Infer} An instance of the Infer client.
    */
   infer() {
     return this._service.infer();
   }
   /**
    * Returns a Dash service instance, which queries an i6 dash in the browser and returns the result.
-   * @returns {Dash} An instance of the Dash client.
+   * @returns {import("./dash/dash.js").Dash} An instance of the Dash client.
    */
   dash() {
     return this._service.dash();
   }
   /**
    * Returns an Auth service instance.
-   * @returns {Auth} An instance of the Auth client.
+   * @returns {import("./auth/auth.js").Auth} An instance of the Auth client.
    */
   auth() {
     return this._service.auth();
+  }
+  /**
+   * Returns a Tokens service instance.
+   * @returns {import("./tokens/tokens.js").Tokens} An instance of the Tokens client.
+   */
+  tokens() {
+    return this._service.tokens();
   }
   /**
    * Returns the Apis service instance, one typed method per i6 server API.
@@ -74,7 +84,7 @@ class I6Sdk {
   }
   /**
    * Returns the Funcs service instance.
-   * @returns {SdkFuncs} An instance of the generated Apis client.
+   * @returns {SdkFuncs} An instance of the SdkFuncs client.
    */
   funcs() {
     return this._service.funcs();
