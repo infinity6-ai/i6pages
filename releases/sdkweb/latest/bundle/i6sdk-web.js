@@ -3245,86 +3245,23 @@
       this._services = services;
     }
     /**
-     * List Store Displays
+     * Model Predict
      * 
-     * Lists all active store displays configured for a store under a specific dataset.
+     * Runs a prediction of a dataset model version on the inference service (tfinfer), sending the model inputs and the model partitions and returning the model outputs.
      * 
-     * @param {apiDszStoreDisplayListReq} req
+     * @param {apiTfzModelPredictReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiTfzModelPredictResp>>}
      */
-    async dszStoreDisplayList(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/display/list`,
-        query: req.query,
-        opts
-      }, "payload");
-    }
-    /**
-     * Create Ingestion Token
-     * 
-     * Creates a write token for data ingestion into a specific dataset.
-     * 
-     * @param {apiDszCreateIngestionTokenReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>}
-     */
-    async dszCreateIngestionToken(req, opts) {
+    async tfzModelPredict(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "servname": "tfinfer",
+        ...opts.labels || {}
+      };
       return this._services.invoker().invokeResult({
         method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/ingestiontoken/create`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Create Customer Portal
-     * 
-     * Creates a Stripe billing portal session URL where the user can manage cards, auto-renew, and plans.
-     * 
-     * @param {apiDszCreateCustomerPortalReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateCustomerPortalResp>>}
-     */
-    async dszCreateCustomerPortal(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/portal`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * List Datasets
-     * 
-     * Lists all datasets available to the user.
-     * 
-     * @param {apiDszListDatasetsReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
-     */
-    async dszListDatasets(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/datasets`,
-        query: req.query,
-        opts
-      }, "payload");
-    }
-    /**
-     * Create Recsys Token
-     * 
-     * Creates a read/recommendation token for the recommendation system associated with a specific dataset.
-     * 
-     * @param {apiDszCreateRecsysTokenReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
-     */
-    async dszCreateRecsysToken(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/recsystoken/create`,
+        url: `${this._services.config().servUrls?.["tfinfer"] ?? this._services.config().baseUrl}/api/model/dataset/${encodeURIComponent(String(req.params.dataset))}/${encodeURIComponent(String(req.params.model_name))}/${encodeURIComponent(String(req.params.version))}/predict`,
         json: req.payload,
         opts
       }, "payload");
@@ -3345,6 +3282,174 @@
         json: req.payload,
         opts
       }, "body");
+    }
+    /**
+     * Create Customer Portal
+     * 
+     * Creates a Stripe billing portal session URL where the user can manage cards, auto-renew, and plans.
+     * 
+     * @param {apiDszCreateCustomerPortalReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateCustomerPortalResp>>}
+     */
+    async dszCreateCustomerPortal(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/portal`,
+        json: req.payload,
+        opts
+      }, "payload");
+    }
+    /**
+     * Sample Fraction
+     * 
+     * Sample API that performs a fraction operation
+     * 
+     * @param {apiSampleFractionReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiSampleFractionResp>>}
+     */
+    async sampleFraction(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/gox/routez/sample/fraction/${encodeURIComponent(String(req.params.numerator))}/${encodeURIComponent(String(req.params.denominator))}`,
+        query: req.query,
+        headers: req.headers,
+        json: req.payload,
+        opts
+      }, "payload");
+    }
+    /**
+     * Load Table File as JSON
+     * 
+     * Load a table file from the datalake as JSON and return it.
+     * 
+     * @param {apiDszResultRelevanceFashionCatalogReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>}
+     */
+    async dszResultRelevanceFashionCatalog(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/results/relevance-fashion-catalog`,
+        query: req.query,
+        opts
+      }, "payload");
+    }
+    /**
+     * Start Pipeline
+     * 
+     * Starts a pipeline on a dataset with the given params and returns its id.
+     * 
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
+     */
+    async pipezStartRelevanceFashionRelevanceFashionMain(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/start/relevance_fashion/relevance-fashion-main`,
+        json: req.payload,
+        opts
+      }, "payload");
+    }
+    /**
+     * List Store Displays
+     * 
+     * Lists all active store displays configured for a store under a specific dataset.
+     * 
+     * @param {apiDszStoreDisplayListReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>}
+     */
+    async dszStoreDisplayList(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/display/list`,
+        query: req.query,
+        opts
+      }, "payload");
+    }
+    /**
+     * List Active Dataset Solutions
+     * 
+     * Lists all active solutions configured for a specific dataset.
+     * 
+     * @param {apiDszDatasetSolutionsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
+     */
+    async dszDatasetSolutions(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solutions`,
+        opts
+      }, "payload");
+    }
+    /**
+     * Get Subscription
+     * 
+     * Gets the plan and the status of the Stripe subscription of a dataset product/solution. The payload is empty for contracts without Stripe.
+     * 
+     * @param {apiDszGetSubscriptionReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszGetSubscriptionResp>>}
+     */
+    async dszGetSubscription(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solution/${encodeURIComponent(String(req.params.solution))}/subscription`,
+        opts
+      }, "payload");
+    }
+    /**
+     * Get Dataset Table File
+     * 
+     * Get table file by redirecting to its signed URL.
+     * 
+     * @param {apiDszTableGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
+     */
+    async dszTableGet(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/table-file/{path...}`,
+        opts
+      }, "body");
+    }
+    /**
+     * Get Pipeline
+     * 
+     * Gets a pipeline of a dataset by its id.
+     * 
+     * @param {apiPipezGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezGetResp>>}
+     */
+    async pipezGet(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/id/${encodeURIComponent(String(req.params.id))}`,
+        opts
+      }, "payload");
+    }
+    /**
+     * Get Ingestion Upload URLs
+     * 
+     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
+     * 
+     * @param {apiIngestzGetUrlReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
+     */
+    async ingestzGetUrl(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/get-url`,
+        json: req.payload,
+        opts
+      }, "payload");
     }
     /**
      * Event Ingestion
@@ -3370,89 +3475,6 @@
       }, "body");
     }
     /**
-     * Get Pipeline
-     * 
-     * Gets a pipeline of a dataset by its id.
-     * 
-     * @param {apiPipezGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezGetResp>>}
-     */
-    async pipezGet(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/id/${encodeURIComponent(String(req.params.id))}`,
-        opts
-      }, "payload");
-    }
-    /**
-     * List Payments
-     * 
-     * Lists the Stripe payments (invoices) of a dataset. The list is empty for datasets without a Stripe customer.
-     * 
-     * @param {apiDszListPaymentsReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListPaymentsResp>>}
-     */
-    async dszListPayments(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/payments`,
-        opts
-      }, "payload");
-    }
-    /**
-     * Load Table File as JSON
-     * 
-     * Load a table file from the datalake as JSON and return it.
-     * 
-     * @param {apiDszResultRelevanceFashionCatalogReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>}
-     */
-    async dszResultRelevanceFashionCatalog(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/results/relevance-fashion-catalog`,
-        query: req.query,
-        opts
-      }, "payload");
-    }
-    /**
-     * Load Table File as JSON
-     * 
-     * Load a table file from the datalake as JSON and return it.
-     * 
-     * @param {apiDszResultLastBatchSummaryReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>}
-     */
-    async dszResultLastBatchSummary(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/results/last-batch-summary`,
-        query: req.query,
-        opts
-      }, "payload");
-    }
-    /**
-     * Start Pipeline
-     * 
-     * Starts a pipeline on a dataset with the given params and returns its id.
-     * 
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
-     */
-    async pipezStartRelevanceFashionRelevanceFashionBatchIngest(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/start/relevance_fashion/relevance-fashion-batch-ingest`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
      * List Pipelines
      * 
      * Lists the pipelines of a dataset, optionally filtered, with cursor pagination.
@@ -3470,73 +3492,6 @@
       }, "payload");
     }
     /**
-     * Create Store Display
-     * 
-     * Creates a store display configuration mapping for a store under a specific dataset.
-     * 
-     * @param {apiDszStoreDisplayCreateReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
-     */
-    async dszStoreDisplayCreate(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/display/create`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Get Ingestion Upload URLs
-     * 
-     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
-     * 
-     * @param {apiIngestzGetUrlReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
-     */
-    async ingestzGetUrl(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/get-url`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Create Store
-     * 
-     * Creates a store configuration under a specific dataset.
-     * 
-     * @param {apiDszCreateStoreReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
-     */
-    async dszCreateStore(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/create`,
-        json: req.payload,
-        opts
-      }, "body");
-    }
-    /**
-     * List Active Dataset Solutions
-     * 
-     * Lists all active solutions configured for a specific dataset.
-     * 
-     * @param {apiDszDatasetSolutionsReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
-     */
-    async dszDatasetSolutions(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solutions`,
-        opts
-      }, "payload");
-    }
-    /**
      * Get Model Signed URLs
      * 
      * Generates presigned URLs for accessing model files in the specified dataset.
@@ -3549,196 +3504,6 @@
       return this._services.invoker().invokeResult({
         method: "POST",
         path: `api/model/dataset/${encodeURIComponent(String(req.params.dataset))}/signed-get/${encodeURIComponent(String(req.params.model_name))}`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * List Stores
-     * 
-     * Lists all stores configured under a specific dataset.
-     * 
-     * @param {apiDszListStoresReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
-     */
-    async dszListStores(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/list`,
-        opts
-      }, "payload");
-    }
-    /**
-     * Model Predict
-     * 
-     * Runs a prediction of a dataset model version on the inference service (tfinfer), sending the model inputs and the model partitions and returning the model outputs.
-     * 
-     * @param {apiTfzModelPredictReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiTfzModelPredictResp>>}
-     */
-    async tfzModelPredict(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "servname": "tfinfer",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        url: `${this._services.config().servUrls?.["tfinfer"] ?? this._services.config().baseUrl}/api/model/dataset/${encodeURIComponent(String(req.params.dataset))}/${encodeURIComponent(String(req.params.model_name))}/${encodeURIComponent(String(req.params.version))}/predict`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Get Subscription
-     * 
-     * Gets the plan and the status of the Stripe subscription of a dataset product/solution. The payload is empty for contracts without Stripe.
-     * 
-     * @param {apiDszGetSubscriptionReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszGetSubscriptionResp>>}
-     */
-    async dszGetSubscription(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solution/${encodeURIComponent(String(req.params.solution))}/subscription`,
-        opts
-      }, "payload");
-    }
-    /**
-     * Update Payment Auto Renew
-     * 
-     * Turns auto renew on or off for the Stripe subscription of a dataset product/solution.
-     * 
-     * @param {apiDszUpdatePaymentAutoRenewReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszUpdatePaymentAutoRenewResp>>}
-     */
-    async dszUpdatePaymentAutoRenew(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solution/${encodeURIComponent(String(req.params.solution))}/payment/autorenew`,
-        json: req.payload,
-        opts
-      }, "body");
-    }
-    /**
-     * List Plans
-     * 
-     * Lists the plans a subscription of a solution can be switched to, with the price data from Stripe.
-     * 
-     * @param {apiDszListPlansReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListPlansResp>>}
-     */
-    async dszListPlans(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/solution/${encodeURIComponent(String(req.params.solution))}/plans`,
-        opts
-      }, "payload");
-    }
-    /**
-     * Sample Fraction
-     * 
-     * Sample API that performs a fraction operation
-     * 
-     * @param {apiSampleFractionReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiSampleFractionResp>>}
-     */
-    async sampleFraction(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/gox/routez/sample/fraction/${encodeURIComponent(String(req.params.numerator))}/${encodeURIComponent(String(req.params.denominator))}`,
-        query: req.query,
-        headers: req.headers,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Get Dataset Signed URLs
-     * 
-     * Generates presigned URLs for accessing or mutating files in the specified dataset.
-     * 
-     * @param {apiDszSignedUrlReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
-     */
-    async dszSignedUrl(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/signed-url`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Start Pipeline
-     * 
-     * Starts a pipeline on a dataset with the given params and returns its id.
-     * 
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
-     */
-    async pipezStartRelevanceFashionRelevanceFashionMain(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/start/relevance_fashion/relevance-fashion-main`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * List Ingestion Tokens
-     * 
-     * Lists all active data ingestion tokens for a specific dataset.
-     * 
-     * @param {apiDszListIngestionTokensReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
-     */
-    async dszListIngestionTokens(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/ingestiontoken/list`,
-        opts
-      }, "payload");
-    }
-    /**
-     * Delete Token
-     * 
-     * Deletes (revokes) a specific token (e.g. ingestion or recsys token) associated with a dataset.
-     * 
-     * @param {apiDszDeleteTokenReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
-     */
-    async dszDeleteToken(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "DELETE",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/token/delete`,
-        query: req.query,
-        opts
-      }, "body");
-    }
-    /**
-     * Create Stripe Checkout
-     * 
-     * Creates a Stripe checkout session for a subscription and returns its id and url.
-     * 
-     * @param {apiDszStripeCheckoutReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>}
-     */
-    async dszStripeCheckout(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/stripe/checkout`,
         json: req.payload,
         opts
       }, "payload");
@@ -3767,34 +3532,202 @@
       }, "body");
     }
     /**
-     * Get Dataset Table File
+     * List Ingestion Tokens
      * 
-     * Get table file by redirecting to its signed URL.
+     * Lists all active data ingestion tokens for a specific dataset.
      * 
-     * @param {apiDszTableGetReq} req
+     * @param {apiDszListIngestionTokensReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
      */
-    async dszTableGet(req, opts) {
+    async dszListIngestionTokens(req, opts) {
       return this._services.invoker().invokeResult({
         method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/table-file/{path...}`,
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/ingestiontoken/list`,
+        opts
+      }, "payload");
+    }
+    /**
+     * Update Payment Auto Renew
+     * 
+     * Turns auto renew on or off for the Stripe subscription of a dataset product/solution.
+     * 
+     * @param {apiDszUpdatePaymentAutoRenewReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszUpdatePaymentAutoRenewResp>>}
+     */
+    async dszUpdatePaymentAutoRenew(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solution/${encodeURIComponent(String(req.params.solution))}/payment/autorenew`,
+        json: req.payload,
         opts
       }, "body");
     }
     /**
-     * List Dataset Tables
+     * Create Recsys Token
      * 
-     * Lists files and tables in the specified dataset.
+     * Creates a read/recommendation token for the recommendation system associated with a specific dataset.
      * 
-     * @param {apiDszTableListReq} req
+     * @param {apiDszCreateRecsysTokenReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
      */
-    async dszTableList(req, opts) {
+    async dszCreateRecsysToken(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/recsystoken/create`,
+        json: req.payload,
+        opts
+      }, "payload");
+    }
+    /**
+     * Load Table File as JSON
+     * 
+     * Load a table file from the datalake as JSON and return it.
+     * 
+     * @param {apiDszResultLastBatchSummaryReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>}
+     */
+    async dszResultLastBatchSummary(req, opts) {
       return this._services.invoker().invokeResult({
         method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/table-list`,
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/results/last-batch-summary`,
+        query: req.query,
+        opts
+      }, "payload");
+    }
+    /**
+     * Create Store
+     * 
+     * Creates a store configuration under a specific dataset.
+     * 
+     * @param {apiDszCreateStoreReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
+     */
+    async dszCreateStore(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/create`,
+        json: req.payload,
+        opts
+      }, "body");
+    }
+    /**
+     * Create Ingestion Token
+     * 
+     * Creates a write token for data ingestion into a specific dataset.
+     * 
+     * @param {apiDszCreateIngestionTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>}
+     */
+    async dszCreateIngestionToken(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/ingestiontoken/create`,
+        json: req.payload,
+        opts
+      }, "payload");
+    }
+    /**
+     * Start Pipeline
+     * 
+     * Starts a pipeline on a dataset with the given params and returns its id.
+     * 
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
+     */
+    async pipezStartRelevanceFashionRelevanceFashionBatchIngest(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/start/relevance_fashion/relevance-fashion-batch-ingest`,
+        json: req.payload,
+        opts
+      }, "payload");
+    }
+    /**
+     * List Stores
+     * 
+     * Lists all stores configured under a specific dataset.
+     * 
+     * @param {apiDszListStoresReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
+     */
+    async dszListStores(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/list`,
+        opts
+      }, "payload");
+    }
+    /**
+     * Create Stripe Checkout
+     * 
+     * Creates a Stripe checkout session for a subscription and returns its id and url.
+     * 
+     * @param {apiDszStripeCheckoutReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>}
+     */
+    async dszStripeCheckout(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/stripe/checkout`,
+        json: req.payload,
+        opts
+      }, "payload");
+    }
+    /**
+     * List Payments
+     * 
+     * Lists the Stripe payments (invoices) of a dataset. The list is empty for datasets without a Stripe customer.
+     * 
+     * @param {apiDszListPaymentsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListPaymentsResp>>}
+     */
+    async dszListPayments(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/payments`,
+        opts
+      }, "payload");
+    }
+    /**
+     * Create Store Display
+     * 
+     * Creates a store display configuration mapping for a store under a specific dataset.
+     * 
+     * @param {apiDszStoreDisplayCreateReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
+     */
+    async dszStoreDisplayCreate(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/display/create`,
+        json: req.payload,
+        opts
+      }, "payload");
+    }
+    /**
+     * List Datasets
+     * 
+     * Lists all datasets available to the user.
+     * 
+     * @param {apiDszListDatasetsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
+     */
+    async dszListDatasets(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/datasets`,
         query: req.query,
         opts
       }, "payload");
@@ -3814,6 +3747,73 @@
         path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/recsystoken/list`,
         opts
       }, "payload");
+    }
+    /**
+     * List Plans
+     * 
+     * Lists the plans a subscription of a solution can be switched to, with the price data from Stripe.
+     * 
+     * @param {apiDszListPlansReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszListPlansResp>>}
+     */
+    async dszListPlans(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/solution/${encodeURIComponent(String(req.params.solution))}/plans`,
+        opts
+      }, "payload");
+    }
+    /**
+     * Get Dataset Signed URLs
+     * 
+     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     * 
+     * @param {apiDszSignedUrlReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
+     */
+    async dszSignedUrl(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/signed-url`,
+        json: req.payload,
+        opts
+      }, "payload");
+    }
+    /**
+     * List Dataset Tables
+     * 
+     * Lists files and tables in the specified dataset.
+     * 
+     * @param {apiDszTableListReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
+     */
+    async dszTableList(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/table-list`,
+        query: req.query,
+        opts
+      }, "payload");
+    }
+    /**
+     * Delete Token
+     * 
+     * Deletes (revokes) a specific token (e.g. ingestion or recsys token) associated with a dataset.
+     * 
+     * @param {apiDszDeleteTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
+     */
+    async dszDeleteToken(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "DELETE",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/token/delete`,
+        query: req.query,
+        opts
+      }, "body");
     }
   };
   var SdkFuncs = class {
