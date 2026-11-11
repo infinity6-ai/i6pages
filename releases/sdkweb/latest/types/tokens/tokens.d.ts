@@ -25,6 +25,9 @@ export type UserToken = {
      */
     refresh_token_expires_at?: number;
 };
+export type CheckoutRedeemResult = UserToken & {
+    dataset: string;
+};
 export type DatasetToken = {
     /**
      * - Binary packed and signed dataset access token string.
@@ -156,14 +159,15 @@ declare class Tokens {
     exchange(code: string, codeVerifier: string): Promise<UserToken>;
     /**
      * Redeems a checkout artifact ticket via `POST /api/decsuite/auth/checkoutredeem`,
-     * and persists the resulting user token credentials in localStorage.
+     * persists the resulting user token credentials in localStorage (without dataset),
+     * and returns the user token credentials along with the target dataset ID.
      * Automatically clears any existing dataset tokens before storing new session credentials.
      *
      * @param {string} checkoutCode - The encrypted checkout ticket issued by checkoutcallback.
-     * @returns {Promise<UserToken>} The redeemed user token credentials.
+     * @returns {Promise<CheckoutRedeemResult>} The redeemed user token credentials and dataset ID.
      * @throws {Error} If the redemption request fails or the server returns an error status.
      */
-    redeemCheckout(checkoutCode: string): Promise<UserToken>;
+    redeemCheckout(checkoutCode: string): Promise<CheckoutRedeemResult>;
     /**
      * Refreshes the user access token using the stored user refresh token via `POST /api/userz/auth/refresh`.
      * Enforces token family rotation by storing the newly rotated refresh token and fresh access token.

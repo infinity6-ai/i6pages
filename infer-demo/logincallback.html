@@ -1,0 +1,18 @@
+<html>
+
+<body>
+    aaa
+
+    <script src="../releases/sdkweb/latest/bundle/i6sdk-web.js"></script>
+    <script type="module">
+        const { I6Sdk } = window
+        const sdk = new I6Sdk()
+        const sdkConfig = {
+            baseUrl: "https://decsuite.sandbox.rs.infinity6.ai",
+        }
+        sdk.setConfig(sdkConfig)
+        await sdk.auth().handleCallback()
+    </script>
+</body>
+
+</html>
