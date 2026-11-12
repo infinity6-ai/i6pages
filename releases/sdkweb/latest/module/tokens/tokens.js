@@ -377,17 +377,14 @@ class Tokens {
           return null;
         }
         const userzUrl = this._getUserzUrl();
-        const url = `${userzUrl}/api/userz/dataset/access-token`;
+        const url = `${userzUrl}/api/userz/dataset-access-token/` + encodeURIComponent(dataset);
         const resp = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${userAccessToken}`
           },
-          body: JSON.stringify({
-            dataset,
-            grants: ALL_GRANTS
-          })
+          body: JSON.stringify({})
         });
         if (!resp.ok) {
           return null;

@@ -109,11 +109,11 @@ declare class Invoker {
      */
     constructor(services: Services);
     /**
-     * @param {{tokenType: string, url: string}} opts
+     * @param {{tokenTypes: string, url: string}} opts
      * @return {{token:string, required: boolean}}
      */
     resolveToken(opts: {
-        tokenType: string;
+        tokenTypes: string;
         url: string;
     }): {
         token: string;

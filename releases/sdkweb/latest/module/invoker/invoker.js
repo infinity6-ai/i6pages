@@ -67,25 +67,39 @@ class Invoker {
     this._services = services;
   }
   /**
-   * @param {{tokenType: string, url: string}} opts
+   * @param {{tokenTypes: string, url: string}} opts
    * @return {{token:string, required: boolean}}
    */
   async resolveToken(opts) {
+    console.log("opts", opts);
     let ret = { required: false, token: "" };
-    if (!opts.tokenType || opts.tokenType === "none") {
+    if (!opts.tokenTypes) {
       return ret;
     }
     ret.required = true;
-    const url = new URL(opts.url);
-    if (opts.tokenType === "user") {
-      ret.token = await this._services.tokens().getValidAccessToken();
-    } else if (opts.tokenType === "dataset") {
-      const parts = url.pathname.split("/");
-      if (parts[0] === "") parts.shift();
-      if (parts[2] !== "dataset") throw new Error(`cannot resolve dataset name ${opts.tokenType}: ${url.pathname}`);
-      const dataset = parts[3];
-      if (!dataset) throw new Error(`cannot resolve dataset name ${opts.tokenType}: ${url.pathname}`);
-      ret.token = await this._services.tokens().getValidDatasetAccessToken(dataset);
+    const tokenTypes = opts.tokenTypes.split("|");
+    for (const tokenType of tokenTypes) {
+      if (!tokenType) continue;
+      if (tokenType === "none") {
+        return { required: false, token: "" };
+      }
+      if (tokenType === "user") {
+        ret.token = await this._services.tokens().getValidAccessToken();
+      } else if (tokenType === "dataset") {
+        const url = new URL(opts.url);
+        const parts = url.pathname.split("/");
+        if (parts[0] === "") parts.shift();
+        if (parts[2] !== "dataset") {
+          return ret;
+        }
+        const dataset = parts[3];
+        if (dataset) {
+          ret.token = await this._services.tokens().getValidDatasetAccessToken(dataset);
+        }
+      }
+      if (ret.token) {
+        return ret;
+      }
     }
     return ret;
   }
@@ -118,9 +132,9 @@ class Invoker {
     if (!opts.headers.has("Authorization") && bearerToken) {
       opts.headers.set("Authorization", "Bearer " + bearerToken);
     }
-    if (!opts.headers.has("Authorization") && opts.opts?.labels?.token_type && opts.opts.labels.token_type !== "none") {
+    if (!opts.headers.has("Authorization") && opts.opts?.labels?.token_types) {
       const tk = await this.resolveToken({
-        tokenType: opts.opts.labels.token_type,
+        tokenTypes: opts.opts.labels.token_types,
         url: opts.url
       });
       if (tk.token) {
