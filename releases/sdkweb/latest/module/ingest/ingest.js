@@ -1,4 +1,3 @@
-import { I6Error } from "../errors.js";
 class Ingest {
   /**
    * Constructs an Ingest client instance.
@@ -11,12 +10,10 @@ class Ingest {
    * Asks ingestz for a signed upload URL (ingestz-get-url API) and uploads a single file to it.
    * @param {UploadParams} params - Upload parameters.
    * @returns {Promise<UploadResult>} Resolves with the ingest id on a successful upload.
-   * @throws {I6Error} With code "invalid_argument" if file is not a single File, "http" or
-   *   "network" if a request fails. Rejects with an AbortError if `signal` aborts.
    */
   async upload({ dataset, table, partitions, file, onProgress, signal, contentType, serviceOpts }) {
     if (!(file instanceof File)) {
-      throw new I6Error("file must be a single File.", { code: "invalid_argument" });
+      throw new TypeError("file must be a single File.");
     }
     signal?.throwIfAborted();
     const { ingestId, url } = await this.#getUrl({ dataset, table, partitions, serviceOpts });
@@ -29,7 +26,6 @@ class Ingest {
    * @private
    * @param {GetUrlParams} params - Parameters for requesting the upload URL.
    * @returns {Promise<{ingestId: string, url: string}>} The ingest id and the signed PUT URL.
-   * @throws {I6Error} If the request fails or no upload URL is returned.
    */
   async #getUrl({ dataset, table, partitions, serviceOpts }) {
     const resp = await this._services.apis().ingestzGetUrl({
@@ -37,13 +33,14 @@ class Ingest {
       payload: { table, partitions, amount: 1 }
     }, serviceOpts);
     if (!resp.ok) {
-      throw I6Error.fromResult("Get upload URL failed", resp);
+      throw new Error(`Get upload URL failed with status ${resp.status}: ${resp.error?.message ?? ""}`);
     }
-    const uploads = resp.payload?.uploads;
+    const data = resp.parse();
+    const uploads = data?.uploads;
     if (!uploads?.[0]) {
-      throw new I6Error("Get upload URL returned no upload URL.", { code: "no_upload_url" });
+      throw new Error("Get upload URL returned no upload URL.");
     }
-    return { ingestId: resp.payload.ingest_id, url: uploads[0] };
+    return { ingestId: data.ingest_id, url: uploads[0] };
   }
   /**
    * Uploads a file to a signed PUT URL using XMLHttpRequest (fetch has no upload progress).
@@ -66,15 +63,11 @@ class Ingest {
         if (xhr.status >= 200 && xhr.status < 300) {
           done(resolve);
         } else {
-          done(reject, new I6Error(`Upload failed with status ${xhr.status}`, {
-            code: "http",
-            status: xhr.status,
-            body: xhr.responseText
-          }));
+          done(reject, new Error(`Upload failed with status ${xhr.status}: ${xhr.responseText}`));
         }
       });
       xhr.addEventListener("error", () => {
-        done(reject, new I6Error("Network error occurred during upload.", { code: "network" }));
+        done(reject, new TypeError("Network error occurred during upload."));
       });
       xhr.addEventListener("abort", () => {
         done(reject, abortError());

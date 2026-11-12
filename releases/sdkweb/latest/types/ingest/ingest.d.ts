@@ -135,8 +135,6 @@ declare class Ingest {
      * Asks ingestz for a signed upload URL (ingestz-get-url API) and uploads a single file to it.
      * @param {UploadParams} params - Upload parameters.
      * @returns {Promise<UploadResult>} Resolves with the ingest id on a successful upload.
-     * @throws {I6Error} With code "invalid_argument" if file is not a single File, "http" or
-     *   "network" if a request fails. Rejects with an AbortError if `signal` aborts.
      */
     upload({ dataset, table, partitions, file, onProgress, signal, contentType, serviceOpts }: UploadParams): Promise<UploadResult>;
     /**
@@ -144,7 +142,6 @@ declare class Ingest {
      * @private
      * @param {GetUrlParams} params - Parameters for requesting the upload URL.
      * @returns {Promise<{ingestId: string, url: string}>} The ingest id and the signed PUT URL.
-     * @throws {I6Error} If the request fails or no upload URL is returned.
      */
     private #getUrl;
     /**

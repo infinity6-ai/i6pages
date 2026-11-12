@@ -59,8 +59,8 @@
 
   <div class="card">
     <h2>Auth and cache <span class="badge">both pages</span></h2>
-    <label for="datasetToken">opts.datasetToken (sent as the Authorization: Dataset header of every API call; empty: none, the login cookie is used)</label>
-    <input type="password" id="datasetToken" autocomplete="off">
+    <label for="bearerToken">opts.bearerToken (sent as the Authorization: Bearer header of every API call; empty: none, the session token is used)</label>
+    <input type="password" id="bearerToken" autocomplete="off">
     <div class="row" style="margin-top:8px">
       <button id="login">Login (auth().requireUser())</button>
       <button id="clear">Clear OPFS cache</button>

@@ -6,70 +6,94 @@ export type Fetcher = (url: string, opts: InvokeOptions) => Promise<Response>;
 export type PrepareRequest = (opts: InvokeOptions) => Promise<void> | void;
 export type ServiceOptions = {
     /**
-     * - [Go: string]
-     */
-    datasetToken?: string;
-    /**
-     * - [Go: string]
-     */
-    bearerToken?: string;
-    /**
-     * - Labels
-     */
-    labels?: Record<string, string>;
-    /**
-     * - Custom fetch implementation.
+     * - Custom fetcher function override.
      */
     fetcher?: Fetcher;
     /**
-     * - Hook to mutate request options before sending (e.g., adding `sig` query parameter).
+     * - Pre-request hook (e.g. for URL signing).
      */
     prepareRequest?: PrepareRequest;
+    /**
+     * - Explicit user bearer token for this request.
+     */
+    bearerToken?: string;
+    /**
+     * - Contextual metadata labels.
+     */
+    labels?: Record<string, string>;
 };
 export type InvokeOptions = {
     /**
-     * - The full URL to request. If omitted, defaults to `${baseUrl}/${path}`.
+     * - Full target URL. Overrides baseUrl + path if set.
      */
     url?: string;
     /**
-     * - The path to append to the baseUrl if `url` is not provided.
+     * - Path appended to baseUrl (e.g. "api/item/create").
      */
     path?: string;
     /**
-     * - Key-value pairs to append as query parameters.
-     */
-    query?: Record<string, any>;
-    /**
-     * - JSON-serializable body data. If provided, sets Content-Type header to application/json and serializes to body.
-     */
-    json?: any;
-    /**
-     * - HTTP method (e.g., 'GET', 'POST', 'PUT', 'DELETE').
+     * - HTTP method ("GET", "POST", "PUT", etc.).
      */
     method?: string;
     /**
-     * - HTTP headers for the request.
+     * - Query parameters serialized into the URL.
+     */
+    query?: Record<string, any>;
+    /**
+     * - Body data serialized as JSON. Sets "Content-Type: application/json".
+     */
+    json?: any;
+    /**
+     * - Additional HTTP headers.
      */
     headers?: HeadersInit;
     /**
-     * - HTTP request body.
+     * - Advanced service request hooks (fetcher, prepareRequest, etc.).
      */
-    body?: BodyInit | null;
+    opts?: ServiceOptions;
     /**
-     * - Request credentials mode (e.g., 'include', 'same-origin', 'omit').
+     * - Fetch credentials mode.
      */
     credentials?: RequestCredentials;
-    /**
-     * - Request mode (e.g., 'cors', 'no-cors', 'same-origin').
-     */
-    mode?: RequestMode;
-    /**
-     * - An AbortSignal to cancel the request.
-     */
-    signal?: AbortSignal | null;
-    opts?: ServiceOptions;
-    sinkable?: boolean;
 };
+/**
+ * Response wrapper holding HTTP transport status and lazy parser.
+ * @template T
+ */
+declare class Resp<T> {
+    #private;
+    status: number;
+    headers: Headers;
+    ok: boolean;
+    /**
+     * @param {number} status - HTTP status code.
+     * @param {Headers} headers - HTTP response headers.
+     * @param {() => *} parser - Lazy parser function.
+     * @param {string} [text] - Raw response body text.
+     */
+    constructor(status: number, headers: Headers, parser: () => any, text?: string);
+    /**
+     * Raw body text of the response.
+     * @returns {string}
+     */
+    get text(): string;
+    /**
+     * Structured error information when response is not ok.
+     * @returns {{status: number, code: string, message: string, cause: *}|null}
+     */
+    get error(): {
+        status: number;
+        code: string;
+        message: string;
+        cause: any;
+    } | null;
+    /**
+     * Parses and returns the deserialized response value.
+     * Throws an error if deserialization fails or if the response status is not ok.
+     * @returns {T}
+     */
+    parse(): T;
+}
 /**
  * Invoker client for executing HTTP requests against the i6 API.
  */
@@ -85,28 +109,30 @@ declare class Invoker {
      */
     constructor(services: Services);
     /**
+     * @param {{tokenType: string, url: string}} opts
+     * @return {{token:string, required: boolean}}
+     */
+    resolveToken(opts: {
+        tokenType: string;
+        url: string;
+    }): {
+        token: string;
+        required: boolean;
+    };
+    /**
      * Sends an HTTP request using the Fetch API.
      *
      * @param {InvokeOptions} opts - Request options including path/URL, query params, and fetch options.
-     * Credentials are always set to "include" so the session cookie is sent. Note that `opts`
-     * is modified (credentials, and headers/body when `json` is given). An HTTP error status
-     * does not throw; check `ok` on the returned Response.
      * @returns {Promise<Response>} A promise that resolves to the fetch Response.
-     * @throws {TypeError} If the network request fails (from fetch).
      */
     invoke(opts: InvokeOptions): Promise<Response>;
     /**
-     * Like `invoke`, but never throws: resolves with `{status, ok, <key>}` on success and with
-     * `{status, ok: false, error}` (see `I6ApiError`) on an HTTP error or a network failure.
-     * A success with status 204 or an empty body resolves with `{status, ok: true}` and no `<key>`.
+     * Resolves with a `Resp` instance holding the HTTP status, headers, and lazy `parse()`.
+     * Network errors bubble up directly as native exceptions.
+     * @template T
      * @param {InvokeOptions} opts - Same as `invoke`.
-     * @param {"payload"|"body"} [key] - Where the parsed JSON of a success is put.
-     * @returns {Promise<{status: number, ok: boolean, error?: import("../errors.js").I6ApiError} & Record<string, any>>}
+     * @returns {Promise<Resp<T>>}
      */
-    invokeResult(opts: InvokeOptions, key?: "payload" | "body"): Promise<{
-        status: number;
-        ok: boolean;
-        error?: import("../errors.js").I6ApiError;
-    } & Record<string, any>>;
+    invokeResult<T>(opts: InvokeOptions): Promise<Resp<T>>;
 }
-export { Invoker };
+export { Invoker, Resp };

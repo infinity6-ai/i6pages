@@ -1,10 +1,62 @@
-import { apiErrorFromResponse, apiErrorFromNetwork } from "../errors.js";
 import * as b64 from "../internal/b64/b64.js";
 import * as gzip from "../internal/gzip/gzip.js";
-function getValue(obj, path) {
-  return path.split(".").reduce((currentObject, key) => {
-    return currentObject ? currentObject[key] : void 0;
-  }, obj);
+function codeFromStatus(status) {
+  if (status === 401) return "unauthenticated";
+  if (status === 403) return "forbidden";
+  if (status === 404) return "not_found";
+  if (status >= 500) return "unavailable";
+  return "bad_request";
+}
+function apiErrorFromResponse(status, text) {
+  return { status, code: codeFromStatus(status), message: text || `HTTP ${status}`, cause: text };
+}
+class Resp {
+  #parser;
+  #parsed = false;
+  #value = null;
+  #text = null;
+  /**
+   * @param {number} status - HTTP status code.
+   * @param {Headers} headers - HTTP response headers.
+   * @param {() => *} parser - Lazy parser function.
+   * @param {string} [text] - Raw response body text.
+   */
+  constructor(status, headers, parser, text = "") {
+    this.status = status;
+    this.headers = headers;
+    this.ok = this.status >= 200 && this.status < 300;
+    this.#parser = parser;
+    this.#text = text;
+  }
+  /**
+   * Raw body text of the response.
+   * @returns {string}
+   */
+  get text() {
+    return this.#text;
+  }
+  /**
+   * Structured error information when response is not ok.
+   * @returns {{status: number, code: string, message: string, cause: *}|null}
+   */
+  get error() {
+    if (!this.ok) {
+      return apiErrorFromResponse(this.status, this.#text);
+    }
+    return null;
+  }
+  /**
+   * Parses and returns the deserialized response value.
+   * Throws an error if deserialization fails or if the response status is not ok.
+   * @returns {T}
+   */
+  parse() {
+    if (!this.#parsed) {
+      this.#value = this.#parser();
+      this.#parsed = true;
+    }
+    return this.#value;
+  }
 }
 class Invoker {
   /**
@@ -15,17 +67,35 @@ class Invoker {
     this._services = services;
   }
   /**
+   * @param {{tokenType: string, url: string}} opts
+   * @return {{token:string, required: boolean}}
+   */
+  async resolveToken(opts) {
+    let ret = { required: false, token: "" };
+    if (!opts.tokenType || opts.tokenType === "none") {
+      return ret;
+    }
+    ret.required = true;
+    const url = new URL(opts.url);
+    if (opts.tokenType === "user") {
+      ret.token = await this._services.tokens().getValidAccessToken();
+    } else if (opts.tokenType === "dataset") {
+      const parts = url.pathname.split("/");
+      if (parts[0] === "") parts.shift();
+      if (parts[2] !== "dataset") throw new Error(`cannot resolve dataset name ${opts.tokenType}: ${url.pathname}`);
+      const dataset = parts[3];
+      if (!dataset) throw new Error(`cannot resolve dataset name ${opts.tokenType}: ${url.pathname}`);
+      ret.token = await this._services.tokens().getValidDatasetAccessToken(dataset);
+    }
+    return ret;
+  }
+  /**
    * Sends an HTTP request using the Fetch API.
    *
    * @param {InvokeOptions} opts - Request options including path/URL, query params, and fetch options.
-   * Credentials are always set to "include" so the session cookie is sent. Note that `opts`
-   * is modified (credentials, and headers/body when `json` is given). An HTTP error status
-   * does not throw; check `ok` on the returned Response.
    * @returns {Promise<Response>} A promise that resolves to the fetch Response.
-   * @throws {TypeError} If the network request fails (from fetch).
    */
   async invoke(opts) {
-    console.log("invoke req", { ...opts, headers: opts.headers && Object.fromEntries(new Headers(opts.headers)), labels: opts.opts?.labels });
     opts.url = opts.url || `${this._services.config().baseUrl}/${opts.path}`;
     if (opts.query) {
       const search = new URLSearchParams();
@@ -44,30 +114,24 @@ class Invoker {
       }
     }
     opts.headers = new Headers(opts.headers);
-    const datasetToken = opts.opts?.datasetToken || this._services.config().datasetToken;
-    const bearerToken = opts.opts?.bearerToken || this._services.config().bearerToken || (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("i6_user_access_token") : null);
-    if (!opts.headers.has("Authorization") && datasetToken) {
-      opts.headers.set("Authorization", "Dataset " + datasetToken);
-    }
+    const bearerToken = opts.opts?.bearerToken;
     if (!opts.headers.has("Authorization") && bearerToken) {
       opts.headers.set("Authorization", "Bearer " + bearerToken);
     }
-    if (!opts.headers.has("Authorization")) {
-      const url = new URL(opts.url);
-      const split = url.pathname.split("/");
-      const idx = split.indexOf("dataset");
-      let token = "";
-      if (idx < 0) {
-        token = await this._services.tokens().getValidAccessToken();
-      } else {
-        const dataset = split[idx + 1];
-        token = await this._services.tokens().getValidDatasetAccessToken(dataset);
-      }
-      if (token) {
-        opts.headers.set("Authorization", "Bearer " + token);
+    if (!opts.headers.has("Authorization") && opts.opts?.labels?.token_type && opts.opts.labels.token_type !== "none") {
+      const tk = await this.resolveToken({
+        tokenType: opts.opts.labels.token_type,
+        url: opts.url
+      });
+      if (tk.token) {
+        opts.headers.set("Authorization", "Bearer " + tk.token);
+      } else if (tk.required) {
+        if (opts.opts.labels.token_type == "user") {
+          return new Response(JSON.stringify({ error: "Unauthorized", message: "Unauthorized" }), { status: 401, statusText: "Unauthorized" });
+        }
+        return new Response(JSON.stringify({ error: "Forbidden", message: "Forbidden" }), { status: 403, statusText: "Forbidden" });
       }
     }
-    console.log(opts);
     if (opts.json) {
       opts.headers.set("Content-Type", "application/json");
       opts.body = JSON.stringify(opts.json);
@@ -82,35 +146,30 @@ class Invoker {
     return fetch(opts.url, opts);
   }
   /**
-   * Like `invoke`, but never throws: resolves with `{status, ok, <key>}` on success and with
-   * `{status, ok: false, error}` (see `I6ApiError`) on an HTTP error or a network failure.
-   * A success with status 204 or an empty body resolves with `{status, ok: true}` and no `<key>`.
+   * Resolves with a `Resp` instance holding the HTTP status, headers, and lazy `parse()`.
+   * Network errors bubble up directly as native exceptions.
+   * @template T
    * @param {InvokeOptions} opts - Same as `invoke`.
-   * @param {"payload"|"body"} [key] - Where the parsed JSON of a success is put.
-   * @returns {Promise<{status: number, ok: boolean, error?: import("../errors.js").I6ApiError} & Record<string, any>>}
+   * @returns {Promise<Resp<T>>}
    */
-  async invokeResult(opts, key = "payload") {
-    let resp;
-    try {
-      resp = await this.invoke(opts);
-    } catch (cause) {
-      return { status: 0, ok: false, error: apiErrorFromNetwork(cause) };
-    }
-    const result = { status: resp.status, ok: resp.ok };
-    try {
-      if (resp.ok) {
-        const text = resp.status === 204 ? "" : await resp.text();
-        if (text) {
-          result[key] = JSON.parse(text);
-        }
-      } else {
-        result.error = apiErrorFromResponse(resp.status, await resp.text());
+  async invokeResult(opts) {
+    const resp = await this.invoke(opts);
+    const text = resp.status === 204 ? "" : await resp.text();
+    const parser = () => {
+      if (!resp.ok) {
+        const apiErr = apiErrorFromResponse(resp.status, text);
+        const err = new Error(apiErr.message);
+        err.status = apiErr.status;
+        err.code = apiErr.code;
+        err.cause = apiErr.cause;
+        throw err;
       }
-    } catch (cause) {
-      result.ok = false;
-      result.error = apiErrorFromNetwork(cause);
-    }
-    return result;
+      if (!text) {
+        return null;
+      }
+      return JSON.parse(text);
+    };
+    return new Resp(resp.status, resp.headers, parser, text);
   }
 }
-export { Invoker };
+export { Invoker, Resp };

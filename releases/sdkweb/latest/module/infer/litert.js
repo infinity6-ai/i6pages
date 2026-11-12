@@ -1,4 +1,3 @@
-import { I6Error } from "../errors.js";
 import { fs } from "../internal/fs/fs.js";
 const LITERT_VERSION = "2.5.3";
 const LITERT_WASM_URL = `https://cdn.jsdelivr.net/npm/@litertjs/core@${LITERT_VERSION}/wasm/`;
@@ -9,7 +8,7 @@ async function loadModel(opts) {
   if (loadedModel?.key === key) return loadedModel.compiled;
   const bytes = await fs.read(opts.ref);
   if (new TextDecoder().decode(bytes.subarray(4, 8)) !== "TFL3") {
-    throw new I6Error(`infer: ${opts.ref.name} is not a tflite file`, { code: "asset" });
+    throw new Error(`infer: ${opts.ref.name} is not a tflite file`);
   }
   const litert = await import("@litertjs/core");
   const loading = litert.getGlobalLiteRtPromise();
@@ -25,7 +24,7 @@ function describeModel(model) {
   return { inputs: model.getInputDetails().map(describe), outputs: model.getOutputDetails().map(describe) };
 }
 function toTensorData(name, input, modelShape) {
-  const invalid = (msg) => new I6Error(`infer: input "${name}" ${msg}`, { code: "invalid_argument" });
+  const invalid = (msg) => new TypeError(`infer: input "${name}" ${msg}`);
   const { data, shape } = input;
   if (!Array.isArray(data)) throw invalid("has no data array");
   if (!Array.isArray(shape)) throw invalid("has no shape");
@@ -42,7 +41,7 @@ async function runModel(model, inputs) {
   try {
     for (const detail of model.getInputDetails()) {
       const input = inputs?.[detail.name];
-      if (!input) throw new I6Error(`infer: input "${detail.name}" is missing`, { code: "invalid_argument" });
+      if (!input) throw new TypeError(`infer: input "${detail.name}" is missing`);
       const { flat, shape } = toTensorData(detail.name, input, Array.from(detail.shape));
       tensors[detail.name] = new loadedModel.litert.Tensor(new DTYPE_CTORS[detail.dtype](flat), shape);
     }

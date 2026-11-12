@@ -59,54 +59,52 @@ export type InferOptions = {
 };
 export type SelectResultsOptions = {
     /**
-     * - Dataset that receives the `recraw` and `recshow` events.
-     */
-    dataset: string;
-    /**
-     * - Model that made the recommendation (e.g. "relevance-fashion-fbt").
-     */
-    modelName: string;
-    /**
-     * - Version of that model.
-     */
-    modelVersion: string;
-    /**
-     * - Store of the event.
-     */
-    storeId: string;
-    /**
-     * - Id of the user session; sent in the recommendation events.
-     */
-    sessionId: string;
-    /**
-     * - Id of the user; sent in the recommendation events.
-     */
-    userId: string;
-    /**
-     * - What the caller asked for; given as is to `selectResults`.
+     * - What the caller asked for (the cart).
      */
     req: any;
     /**
-     * - What `run` returned (its `rec_id` is the id of the recommendation); given as is to `selectResults`.
+     * - What `run` returned.
      */
     results: any;
     /**
-     * - Id of the recommendation, the `rec_id` that `run` returned. Same as in the `recraw` event that `run` sent; sent in the `recshow` event.
+     * - Id of the recommendation run, returned by `run`.
      */
     recId: string;
     /**
-     * - Picks which of the recommended skus are shown: returns
-     * `{ results: [{ sku_id, rating?, enriched? }] }`. Only `sku_id` is sent (in the `recshow` event); `enriched` is any data of
-     * your own for the sku (e.g. name, price, image), returned to you as is. Default: `defaultSelectResults`.
+     * - Id of the user session.
      */
-    selectResults?: (req: any, results: any) => Promise<any>;
+    sessionId: string;
     /**
-     * - Given to the API call of the `recshow` event.
+     * - Id of the user.
+     */
+    userId: string;
+    /**
+     * - Dataset of the model.
+     */
+    dataset: string;
+    /**
+     * - Model name.
+     */
+    modelName: string;
+    /**
+     * - Model version.
+     */
+    modelVersion: string;
+    /**
+     * - Store partition.
+     */
+    storeId?: string;
+    /**
+     * - Given to the `recshow` event call.
      */
     serviceOpts?: ServiceOptions;
+    /**
+     * - Custom selection function.
+     */
+    selectResults?: (req: any, results: any) => Promise<any>;
 };
 /**
- * Inference client.
+ * Infer client.
  */
 declare class Infer {
     #private;
@@ -121,20 +119,16 @@ declare class Infer {
      */
     constructor(services: Services);
     /**
-     * Runs the model for the given params and returns what the output query gives.
+     * Runs the model in the browser and returns its recommendation result.
      * @param {InferOptions} opts - Inference options.
-     * @returns {Promise<*>} The `ret` of the named query `model-${modelName}-output`, plus a generated `rec_id` (uuid). Sends the `recraw` event with that id.
-     * @throws {I6Error} With code "invalid_argument" if opts is malformed, has no `sessionId` and `userId` or the model inputs do not fit the model,
-     *   "asset" if a download fails, "model" if loading or running the model fails, "query" if the sqlite fails.
+     * @returns {Promise<*>} The results of the model.
      */
     run(opts: InferOptions): Promise<any>;
-    callModel(inputs: any, opts: any): Promise<import("../errors.js").I6Result<import("../sdkapis/sdkapis.js").apiTfzModelPredictResp>>;
+    callModel(inputs: any, opts: any): Promise<import("../index.js").Resp<import("../sdkapis/sdkapis.js").apiTfzModelPredictResp>>;
     /**
      * Asks `selectResults` which of the recommended skus are shown and sends their sku ids as the `recshow` event.
      * @param {SelectResultsOptions} opts - Select options.
      * @returns {Promise<*>} What `selectResults` returned, as is (the default sets the `rating` of each sku; see `defaultSelectResults`).
-     * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing, `opts` has no `sessionId` and
-     *   `userId`, or `selectResults` returned an item with no `sku_id` or a sku not in the results; "event" if an event is not accepted.
      */
     selectResults(opts: SelectResultsOptions): Promise<any>;
     /**
@@ -146,15 +140,13 @@ declare class Infer {
      * @param {"recraw"|"recshow"} kind - Which event.
      * @param {*} payload - What the event carries, any JSON.
      * @returns {Promise<void>}
-     * @throws {I6Error} With code "event" if the event is not accepted.
      */
     private #sendRecEvent;
     /**
-     * Finds where the model files are: the signed URLs of the model API, unless opts has both URLs (tests).
+     * Finds where the two model files are: the signed URLs of the model API, unless opts has them (tests).
      * @private
      * @param {InferOptions} opts - Inference options.
      * @returns {Promise<{sqlite: string, tflite: string}>} Download URLs of the files.
-     * @throws {I6Error} With code "asset" if the API gave no URL for a file.
      */
     private _assetUrls;
 }

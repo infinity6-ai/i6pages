@@ -50,8 +50,6 @@ declare class Dash {
      * Downloads the dash sqlite (cached by etag), runs the named query `dash-${dashName}` with `params` and returns its result.
      * @param {DashOptions} opts - Dash options.
      * @returns {Promise<*>} The `ret` of the named query.
-     * @throws {I6Error} With code "invalid_argument" if opts is malformed, "asset" if the download fails,
-     *   "query" if the sqlite fails.
      */
     query(opts: DashOptions): Promise<any>;
     /**
@@ -59,7 +57,6 @@ declare class Dash {
      * @private
      * @param {DashOptions} opts - Dash options.
      * @returns {Promise<string>} Download URL of the sqlite.
-     * @throws {I6Error} With code "asset" if the API gave no URL.
      */
     private _sqliteUrl;
 }

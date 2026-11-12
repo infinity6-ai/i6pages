@@ -1,5 +1,5 @@
 import { Services, Apis, SdkFuncs } from "./services/services.js";
-import { I6Error } from "./errors.js";
+import { Resp } from "./invoker/invoker.js";
 const DEFAULT_CONFIG = {
   baseUrl: "https://decsuite.sandbox.rs.infinity6.ai",
   servUrls: {
@@ -99,6 +99,6 @@ class I6Sdk {
     this._service.bind(evt, fn);
   }
 }
-I6Sdk.I6Error = I6Error;
 window.I6Sdk = I6Sdk;
-export { I6Sdk, I6Error };
+I6Sdk.Resp = Resp;
+export { I6Sdk, Resp };

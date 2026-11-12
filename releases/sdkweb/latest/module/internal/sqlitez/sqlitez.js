@@ -1,22 +1,34 @@
-import { I6Error } from "../../errors.js";
 const SQLJS_VERSION = "1.14.2";
 const SQLJS_WASM_URL = `https://cdn.jsdelivr.net/npm/sql.js@${SQLJS_VERSION}/dist/`;
 const SQLITE_HEADER = "SQLite format 3\0";
-let sqlJs = null;
+let sqlJsPromise = null;
 function loadSqlJs() {
-  sqlJs ??= import("sql.js").then((m) => (m.default || m)({ locateFile: (file) => SQLJS_WASM_URL + file }));
-  return sqlJs;
+  if (sqlJsPromise) return sqlJsPromise;
+  sqlJsPromise = (async () => {
+    if (typeof window !== "undefined" && typeof window.initSqlJs === "function") {
+      return window.initSqlJs({ locateFile: (file) => `${SQLJS_WASM_URL}${file}` });
+    }
+    await new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = `${SQLJS_WASM_URL}sql-wasm.js`;
+      script.onload = resolve;
+      script.onerror = () => reject(new Error(`could not load ${script.src}`));
+      document.head.appendChild(script);
+    });
+    return window.initSqlJs({ locateFile: (file) => `${SQLJS_WASM_URL}${file}` });
+  })();
+  return sqlJsPromise;
 }
 class SqliteConn {
   /**
-   * Use `sqlitez.open`, not this constructor.
-   * @param {Object} db - The sql.js database.
+   * @param {Object} db - The sql.js Database instance.
    */
   constructor(db) {
     this.db = db;
   }
   /**
-   * Closes the connection, freeing the database. Closing twice is fine.
+   * Closes the connection and frees its memory. Calling it more than once does nothing.
+   * After `close`, every other method throws.
    * @returns {Promise<void>}
    */
   async close() {
@@ -31,7 +43,6 @@ class SqliteConn {
    * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query (never concatenate them).
    * @returns {Promise<SqliteRow[]>} The rows (empty array when none), each one an object by column name.
    * @throws {TypeError} If opts.query is missing.
-   * @throws {I6Error} With code "query" if the connection is closed or sqlite rejects the query.
    */
   async query(opts) {
     if (!opts || !opts.query) throw new TypeError("sqlitez: opts.query is required");
@@ -47,8 +58,6 @@ class SqliteConn {
         rows.push(stmt.getAsObject());
       }
       return rows;
-    } catch (cause) {
-      throw new I6Error(`sqlitez: query failed: ${cause.message}`, { code: "query", cause });
     } finally {
       if (stmt) stmt.free();
     }
@@ -60,16 +69,11 @@ class SqliteConn {
    * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query.
    * @returns {Promise<void>}
    * @throws {TypeError} If opts.query is missing.
-   * @throws {I6Error} With code "query" if the connection is closed or sqlite rejects the statement.
    */
   async update(opts) {
     if (!opts || !opts.query) throw new TypeError("sqlitez: opts.query is required");
     const db = this.#alive();
-    try {
-      db.run(opts.query, opts.params);
-    } catch (cause) {
-      throw new I6Error(`sqlitez: update failed: ${cause.message}`, { code: "query", cause });
-    }
+    db.run(opts.query, opts.params);
   }
   /**
    * Runs a query stored in the `namedqueries` table of the sqlite (columns `name` and `query`).
@@ -78,13 +82,12 @@ class SqliteConn {
    * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the stored query.
    * @returns {Promise<SqliteRow[]>} The rows of the stored query, like `query`.
    * @throws {TypeError} If opts.name is missing.
-   * @throws {I6Error} With code "query" if the connection is closed, there is no such table or named query, or the query fails.
    */
   async namedQuery(opts) {
     if (!opts || !opts.name) throw new TypeError("sqlitez: opts.name is required");
     const found = await this.query({ query: "SELECT query FROM namedqueries WHERE name = ?", params: [opts.name] });
     if (found.length === 0) {
-      throw new I6Error(`sqlitez: no named query "${opts.name}"`, { code: "query" });
+      throw new Error(`sqlitez: no named query "${opts.name}"`);
     }
     return this.query({ query: String(found[0].query), params: opts.params });
   }
@@ -99,17 +102,12 @@ class SqliteConn {
    * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
    * @returns {Promise<*>} The parsed `ret` of the first row, or null if there is no row or `ret` is null.
    * @throws {TypeError} If opts.name is missing or opts.params is not an array.
-   * @throws {I6Error} With code "query" if `namedQuery` fails, the rows have no `ret` column, or `ret` is not valid JSON.
    */
   async namedJsonQuery(opts) {
     if (!opts || !opts.name) throw new TypeError("sqlitez: opts.name is required");
     const ret = await this.namedStringQuery(opts);
     if (ret === null) return null;
-    try {
-      return JSON.parse(ret);
-    } catch (cause) {
-      throw new I6Error(`sqlitez: "ret" of named query "${opts.name}" is not valid JSON: ${cause.message}`, { code: "query", cause });
-    }
+    return JSON.parse(ret);
   }
   /**
    * Like `namedJsonQuery` (same JSON params bound as `?1`, `?2`, ...), but the `ret` column is returned as is,
@@ -119,7 +117,6 @@ class SqliteConn {
    * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
    * @returns {Promise<string|null>} The `ret` of the first row as a string, or null if there is no row or `ret` is null.
    * @throws {TypeError} If opts.name is missing or opts.params is not an array.
-   * @throws {I6Error} With code "query" if `namedQuery` fails or the rows have no `ret` column.
    */
   async namedStringQuery(opts) {
     if (!opts || !opts.name) throw new TypeError("sqlitez: opts.name is required");
@@ -127,17 +124,16 @@ class SqliteConn {
     const rows = await this.namedQuery({ name: opts.name, params: (opts.params ?? []).map((value) => JSON.stringify(value ?? null)) });
     if (rows.length === 0) return null;
     if (!("ret" in rows[0])) {
-      throw new I6Error(`sqlitez: named query "${opts.name}" returned no "ret" column`, { code: "query" });
+      throw new Error(`sqlitez: named query "${opts.name}" returned no "ret" column`);
     }
     if (rows[0].ret === null) return null;
     return String(rows[0].ret);
   }
   /**
    * @returns {Object} The sql.js database.
-   * @throws {I6Error} With code "query" if the connection is closed.
    */
   #alive() {
-    if (!this.db) throw new I6Error("sqlitez: the connection is closed", { code: "query" });
+    if (!this.db) throw new Error("sqlitez: the connection is closed");
     return this.db;
   }
 }
@@ -148,23 +144,17 @@ class Sqlitez {
    * @param {string} opts.path - required, OPFS path of the file (what `fs.resolve` returns for a downloaded file).
    * @returns {Promise<SqliteConn>} The connection. The caller must `close()` it.
    * @throws {TypeError} If opts.path is missing.
-   * @throws {I6Error} With code "asset" if the file cannot be read or is not a sqlite file.
    */
   async open(opts) {
     if (!opts || !opts.path) throw new TypeError("sqlitez: opts.path is required");
-    let bytes;
-    try {
-      const segments = opts.path.split("/");
-      const fileName = segments.pop();
-      let dir = await navigator.storage.getDirectory();
-      for (const segment of segments) dir = await dir.getDirectoryHandle(segment);
-      const file = await (await dir.getFileHandle(fileName)).getFile();
-      bytes = new Uint8Array(await file.arrayBuffer());
-    } catch (cause) {
-      throw new I6Error(`sqlitez: could not read ${opts.path}: ${cause.message}`, { code: "asset", cause });
-    }
+    const segments = opts.path.split("/");
+    const fileName = segments.pop();
+    let dir = await navigator.storage.getDirectory();
+    for (const segment of segments) dir = await dir.getDirectoryHandle(segment);
+    const file = await (await dir.getFileHandle(fileName)).getFile();
+    const bytes = new Uint8Array(await file.arrayBuffer());
     if (new TextDecoder().decode(bytes.subarray(0, 16)) !== SQLITE_HEADER) {
-      throw new I6Error(`sqlitez: ${opts.path} is not a sqlite file`, { code: "asset" });
+      throw new Error(`sqlitez: ${opts.path} is not a sqlite file`);
     }
     const SQL = await loadSqlJs();
     return new SqliteConn(new SQL.Database(bytes));

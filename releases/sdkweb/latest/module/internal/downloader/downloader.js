@@ -37,8 +37,7 @@ class Downloader {
       success = true;
     } finally {
       if (!success) {
-        await fs.discard(ref).catch(() => {
-        });
+        await fs.discard(ref);
       }
     }
     return fs.release(ref);

@@ -20,7 +20,6 @@ export type ModelInput = {
  * @param {FileRef} opts.ref - The downloaded .tflite file.
  * @param {string} [opts.wasmUrl] - URL of the folder with the LiteRT wasm files. Defaults to the jsdelivr copy.
  * @returns {Promise<Object>} The compiled model, to give to `runModel` and `describeModel`.
- * @throws {I6Error} With code "asset" if the file is not a tflite file, "model" if the runtime or the model cannot be loaded.
  */
 declare function loadModel(opts: {
     ref: FileRef;
@@ -41,7 +40,6 @@ declare function describeModel(model: Object): {
  * @param {ModelInput} input - What the caller gave.
  * @param {number[]} modelShape - Shape of the model input (-1 is free).
  * @returns {{flat: number[], shape: number[]}}
- * @throws {I6Error} With code "invalid_argument" if the data does not fit the model's shape.
  */
 declare function toTensorData(name: string, input: ModelInput, modelShape: number[]): {
     flat: number[];
@@ -53,7 +51,6 @@ declare function toTensorData(name: string, input: ModelInput, modelShape: numbe
  * @param {Object} model - The compiled model, from loadModel.
  * @param {Record<string, ModelInput>} inputs - Input name -> data.
  * @returns {Promise<Record<string, ArrayLike<number>>>} Output name -> values, for every output of the model.
- * @throws {I6Error} With code "invalid_argument" if an input is missing or its data does not fit the model, "model" if the run fails.
  */
 declare function runModel(model: Object, inputs: Record<string, ModelInput>): Promise<Record<string, ArrayLike<number>>>;
 export { loadModel, describeModel, runModel, toTensorData };

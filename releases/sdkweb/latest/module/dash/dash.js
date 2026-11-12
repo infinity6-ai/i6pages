@@ -1,4 +1,3 @@
-import { I6Error } from "../errors.js";
 import { fs } from "../internal/fs/fs.js";
 import { sqlitez } from "../internal/sqlitez/sqlitez.js";
 import { downloadFile, isPartitions, partitionsKey } from "../internal/assets/assets.js";
@@ -17,8 +16,6 @@ class Dash {
    * Downloads the dash sqlite (cached by etag), runs the named query `dash-${dashName}` with `params` and returns its result.
    * @param {DashOptions} opts - Dash options.
    * @returns {Promise<*>} The `ret` of the named query.
-   * @throws {I6Error} With code "invalid_argument" if opts is malformed, "asset" if the download fails,
-   *   "query" if the sqlite fails.
    */
   async query(opts) {
     validate(opts);
@@ -39,7 +36,6 @@ class Dash {
    * @private
    * @param {DashOptions} opts - Dash options.
    * @returns {Promise<string>} Download URL of the sqlite.
-   * @throws {I6Error} With code "asset" if the API gave no URL.
    */
   async _sqliteUrl(opts) {
     if (opts.sqliteUrl) return opts.sqliteUrl;
@@ -54,17 +50,19 @@ class Dash {
         ]
       }
     }, opts.serviceOpts);
-    const url = resp.payload?.urls?.[0]?.url;
-    if (!url) throw new I6Error(`dash: the api gave no "${SQLITE_FILE}" file: ${resp.error?.message ?? "empty answer"}`, { code: "asset", status: resp.error?.status, cause: resp.error });
+    if (!resp.ok) throw new Error(`dash: the api gave no "${SQLITE_FILE}" file: ${resp.error?.message ?? "empty answer"}`);
+    const payload = resp.parse();
+    const url = payload?.urls?.[0]?.url;
+    if (!url) throw new Error(`dash: the api gave no "${SQLITE_FILE}" file: empty answer`);
     return url;
   }
 }
 function validate(opts) {
   for (const key of ["dashName", "dataset"]) {
-    if (!opts || !opts[key]) throw new I6Error(`dash: opts.${key} is required`, { code: "invalid_argument" });
+    if (!opts || !opts[key]) throw new TypeError(`dash: opts.${key} is required`);
   }
   if (!isPartitions(opts.partitions)) {
-    throw new I6Error("dash: opts.partitions must be an object of string values", { code: "invalid_argument" });
+    throw new TypeError("dash: opts.partitions must be an object of string values");
   }
 }
 export { Dash };

@@ -16,21 +16,24 @@
  * Every method takes a single `opts` object with the real parameters inside it.
  */
 export type SqliteValue = number | string | null | Uint8Array;
-export type SqliteRow = Record<string, SqliteValue>;
+export type SqliteRow = Object<string, SqliteValue>;
 /**
- * An open sqlite database. Get one with `sqlitez.open` and always call `close()` in a `finally`.
+ * An open in-memory sqlite connection. Obtained from `sqlitez.open`.
  */
 declare class SqliteConn {
     #private;
-    /** @private */
+    /**
+     * @private
+     * @type {Object|null}
+     */
     db;
     /**
-     * Use `sqlitez.open`, not this constructor.
-     * @param {Object} db - The sql.js database.
+     * @param {Object} db - The sql.js Database instance.
      */
     constructor(db: Object);
     /**
-     * Closes the connection, freeing the database. Closing twice is fine.
+     * Closes the connection and frees its memory. Calling it more than once does nothing.
+     * After `close`, every other method throws.
      * @returns {Promise<void>}
      */
     close(): Promise<void>;
@@ -41,7 +44,6 @@ declare class SqliteConn {
      * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query (never concatenate them).
      * @returns {Promise<SqliteRow[]>} The rows (empty array when none), each one an object by column name.
      * @throws {TypeError} If opts.query is missing.
-     * @throws {I6Error} With code "query" if the connection is closed or sqlite rejects the query.
      */
     query(opts: {
         query: string;
@@ -54,7 +56,6 @@ declare class SqliteConn {
      * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query.
      * @returns {Promise<void>}
      * @throws {TypeError} If opts.query is missing.
-     * @throws {I6Error} With code "query" if the connection is closed or sqlite rejects the statement.
      */
     update(opts: {
         query: string;
@@ -67,7 +68,6 @@ declare class SqliteConn {
      * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the stored query.
      * @returns {Promise<SqliteRow[]>} The rows of the stored query, like `query`.
      * @throws {TypeError} If opts.name is missing.
-     * @throws {I6Error} With code "query" if the connection is closed, there is no such table or named query, or the query fails.
      */
     namedQuery(opts: {
         name: string;
@@ -84,7 +84,6 @@ declare class SqliteConn {
      * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
      * @returns {Promise<*>} The parsed `ret` of the first row, or null if there is no row or `ret` is null.
      * @throws {TypeError} If opts.name is missing or opts.params is not an array.
-     * @throws {I6Error} With code "query" if `namedQuery` fails, the rows have no `ret` column, or `ret` is not valid JSON.
      */
     namedJsonQuery(opts: {
         name: string;
@@ -98,7 +97,6 @@ declare class SqliteConn {
      * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
      * @returns {Promise<string|null>} The `ret` of the first row as a string, or null if there is no row or `ret` is null.
      * @throws {TypeError} If opts.name is missing or opts.params is not an array.
-     * @throws {I6Error} With code "query" if `namedQuery` fails or the rows have no `ret` column.
      */
     namedStringQuery(opts: {
         name: string;
@@ -115,7 +113,6 @@ declare class Sqlitez {
      * @param {string} opts.path - required, OPFS path of the file (what `fs.resolve` returns for a downloaded file).
      * @returns {Promise<SqliteConn>} The connection. The caller must `close()` it.
      * @throws {TypeError} If opts.path is missing.
-     * @throws {I6Error} With code "asset" if the file cannot be read or is not a sqlite file.
      */
     open(opts: {
         path: string;

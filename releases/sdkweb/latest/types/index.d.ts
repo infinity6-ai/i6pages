@@ -2,7 +2,7 @@
  * @fileoverview Main entry point for the i6 Web Legacy SDK.
  */
 import { Apis, SdkFuncs } from "./services/services.js";
-import { I6Error } from "./errors.js";
+import { Resp } from "./invoker/invoker.js";
 export type I6Storage = {
     /**
      * - Retrieves an item by key.
@@ -42,14 +42,6 @@ export type I6SdkConfig = {
      * - Client application identifier registered in i6userz (e.g. 'default').
      */
     app?: string;
-    /**
-     * - Default dataset authorization token string for API requests.
-     */
-    datasetToken?: string;
-    /**
-     * - Default user bearer token JWT string for API requests.
-     */
-    bearerToken?: string;
     /**
      * - Optional storage adapter for persistent token storage. Defaults to global `localStorage` when omitted.
      */
@@ -138,6 +130,6 @@ declare class I6Sdk {
     bind(evt: string, fn: EventListenerOrEventListenerObject | Function): void;
 }
 declare namespace I6Sdk {
-    export { I6Error };
+    export { Resp };
 }
-export { I6Sdk, I6Error };
+export { I6Sdk, Resp };

@@ -1,2197 +1,5 @@
 (() => {
-  var __create = Object.create;
-  var __defProp = Object.defineProperty;
-  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-  var __getOwnPropNames = Object.getOwnPropertyNames;
-  var __getProtoOf = Object.getPrototypeOf;
-  var __hasOwnProp = Object.prototype.hasOwnProperty;
-  var __commonJS = (cb, mod) => function __require() {
-    try {
-      return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-    } catch (e) {
-      throw mod = 0, e;
-    }
-  };
-  var __copyProps = (to, from, except, desc) => {
-    if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames(from))
-        if (!__hasOwnProp.call(to, key) && key !== except)
-          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-    }
-    return to;
-  };
-  var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-    // If the importer is in node compatibility mode or this is not an ESM
-    // file that has been converted to a CommonJS file using a Babel-
-    // compatible transform (i.e. "__esModule" has not been set), then set
-    // "default" to the CommonJS "module.exports" for node compatibility.
-    isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-    mod
-  ));
-
-  // node_modules/sql.js/dist/sql-wasm-browser.js
-  var require_sql_wasm_browser = __commonJS({
-    "node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
-      var initSqlJsPromise = void 0;
-      var initSqlJs = function(moduleConfig) {
-        if (initSqlJsPromise) {
-          return initSqlJsPromise;
-        }
-        initSqlJsPromise = new Promise(function(resolveModule, reject) {
-          var Module = typeof moduleConfig !== "undefined" ? moduleConfig : {};
-          var originalOnAbortFunction = Module["onAbort"];
-          Module["onAbort"] = function(errorThatCausedAbort) {
-            reject(new Error(errorThatCausedAbort));
-            if (originalOnAbortFunction) {
-              originalOnAbortFunction(errorThatCausedAbort);
-            }
-          };
-          Module["postRun"] = Module["postRun"] || [];
-          Module["postRun"].push(function() {
-            resolveModule(Module);
-          });
-          module = void 0;
-          var k;
-          k ||= typeof Module != "undefined" ? Module : {};
-          var aa = !!globalThis.window, ba = !!globalThis.WorkerGlobalScope;
-          k.onRuntimeInitialized = function() {
-            function a(f, l) {
-              switch (typeof l) {
-                case "boolean":
-                  bc(f, l ? 1 : 0);
-                  break;
-                case "number":
-                  cc(f, l);
-                  break;
-                case "string":
-                  dc(f, l, -1, -1);
-                  break;
-                case "object":
-                  if (null === l) eb(f);
-                  else if (null != l.length) {
-                    var n = ca(l.length);
-                    m.set(l, n);
-                    ec(f, n, l.length, -1);
-                    da(n);
-                  } else ua(f, "Wrong API use : tried to return a value of an unknown type (" + l + ").", -1);
-                  break;
-                default:
-                  eb(f);
-              }
-            }
-            function b(f, l) {
-              for (var n = [], p = 0; p < f; p += 1) {
-                var r = t(l + 4 * p, "i32"), v = fc(r);
-                if (1 === v || 2 === v) r = gc(r);
-                else if (3 === v) r = hc(r);
-                else if (4 === v) {
-                  v = r;
-                  r = ic(v);
-                  v = jc(v);
-                  for (var J = new Uint8Array(r), I = 0; I < r; I += 1) J[I] = m[v + I];
-                  r = J;
-                } else r = null;
-                n.push(r);
-              }
-              return n;
-            }
-            function c(f, l) {
-              this.Qa = f;
-              this.db = l;
-              this.Oa = 1;
-              this.yb = [];
-            }
-            function d(f, l) {
-              this.db = l;
-              this.ob = ea(f);
-              if (null === this.ob) throw Error("Unable to allocate memory for the SQL string");
-              this.ub = this.ob;
-              this.gb = this.Fb = null;
-            }
-            function e(f) {
-              this.filename = "dbfile_" + (4294967295 * Math.random() >>> 0);
-              if (null != f) {
-                var l = this.filename, n = "/", p = l;
-                n && (n = "string" == typeof n ? n : fa(n), p = l ? ha(n + "/" + l) : n);
-                l = ia(true, true);
-                p = ja(
-                  p,
-                  l
-                );
-                if (f) {
-                  if ("string" == typeof f) {
-                    n = Array(f.length);
-                    for (var r = 0, v = f.length; r < v; ++r) n[r] = f.charCodeAt(r);
-                    f = n;
-                  }
-                  ka(p, l | 146);
-                  n = ma(p, 577);
-                  na(n, f, 0, f.length, 0);
-                  oa(n);
-                  ka(p, l);
-                }
-              }
-              this.handleError(q(this.filename, g));
-              this.db = t(g, "i32");
-              hb(this.db);
-              this.pb = {};
-              this.Sa = {};
-            }
-            var g = y(4), h = k.cwrap, q = h("sqlite3_open", "number", ["string", "number"]), w = h("sqlite3_close_v2", "number", ["number"]), u = h("sqlite3_exec", "number", ["number", "string", "number", "number", "number"]), x = h("sqlite3_changes", "number", ["number"]), D = h(
-              "sqlite3_prepare_v2",
-              "number",
-              ["number", "string", "number", "number", "number"]
-            ), ib = h("sqlite3_sql", "string", ["number"]), lc = h("sqlite3_normalized_sql", "string", ["number"]), jb = h("sqlite3_prepare_v2", "number", ["number", "number", "number", "number", "number"]), mc = h("sqlite3_bind_text", "number", ["number", "number", "number", "number", "number"]), kb = h("sqlite3_bind_blob", "number", ["number", "number", "number", "number", "number"]), nc = h("sqlite3_bind_double", "number", ["number", "number", "number"]), oc = h("sqlite3_bind_int", "number", [
-              "number",
-              "number",
-              "number"
-            ]), pc = h("sqlite3_bind_parameter_index", "number", ["number", "string"]), qc = h("sqlite3_step", "number", ["number"]), rc = h("sqlite3_errmsg", "string", ["number"]), sc = h("sqlite3_column_count", "number", ["number"]), tc = h("sqlite3_data_count", "number", ["number"]), uc = h("sqlite3_column_double", "number", ["number", "number"]), lb = h("sqlite3_column_text", "string", ["number", "number"]), vc = h("sqlite3_column_blob", "number", ["number", "number"]), wc = h("sqlite3_column_bytes", "number", ["number", "number"]), xc = h(
-              "sqlite3_column_type",
-              "number",
-              ["number", "number"]
-            ), yc = h("sqlite3_column_name", "string", ["number", "number"]), zc = h("sqlite3_reset", "number", ["number"]), Ac = h("sqlite3_clear_bindings", "number", ["number"]), Bc = h("sqlite3_finalize", "number", ["number"]), mb = h("sqlite3_create_function_v2", "number", "number string number number number number number number number".split(" ")), fc = h("sqlite3_value_type", "number", ["number"]), ic = h("sqlite3_value_bytes", "number", ["number"]), hc = h("sqlite3_value_text", "string", ["number"]), jc = h(
-              "sqlite3_value_blob",
-              "number",
-              ["number"]
-            ), gc = h("sqlite3_value_double", "number", ["number"]), cc = h("sqlite3_result_double", "", ["number", "number"]), eb = h("sqlite3_result_null", "", ["number"]), dc = h("sqlite3_result_text", "", ["number", "string", "number", "number"]), ec = h("sqlite3_result_blob", "", ["number", "number", "number", "number"]), bc = h("sqlite3_result_int", "", ["number", "number"]), ua = h("sqlite3_result_error", "", ["number", "string", "number"]), nb = h("sqlite3_aggregate_context", "number", ["number", "number"]), hb = h(
-              "RegisterExtensionFunctions",
-              "number",
-              ["number"]
-            ), ob = h("sqlite3_update_hook", "number", ["number", "number", "number"]);
-            c.prototype.bind = function(f) {
-              if (!this.Qa) throw "Statement closed";
-              this.reset();
-              return Array.isArray(f) ? this.Wb(f) : null != f && "object" === typeof f ? this.Xb(f) : true;
-            };
-            c.prototype.step = function() {
-              if (!this.Qa) throw "Statement closed";
-              this.Oa = 1;
-              var f = qc(this.Qa);
-              switch (f) {
-                case 100:
-                  return true;
-                case 101:
-                  return false;
-                default:
-                  throw this.db.handleError(f);
-              }
-            };
-            c.prototype.Pb = function(f) {
-              null == f && (f = this.Oa, this.Oa += 1);
-              return uc(this.Qa, f);
-            };
-            c.prototype.hc = function(f) {
-              null == f && (f = this.Oa, this.Oa += 1);
-              f = lb(this.Qa, f);
-              if ("function" !== typeof BigInt) throw Error("BigInt is not supported");
-              return BigInt(f);
-            };
-            c.prototype.mc = function(f) {
-              null == f && (f = this.Oa, this.Oa += 1);
-              return lb(this.Qa, f);
-            };
-            c.prototype.getBlob = function(f) {
-              null == f && (f = this.Oa, this.Oa += 1);
-              var l = wc(this.Qa, f);
-              f = vc(this.Qa, f);
-              for (var n = new Uint8Array(l), p = 0; p < l; p += 1) n[p] = m[f + p];
-              return n;
-            };
-            c.prototype.get = function(f, l) {
-              l = l || {};
-              null != f && this.bind(f) && this.step();
-              f = [];
-              for (var n = tc(this.Qa), p = 0; p < n; p += 1) switch (xc(this.Qa, p)) {
-                case 1:
-                  var r = l.useBigInt ? this.hc(p) : this.Pb(p);
-                  f.push(r);
-                  break;
-                case 2:
-                  f.push(this.Pb(p));
-                  break;
-                case 3:
-                  f.push(this.mc(p));
-                  break;
-                case 4:
-                  f.push(this.getBlob(p));
-                  break;
-                default:
-                  f.push(null);
-              }
-              return f;
-            };
-            c.prototype.Db = function() {
-              for (var f = [], l = sc(this.Qa), n = 0; n < l; n += 1) f.push(yc(this.Qa, n));
-              return f;
-            };
-            c.prototype.Ob = function(f, l) {
-              f = this.get(f, l);
-              l = this.Db();
-              for (var n = {}, p = 0; p < l.length; p += 1) n[l[p]] = f[p];
-              return n;
-            };
-            c.prototype.lc = function() {
-              return ib(this.Qa);
-            };
-            c.prototype.ic = function() {
-              return lc(this.Qa);
-            };
-            c.prototype.Jb = function(f) {
-              null != f && this.bind(f);
-              this.step();
-              return this.reset();
-            };
-            c.prototype.Lb = function(f, l) {
-              null == l && (l = this.Oa, this.Oa += 1);
-              f = ea(f);
-              this.yb.push(f);
-              this.db.handleError(mc(this.Qa, l, f, -1, 0));
-            };
-            c.prototype.Vb = function(f, l) {
-              null == l && (l = this.Oa, this.Oa += 1);
-              var n = ca(f.length);
-              m.set(f, n);
-              this.yb.push(n);
-              this.db.handleError(kb(this.Qa, l, n, f.length, 0));
-            };
-            c.prototype.Kb = function(f, l) {
-              null == l && (l = this.Oa, this.Oa += 1);
-              this.db.handleError((f === (f | 0) ? oc : nc)(
-                this.Qa,
-                l,
-                f
-              ));
-            };
-            c.prototype.Yb = function(f) {
-              null == f && (f = this.Oa, this.Oa += 1);
-              kb(this.Qa, f, 0, 0, 0);
-            };
-            c.prototype.Mb = function(f, l) {
-              null == l && (l = this.Oa, this.Oa += 1);
-              switch (typeof f) {
-                case "string":
-                  this.Lb(f, l);
-                  return;
-                case "number":
-                  this.Kb(f, l);
-                  return;
-                case "bigint":
-                  this.Lb(f.toString(), l);
-                  return;
-                case "boolean":
-                  this.Kb(f + 0, l);
-                  return;
-                case "object":
-                  if (null === f) {
-                    this.Yb(l);
-                    return;
-                  }
-                  if (null != f.length) {
-                    this.Vb(f, l);
-                    return;
-                  }
-              }
-              throw "Wrong API use : tried to bind a value of an unknown type (" + f + ").";
-            };
-            c.prototype.Xb = function(f) {
-              var l = this;
-              Object.keys(f).forEach(function(n) {
-                var p = pc(l.Qa, n);
-                0 !== p && l.Mb(f[n], p);
-              });
-              return true;
-            };
-            c.prototype.Wb = function(f) {
-              for (var l = 0; l < f.length; l += 1) this.Mb(f[l], l + 1);
-              return true;
-            };
-            c.prototype.reset = function() {
-              this.Cb();
-              return 0 === Ac(this.Qa) && 0 === zc(this.Qa);
-            };
-            c.prototype.Cb = function() {
-              for (var f; void 0 !== (f = this.yb.pop()); ) da(f);
-            };
-            c.prototype.cb = function() {
-              this.Cb();
-              var f = 0 === Bc(this.Qa);
-              delete this.db.pb[this.Qa];
-              this.Qa = 0;
-              return f;
-            };
-            d.prototype.next = function() {
-              if (null === this.ob) return { done: true };
-              null !== this.gb && (this.gb.cb(), this.gb = null);
-              if (!this.db.db) throw this.Ab(), Error("Database closed");
-              var f = pa(), l = y(4);
-              qa(g);
-              qa(l);
-              try {
-                this.db.handleError(jb(this.db.db, this.ub, -1, g, l));
-                this.ub = t(l, "i32");
-                var n = t(g, "i32");
-                if (0 === n) return this.Ab(), { done: true };
-                this.gb = new c(n, this.db);
-                this.db.pb[n] = this.gb;
-                return { value: this.gb, done: false };
-              } catch (p) {
-                throw this.Fb = z(this.ub), this.Ab(), p;
-              } finally {
-                ra(f);
-              }
-            };
-            d.prototype.Ab = function() {
-              da(this.ob);
-              this.ob = null;
-            };
-            d.prototype.jc = function() {
-              return null !== this.Fb ? this.Fb : z(this.ub);
-            };
-            "function" === typeof Symbol && "symbol" === typeof Symbol.iterator && (d.prototype[Symbol.iterator] = function() {
-              return this;
-            });
-            e.prototype.Jb = function(f, l) {
-              if (!this.db) throw "Database closed";
-              if (l) {
-                f = this.Gb(f, l);
-                try {
-                  f.step();
-                } finally {
-                  f.cb();
-                }
-              } else this.handleError(u(this.db, f, 0, 0, g));
-              return this;
-            };
-            e.prototype.exec = function(f, l, n) {
-              if (!this.db) throw "Database closed";
-              var p = pa(), r = null, v = null, J = null;
-              try {
-                J = v = ea(f);
-                var I = y(4);
-                for (f = []; 0 !== t(J, "i8"); ) {
-                  qa(g);
-                  qa(I);
-                  this.handleError(jb(this.db, J, -1, g, I));
-                  var L = t(g, "i32");
-                  J = t(I, "i32");
-                  if (0 !== L) {
-                    var G = null;
-                    r = new c(L, this);
-                    for (null != l && r.bind(l); r.step(); ) null === G && (G = { columns: r.Db(), values: [] }, f.push(G)), G.values.push(r.get(null, n));
-                    r.cb();
-                  }
-                }
-                return f;
-              } catch (la) {
-                throw r && r.cb(), la;
-              } finally {
-                v && da(v), ra(p);
-              }
-            };
-            e.prototype.ec = function(f, l, n, p, r) {
-              "function" === typeof l && (p = n, n = l, l = void 0);
-              f = this.Gb(f, l);
-              try {
-                for (; f.step(); ) n(f.Ob(null, r));
-              } finally {
-                f.cb();
-              }
-              if ("function" === typeof p) return p();
-            };
-            e.prototype.Gb = function(f, l) {
-              qa(g);
-              this.handleError(D(this.db, f, -1, g, 0));
-              f = t(g, "i32");
-              if (0 === f) throw "Nothing to prepare";
-              var n = new c(f, this);
-              null != l && n.bind(l);
-              return this.pb[f] = n;
-            };
-            e.prototype.pc = function(f) {
-              return new d(f, this);
-            };
-            e.prototype.fc = function() {
-              Object.values(this.pb).forEach(function(l) {
-                l.cb();
-              });
-              Object.values(this.Sa).forEach(A);
-              this.Sa = {};
-              this.handleError(w(this.db));
-              var f = sa(this.filename);
-              this.handleError(q(this.filename, g));
-              this.db = t(g, "i32");
-              hb(this.db);
-              return f;
-            };
-            e.prototype.close = function() {
-              null !== this.db && (Object.values(this.pb).forEach(function(f) {
-                f.cb();
-              }), Object.values(this.Sa).forEach(A), this.Sa = {}, this.fb && (A(this.fb), this.fb = void 0), this.handleError(w(this.db)), ta("/" + this.filename), this.db = null);
-            };
-            e.prototype.handleError = function(f) {
-              if (0 === f) return null;
-              f = rc(this.db);
-              throw Error(f);
-            };
-            e.prototype.kc = function() {
-              return x(this.db);
-            };
-            e.prototype.bc = function(f, l) {
-              Object.prototype.hasOwnProperty.call(this.Sa, f) && (A(this.Sa[f]), delete this.Sa[f]);
-              var n = va(function(p, r, v) {
-                r = b(r, v);
-                try {
-                  var J = l.apply(null, r);
-                } catch (I) {
-                  ua(p, I, -1);
-                  return;
-                }
-                a(p, J);
-              }, "viii");
-              this.Sa[f] = n;
-              this.handleError(mb(
-                this.db,
-                f,
-                l.length,
-                1,
-                0,
-                n,
-                0,
-                0,
-                0
-              ));
-              return this;
-            };
-            e.prototype.ac = function(f, l) {
-              var n = l.init || function() {
-                return null;
-              }, p = l.finalize || function(L) {
-                return L;
-              }, r = l.step;
-              if (!r) throw "An aggregate function must have a step function in " + f;
-              var v = {};
-              Object.hasOwnProperty.call(this.Sa, f) && (A(this.Sa[f]), delete this.Sa[f]);
-              l = f + "__finalize";
-              Object.hasOwnProperty.call(this.Sa, l) && (A(this.Sa[l]), delete this.Sa[l]);
-              var J = va(function(L, G, la) {
-                var V = nb(L, 1);
-                Object.hasOwnProperty.call(v, V) || (v[V] = n());
-                G = b(G, la);
-                G = [v[V]].concat(G);
-                try {
-                  v[V] = r.apply(null, G);
-                } catch (Dc) {
-                  delete v[V], ua(L, Dc, -1);
-                }
-              }, "viii"), I = va(function(L) {
-                var G = nb(L, 1);
-                try {
-                  var la = p(v[G]);
-                } catch (V) {
-                  delete v[G];
-                  ua(L, V, -1);
-                  return;
-                }
-                a(L, la);
-                delete v[G];
-              }, "vi");
-              this.Sa[f] = J;
-              this.Sa[l] = I;
-              this.handleError(mb(this.db, f, r.length - 1, 1, 0, 0, J, I, 0));
-              return this;
-            };
-            e.prototype.vc = function(f) {
-              this.fb && (ob(this.db, 0, 0), A(this.fb), this.fb = void 0);
-              if (!f) return this;
-              this.fb = va(function(l, n, p, r, v) {
-                switch (n) {
-                  case 18:
-                    l = "insert";
-                    break;
-                  case 23:
-                    l = "update";
-                    break;
-                  case 9:
-                    l = "delete";
-                    break;
-                  default:
-                    throw "unknown operationCode in updateHook callback: " + n;
-                }
-                p = z(p);
-                r = z(r);
-                if (v > Number.MAX_SAFE_INTEGER) throw "rowId too big to fit inside a Number";
-                f(l, p, r, Number(v));
-              }, "viiiij");
-              ob(this.db, this.fb, 0);
-              return this;
-            };
-            c.prototype.bind = c.prototype.bind;
-            c.prototype.step = c.prototype.step;
-            c.prototype.get = c.prototype.get;
-            c.prototype.getColumnNames = c.prototype.Db;
-            c.prototype.getAsObject = c.prototype.Ob;
-            c.prototype.getSQL = c.prototype.lc;
-            c.prototype.getNormalizedSQL = c.prototype.ic;
-            c.prototype.run = c.prototype.Jb;
-            c.prototype.reset = c.prototype.reset;
-            c.prototype.freemem = c.prototype.Cb;
-            c.prototype.free = c.prototype.cb;
-            d.prototype.next = d.prototype.next;
-            d.prototype.getRemainingSQL = d.prototype.jc;
-            e.prototype.run = e.prototype.Jb;
-            e.prototype.exec = e.prototype.exec;
-            e.prototype.each = e.prototype.ec;
-            e.prototype.prepare = e.prototype.Gb;
-            e.prototype.iterateStatements = e.prototype.pc;
-            e.prototype["export"] = e.prototype.fc;
-            e.prototype.close = e.prototype.close;
-            e.prototype.handleError = e.prototype.handleError;
-            e.prototype.getRowsModified = e.prototype.kc;
-            e.prototype.create_function = e.prototype.bc;
-            e.prototype.create_aggregate = e.prototype.ac;
-            e.prototype.updateHook = e.prototype.vc;
-            k.Database = e;
-          };
-          var wa = "./this.program", xa = globalThis.document?.currentScript?.src;
-          ba && (xa = self.location.href);
-          var ya = "", za, Aa;
-          if (aa || ba) {
-            try {
-              ya = new URL(".", xa).href;
-            } catch {
-            }
-            ba && (Aa = (a) => {
-              var b = new XMLHttpRequest();
-              b.open("GET", a, false);
-              b.responseType = "arraybuffer";
-              b.send(null);
-              return new Uint8Array(b.response);
-            });
-            za = async (a) => {
-              a = await fetch(a, { credentials: "same-origin" });
-              if (a.ok) return a.arrayBuffer();
-              throw Error(a.status + " : " + a.url);
-            };
-          }
-          var Ba = console.log.bind(console), B = console.error.bind(console), Ca, Da = false, Ea, m, C, Fa, E, F, Ga, Ha, H;
-          function Ia() {
-            var a = Ja.buffer;
-            m = new Int8Array(a);
-            Fa = new Int16Array(a);
-            C = new Uint8Array(a);
-            new Uint16Array(a);
-            E = new Int32Array(a);
-            F = new Uint32Array(a);
-            Ga = new Float32Array(a);
-            Ha = new Float64Array(a);
-            H = new BigInt64Array(a);
-            new BigUint64Array(a);
-          }
-          function Ka(a) {
-            k.onAbort?.(a);
-            a = "Aborted(" + a + ")";
-            B(a);
-            Da = true;
-            throw new WebAssembly.RuntimeError(a + ". Build with -sASSERTIONS for more info.");
-          }
-          var La;
-          async function Ma(a) {
-            if (!Ca) try {
-              var b = await za(a);
-              return new Uint8Array(b);
-            } catch {
-            }
-            if (a == La && Ca) a = new Uint8Array(Ca);
-            else if (Aa) a = Aa(a);
-            else throw "both async and sync fetching of the wasm failed";
-            return a;
-          }
-          async function Na(a, b) {
-            try {
-              var c = await Ma(a);
-              return await WebAssembly.instantiate(c, b);
-            } catch (d) {
-              B(`failed to asynchronously prepare wasm: ${d}`), Ka(d);
-            }
-          }
-          async function Oa(a) {
-            var b = La;
-            if (!Ca) try {
-              var c = fetch(b, { credentials: "same-origin" });
-              return await WebAssembly.instantiateStreaming(c, a);
-            } catch (d) {
-              B(`wasm streaming compile failed: ${d}`), B("falling back to ArrayBuffer instantiation");
-            }
-            return Na(b, a);
-          }
-          class Pa {
-            name = "ExitStatus";
-            constructor(a) {
-              this.message = `Program terminated with exit(${a})`;
-              this.status = a;
-            }
-          }
-          var Qa = (a) => {
-            for (; 0 < a.length; ) a.shift()(k);
-          }, Ra = [], Sa = [], Ta = () => {
-            var a = k.preRun.shift();
-            Sa.push(a);
-          }, K = 0, Ua = null;
-          function t(a, b = "i8") {
-            b.endsWith("*") && (b = "*");
-            switch (b) {
-              case "i1":
-                return m[a];
-              case "i8":
-                return m[a];
-              case "i16":
-                return Fa[a >> 1];
-              case "i32":
-                return E[a >> 2];
-              case "i64":
-                return H[a >> 3];
-              case "float":
-                return Ga[a >> 2];
-              case "double":
-                return Ha[a >> 3];
-              case "*":
-                return F[a >> 2];
-              default:
-                Ka(`invalid type for getValue: ${b}`);
-            }
-          }
-          var Va = true;
-          function qa(a) {
-            var b = "i32";
-            b.endsWith("*") && (b = "*");
-            switch (b) {
-              case "i1":
-                m[a] = 0;
-                break;
-              case "i8":
-                m[a] = 0;
-                break;
-              case "i16":
-                Fa[a >> 1] = 0;
-                break;
-              case "i32":
-                E[a >> 2] = 0;
-                break;
-              case "i64":
-                H[a >> 3] = BigInt(0);
-                break;
-              case "float":
-                Ga[a >> 2] = 0;
-                break;
-              case "double":
-                Ha[a >> 3] = 0;
-                break;
-              case "*":
-                F[a >> 2] = 0;
-                break;
-              default:
-                Ka(`invalid type for setValue: ${b}`);
-            }
-          }
-          var Wa = new TextDecoder(), Xa = (a, b, c, d) => {
-            c = b + c;
-            if (d) return c;
-            for (; a[b] && !(b >= c); ) ++b;
-            return b;
-          }, z = (a, b, c) => a ? Wa.decode(C.subarray(a, Xa(C, a, b, c))) : "", Ya = (a, b) => {
-            for (var c = 0, d = a.length - 1; 0 <= d; d--) {
-              var e = a[d];
-              "." === e ? a.splice(d, 1) : ".." === e ? (a.splice(d, 1), c++) : c && (a.splice(d, 1), c--);
-            }
-            if (b) for (; c; c--) a.unshift("..");
-            return a;
-          }, ha = (a) => {
-            var b = "/" === a.charAt(0), c = "/" === a.slice(-1);
-            (a = Ya(a.split("/").filter((d) => !!d), !b).join("/")) || b || (a = ".");
-            a && c && (a += "/");
-            return (b ? "/" : "") + a;
-          }, Za = (a) => {
-            var b = /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/.exec(a).slice(1);
-            a = b[0];
-            b = b[1];
-            if (!a && !b) return ".";
-            b &&= b.slice(0, -1);
-            return a + b;
-          }, $a = (a) => a && a.match(/([^\/]+|\/)\/*$/)[1], ab = () => (a) => crypto.getRandomValues(a), bb = (a) => {
-            (bb = ab())(a);
-          }, cb = (...a) => {
-            for (var b = "", c = false, d = a.length - 1; -1 <= d && !c; d--) {
-              c = 0 <= d ? a[d] : "/";
-              if ("string" != typeof c) throw new TypeError("Arguments to path.resolve must be strings");
-              if (!c) return "";
-              b = c + "/" + b;
-              c = "/" === c.charAt(0);
-            }
-            b = Ya(b.split("/").filter((e) => !!e), !c).join("/");
-            return (c ? "/" : "") + b || ".";
-          }, db = (a) => {
-            var b = Xa(a, 0);
-            return Wa.decode(a.buffer ? a.subarray(0, b) : new Uint8Array(a.slice(0, b)));
-          }, fb = [], gb = (a) => {
-            for (var b = 0, c = 0; c < a.length; ++c) {
-              var d = a.charCodeAt(c);
-              127 >= d ? b++ : 2047 >= d ? b += 2 : 55296 <= d && 57343 >= d ? (b += 4, ++c) : b += 3;
-            }
-            return b;
-          }, M = (a, b, c, d) => {
-            if (!(0 < d)) return 0;
-            var e = c;
-            d = c + d - 1;
-            for (var g = 0; g < a.length; ++g) {
-              var h = a.codePointAt(g);
-              if (127 >= h) {
-                if (c >= d) break;
-                b[c++] = h;
-              } else if (2047 >= h) {
-                if (c + 1 >= d) break;
-                b[c++] = 192 | h >> 6;
-                b[c++] = 128 | h & 63;
-              } else if (65535 >= h) {
-                if (c + 2 >= d) break;
-                b[c++] = 224 | h >> 12;
-                b[c++] = 128 | h >> 6 & 63;
-                b[c++] = 128 | h & 63;
-              } else {
-                if (c + 3 >= d) break;
-                b[c++] = 240 | h >> 18;
-                b[c++] = 128 | h >> 12 & 63;
-                b[c++] = 128 | h >> 6 & 63;
-                b[c++] = 128 | h & 63;
-                g++;
-              }
-            }
-            b[c] = 0;
-            return c - e;
-          }, pb = [];
-          function qb(a, b) {
-            pb[a] = { input: [], output: [], kb: b };
-            rb(a, sb);
-          }
-          var sb = { open(a) {
-            var b = pb[a.node.nb];
-            if (!b) throw new N(43);
-            a.Va = b;
-            a.seekable = false;
-          }, close(a) {
-            a.Va.kb.lb(a.Va);
-          }, lb(a) {
-            a.Va.kb.lb(a.Va);
-          }, read(a, b, c, d) {
-            if (!a.Va || !a.Va.kb.Qb) throw new N(60);
-            for (var e = 0, g = 0; g < d; g++) {
-              try {
-                var h = a.Va.kb.Qb(a.Va);
-              } catch (q) {
-                throw new N(29);
-              }
-              if (void 0 === h && 0 === e) throw new N(6);
-              if (null === h || void 0 === h) break;
-              e++;
-              b[c + g] = h;
-            }
-            e && (a.node.$a = Date.now());
-            return e;
-          }, write(a, b, c, d) {
-            if (!a.Va || !a.Va.kb.Hb) throw new N(60);
-            try {
-              for (var e = 0; e < d; e++) a.Va.kb.Hb(a.Va, b[c + e]);
-            } catch (g) {
-              throw new N(29);
-            }
-            d && (a.node.Ua = a.node.Ta = Date.now());
-            return e;
-          } }, tb = { Qb() {
-            a: {
-              if (!fb.length) {
-                var a = null;
-                globalThis.window?.prompt && (a = window.prompt("Input: "), null !== a && (a += "\n"));
-                if (!a) {
-                  var b = null;
-                  break a;
-                }
-                b = Array(gb(a) + 1);
-                a = M(a, b, 0, b.length);
-                b.length = a;
-                fb = b;
-              }
-              b = fb.shift();
-            }
-            return b;
-          }, Hb(a, b) {
-            null === b || 10 === b ? (Ba(db(a.output)), a.output = []) : 0 != b && a.output.push(b);
-          }, lb(a) {
-            0 < a.output?.length && (Ba(db(a.output)), a.output = []);
-          }, Dc() {
-            return { yc: 25856, Ac: 5, xc: 191, zc: 35387, wc: [
-              3,
-              28,
-              127,
-              21,
-              4,
-              0,
-              1,
-              0,
-              17,
-              19,
-              26,
-              0,
-              18,
-              15,
-              23,
-              22,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0
-            ] };
-          }, Ec() {
-            return 0;
-          }, Fc() {
-            return [24, 80];
-          } }, ub = { Hb(a, b) {
-            null === b || 10 === b ? (B(db(a.output)), a.output = []) : 0 != b && a.output.push(b);
-          }, lb(a) {
-            0 < a.output?.length && (B(db(a.output)), a.output = []);
-          } }, O = { Za: null, ab() {
-            return O.createNode(null, "/", 16895, 0);
-          }, createNode(a, b, c, d) {
-            if (24576 === (c & 61440) || 4096 === (c & 61440)) throw new N(63);
-            O.Za || (O.Za = { dir: { node: { Wa: O.La.Wa, Xa: O.La.Xa, mb: O.La.mb, rb: O.La.rb, Tb: O.La.Tb, xb: O.La.xb, vb: O.La.vb, Ib: O.La.Ib, wb: O.La.wb }, stream: { Ya: O.Ma.Ya } }, file: {
-              node: { Wa: O.La.Wa, Xa: O.La.Xa },
-              stream: { Ya: O.Ma.Ya, read: O.Ma.read, write: O.Ma.write, sb: O.Ma.sb, tb: O.Ma.tb }
-            }, link: { node: { Wa: O.La.Wa, Xa: O.La.Xa, eb: O.La.eb }, stream: {} }, Nb: { node: { Wa: O.La.Wa, Xa: O.La.Xa }, stream: vb } });
-            c = wb(a, b, c, d);
-            P(c.mode) ? (c.La = O.Za.dir.node, c.Ma = O.Za.dir.stream, c.Na = {}) : 32768 === (c.mode & 61440) ? (c.La = O.Za.file.node, c.Ma = O.Za.file.stream, c.Ra = 0, c.Na = null) : 40960 === (c.mode & 61440) ? (c.La = O.Za.link.node, c.Ma = O.Za.link.stream) : 8192 === (c.mode & 61440) && (c.La = O.Za.Nb.node, c.Ma = O.Za.Nb.stream);
-            c.$a = c.Ua = c.Ta = Date.now();
-            a && (a.Na[b] = c, a.$a = a.Ua = a.Ta = c.$a);
-            return c;
-          }, Cc(a) {
-            return a.Na ? a.Na.subarray ? a.Na.subarray(0, a.Ra) : new Uint8Array(a.Na) : new Uint8Array(0);
-          }, La: { Wa(a) {
-            var b = {};
-            b.cc = 8192 === (a.mode & 61440) ? a.id : 1;
-            b.oc = a.id;
-            b.mode = a.mode;
-            b.rc = 1;
-            b.uid = 0;
-            b.nc = 0;
-            b.nb = a.nb;
-            P(a.mode) ? b.size = 4096 : 32768 === (a.mode & 61440) ? b.size = a.Ra : 40960 === (a.mode & 61440) ? b.size = a.link.length : b.size = 0;
-            b.$a = new Date(a.$a);
-            b.Ua = new Date(a.Ua);
-            b.Ta = new Date(a.Ta);
-            b.Zb = 4096;
-            b.$b = Math.ceil(b.size / b.Zb);
-            return b;
-          }, Xa(a, b) {
-            for (var c of ["mode", "atime", "mtime", "ctime"]) null != b[c] && (a[c] = b[c]);
-            void 0 !== b.size && (b = b.size, a.Ra != b && (0 == b ? (a.Na = null, a.Ra = 0) : (c = a.Na, a.Na = new Uint8Array(b), c && a.Na.set(c.subarray(0, Math.min(b, a.Ra))), a.Ra = b)));
-          }, mb() {
-            O.zb || (O.zb = new N(44), O.zb.stack = "<generic error, no stack>");
-            throw O.zb;
-          }, rb(a, b, c, d) {
-            return O.createNode(a, b, c, d);
-          }, Tb(a, b, c) {
-            try {
-              var d = Q(b, c);
-            } catch (g) {
-            }
-            if (d) {
-              if (P(a.mode)) for (var e in d.Na) throw new N(55);
-              xb(d);
-            }
-            delete a.parent.Na[a.name];
-            b.Na[c] = a;
-            a.name = c;
-            b.Ta = b.Ua = a.parent.Ta = a.parent.Ua = Date.now();
-          }, xb(a, b) {
-            delete a.Na[b];
-            a.Ta = a.Ua = Date.now();
-          }, vb(a, b) {
-            var c = Q(a, b), d;
-            for (d in c.Na) throw new N(55);
-            delete a.Na[b];
-            a.Ta = a.Ua = Date.now();
-          }, Ib(a) {
-            return [".", "..", ...Object.keys(a.Na)];
-          }, wb(a, b, c) {
-            a = O.createNode(a, b, 41471, 0);
-            a.link = c;
-            return a;
-          }, eb(a) {
-            if (40960 !== (a.mode & 61440)) throw new N(28);
-            return a.link;
-          } }, Ma: { read(a, b, c, d, e) {
-            var g = a.node.Na;
-            if (e >= a.node.Ra) return 0;
-            a = Math.min(a.node.Ra - e, d);
-            if (8 < a && g.subarray) b.set(g.subarray(e, e + a), c);
-            else for (d = 0; d < a; d++) b[c + d] = g[e + d];
-            return a;
-          }, write(a, b, c, d, e, g) {
-            b.buffer === m.buffer && (g = false);
-            if (!d) return 0;
-            a = a.node;
-            a.Ua = a.Ta = Date.now();
-            if (b.subarray && (!a.Na || a.Na.subarray)) {
-              if (g) return a.Na = b.subarray(c, c + d), a.Ra = d;
-              if (0 === a.Ra && 0 === e) return a.Na = b.slice(c, c + d), a.Ra = d;
-              if (e + d <= a.Ra) return a.Na.set(b.subarray(c, c + d), e), d;
-            }
-            g = e + d;
-            var h = a.Na ? a.Na.length : 0;
-            h >= g || (g = Math.max(g, h * (1048576 > h ? 2 : 1.125) >>> 0), 0 != h && (g = Math.max(g, 256)), h = a.Na, a.Na = new Uint8Array(g), 0 < a.Ra && a.Na.set(h.subarray(0, a.Ra), 0));
-            if (a.Na.subarray && b.subarray) a.Na.set(b.subarray(c, c + d), e);
-            else for (g = 0; g < d; g++) a.Na[e + g] = b[c + g];
-            a.Ra = Math.max(
-              a.Ra,
-              e + d
-            );
-            return d;
-          }, Ya(a, b, c) {
-            1 === c ? b += a.position : 2 === c && 32768 === (a.node.mode & 61440) && (b += a.node.Ra);
-            if (0 > b) throw new N(28);
-            return b;
-          }, sb(a, b, c, d, e) {
-            if (32768 !== (a.node.mode & 61440)) throw new N(43);
-            a = a.node.Na;
-            if (e & 2 || !a || a.buffer !== m.buffer) {
-              e = true;
-              d = 65536 * Math.ceil(b / 65536);
-              var g = yb(65536, d);
-              g && C.fill(0, g, g + d);
-              d = g;
-              if (!d) throw new N(48);
-              if (a) {
-                if (0 < c || c + b < a.length) a.subarray ? a = a.subarray(c, c + b) : a = Array.prototype.slice.call(a, c, c + b);
-                m.set(a, d);
-              }
-            } else e = false, d = a.byteOffset;
-            return { tc: d, Ub: e };
-          }, tb(a, b, c, d) {
-            O.Ma.write(
-              a,
-              b,
-              0,
-              d,
-              c,
-              false
-            );
-            return 0;
-          } } }, ia = (a, b) => {
-            var c = 0;
-            a && (c |= 365);
-            b && (c |= 146);
-            return c;
-          }, zb = null, Ab = {}, Bb = [], Cb = 1, R = null, Db = false, Eb = true, Fb = {}, N = class {
-            name = "ErrnoError";
-            constructor(a) {
-              this.Pa = a;
-            }
-          }, Gb = class {
-            qb = {};
-            node = null;
-            get flags() {
-              return this.qb.flags;
-            }
-            set flags(a) {
-              this.qb.flags = a;
-            }
-            get position() {
-              return this.qb.position;
-            }
-            set position(a) {
-              this.qb.position = a;
-            }
-          }, Hb = class {
-            La = {};
-            Ma = {};
-            ib = null;
-            constructor(a, b, c, d) {
-              a ||= this;
-              this.parent = a;
-              this.ab = a.ab;
-              this.id = Cb++;
-              this.name = b;
-              this.mode = c;
-              this.nb = d;
-              this.$a = this.Ua = this.Ta = Date.now();
-            }
-            get read() {
-              return 365 === (this.mode & 365);
-            }
-            set read(a) {
-              a ? this.mode |= 365 : this.mode &= -366;
-            }
-            get write() {
-              return 146 === (this.mode & 146);
-            }
-            set write(a) {
-              a ? this.mode |= 146 : this.mode &= -147;
-            }
-          };
-          function S(a, b = {}) {
-            if (!a) throw new N(44);
-            b.Bb ?? (b.Bb = true);
-            "/" === a.charAt(0) || (a = "//" + a);
-            var c = 0;
-            a: for (; 40 > c; c++) {
-              a = a.split("/").filter((q) => !!q);
-              for (var d = zb, e = "/", g = 0; g < a.length; g++) {
-                var h = g === a.length - 1;
-                if (h && b.parent) break;
-                if ("." !== a[g]) if (".." === a[g]) if (e = Za(e), d === d.parent) {
-                  a = e + "/" + a.slice(g + 1).join("/");
-                  c--;
-                  continue a;
-                } else d = d.parent;
-                else {
-                  e = ha(e + "/" + a[g]);
-                  try {
-                    d = Q(d, a[g]);
-                  } catch (q) {
-                    if (44 === q?.Pa && h && b.sc) return { path: e };
-                    throw q;
-                  }
-                  !d.ib || h && !b.Bb || (d = d.ib.root);
-                  if (40960 === (d.mode & 61440) && (!h || b.hb)) {
-                    if (!d.La.eb) throw new N(52);
-                    d = d.La.eb(d);
-                    "/" === d.charAt(0) || (d = Za(e) + "/" + d);
-                    a = d + "/" + a.slice(g + 1).join("/");
-                    continue a;
-                  }
-                }
-              }
-              return { path: e, node: d };
-            }
-            throw new N(32);
-          }
-          function fa(a) {
-            for (var b; ; ) {
-              if (a === a.parent) return a = a.ab.Sb, b ? "/" !== a[a.length - 1] ? `${a}/${b}` : a + b : a;
-              b = b ? `${a.name}/${b}` : a.name;
-              a = a.parent;
-            }
-          }
-          function Ib(a, b) {
-            for (var c = 0, d = 0; d < b.length; d++) c = (c << 5) - c + b.charCodeAt(d) | 0;
-            return (a + c >>> 0) % R.length;
-          }
-          function xb(a) {
-            var b = Ib(a.parent.id, a.name);
-            if (R[b] === a) R[b] = a.jb;
-            else for (b = R[b]; b; ) {
-              if (b.jb === a) {
-                b.jb = a.jb;
-                break;
-              }
-              b = b.jb;
-            }
-          }
-          function Q(a, b) {
-            var c = P(a.mode) ? (c = Jb(a, "x")) ? c : a.La.mb ? 0 : 2 : 54;
-            if (c) throw new N(c);
-            for (c = R[Ib(a.id, b)]; c; c = c.jb) {
-              var d = c.name;
-              if (c.parent.id === a.id && d === b) return c;
-            }
-            return a.La.mb(a, b);
-          }
-          function wb(a, b, c, d) {
-            a = new Hb(a, b, c, d);
-            b = Ib(a.parent.id, a.name);
-            a.jb = R[b];
-            return R[b] = a;
-          }
-          function P(a) {
-            return 16384 === (a & 61440);
-          }
-          function Kb(a) {
-            var b = ["r", "w", "rw"][a & 3];
-            a & 512 && (b += "w");
-            return b;
-          }
-          function Jb(a, b) {
-            if (Eb) return 0;
-            if (!b.includes("r") || a.mode & 292) {
-              if (b.includes("w") && !(a.mode & 146) || b.includes("x") && !(a.mode & 73)) return 2;
-            } else return 2;
-            return 0;
-          }
-          function Lb(a, b) {
-            if (!P(a.mode)) return 54;
-            try {
-              return Q(a, b), 20;
-            } catch (c) {
-            }
-            return Jb(a, "wx");
-          }
-          function Mb(a, b, c) {
-            try {
-              var d = Q(a, b);
-            } catch (e) {
-              return e.Pa;
-            }
-            if (a = Jb(a, "wx")) return a;
-            if (c) {
-              if (!P(d.mode)) return 54;
-              if (d === d.parent || "/" === fa(d)) return 10;
-            } else if (P(d.mode)) return 31;
-            return 0;
-          }
-          function Nb(a) {
-            if (!a) throw new N(63);
-            return a;
-          }
-          function T(a) {
-            a = Bb[a];
-            if (!a) throw new N(8);
-            return a;
-          }
-          function Ob(a, b = -1) {
-            a = Object.assign(new Gb(), a);
-            if (-1 == b) a: {
-              for (b = 0; 4096 >= b; b++) if (!Bb[b]) break a;
-              throw new N(33);
-            }
-            a.bb = b;
-            return Bb[b] = a;
-          }
-          function Pb(a, b = -1) {
-            a = Ob(a, b);
-            a.Ma?.Bc?.(a);
-            return a;
-          }
-          function Qb(a, b, c) {
-            var d = a?.Ma.Xa;
-            a = d ? a : b;
-            d ??= b.La.Xa;
-            Nb(d);
-            d(a, c);
-          }
-          var vb = { open(a) {
-            a.Ma = Ab[a.node.nb].Ma;
-            a.Ma.open?.(a);
-          }, Ya() {
-            throw new N(70);
-          } };
-          function rb(a, b) {
-            Ab[a] = { Ma: b };
-          }
-          function Rb(a, b) {
-            var c = "/" === b;
-            if (c && zb) throw new N(10);
-            if (!c && b) {
-              var d = S(b, { Bb: false });
-              b = d.path;
-              d = d.node;
-              if (d.ib) throw new N(10);
-              if (!P(d.mode)) throw new N(54);
-            }
-            b = { type: a, Gc: {}, Sb: b, qc: [] };
-            a = a.ab(b);
-            a.ab = b;
-            b.root = a;
-            c ? zb = a : d && (d.ib = b, d.ab && d.ab.qc.push(b));
-          }
-          function Sb(a, b, c) {
-            var d = S(a, { parent: true }).node;
-            a = $a(a);
-            if (!a) throw new N(28);
-            if ("." === a || ".." === a) throw new N(20);
-            var e = Lb(d, a);
-            if (e) throw new N(e);
-            if (!d.La.rb) throw new N(63);
-            return d.La.rb(d, a, b, c);
-          }
-          function ja(a, b = 438) {
-            return Sb(a, b & 4095 | 32768, 0);
-          }
-          function U(a, b = 511) {
-            return Sb(a, b & 1023 | 16384, 0);
-          }
-          function Tb(a, b, c) {
-            "undefined" == typeof c && (c = b, b = 438);
-            Sb(a, b | 8192, c);
-          }
-          function Ub(a, b) {
-            if (!cb(a)) throw new N(44);
-            var c = S(b, { parent: true }).node;
-            if (!c) throw new N(44);
-            b = $a(b);
-            var d = Lb(c, b);
-            if (d) throw new N(d);
-            if (!c.La.wb) throw new N(63);
-            c.La.wb(c, b, a);
-          }
-          function Vb(a) {
-            var b = S(a, { parent: true }).node;
-            a = $a(a);
-            var c = Q(b, a), d = Mb(b, a, true);
-            if (d) throw new N(d);
-            if (!b.La.vb) throw new N(63);
-            if (c.ib) throw new N(10);
-            b.La.vb(b, a);
-            xb(c);
-          }
-          function ta(a) {
-            var b = S(a, { parent: true }).node;
-            if (!b) throw new N(44);
-            a = $a(a);
-            var c = Q(b, a), d = Mb(b, a, false);
-            if (d) throw new N(d);
-            if (!b.La.xb) throw new N(63);
-            if (c.ib) throw new N(10);
-            b.La.xb(b, a);
-            xb(c);
-          }
-          function Wb(a, b) {
-            a = S(a, { hb: !b }).node;
-            return Nb(a.La.Wa)(a);
-          }
-          function Xb(a, b, c, d) {
-            Qb(a, b, { mode: c & 4095 | b.mode & -4096, Ta: Date.now(), dc: d });
-          }
-          function ka(a, b) {
-            a = "string" == typeof a ? S(a, { hb: true }).node : a;
-            Xb(null, a, b);
-          }
-          function Yb(a, b, c) {
-            if (P(b.mode)) throw new N(31);
-            if (32768 !== (b.mode & 61440)) throw new N(28);
-            var d = Jb(b, "w");
-            if (d) throw new N(d);
-            Qb(a, b, { size: c, timestamp: Date.now() });
-          }
-          function ma(a, b, c = 438) {
-            if ("" === a) throw new N(44);
-            if ("string" == typeof b) {
-              var d = { r: 0, "r+": 2, w: 577, "w+": 578, a: 1089, "a+": 1090 }[b];
-              if ("undefined" == typeof d) throw Error(`Unknown file open mode: ${b}`);
-              b = d;
-            }
-            c = b & 64 ? c & 4095 | 32768 : 0;
-            if ("object" == typeof a) d = a;
-            else {
-              var e = a.endsWith("/");
-              a = S(a, { hb: !(b & 131072), sc: true });
-              d = a.node;
-              a = a.path;
-            }
-            var g = false;
-            if (b & 64) if (d) {
-              if (b & 128) throw new N(20);
-            } else {
-              if (e) throw new N(31);
-              d = Sb(a, c | 511, 0);
-              g = true;
-            }
-            if (!d) throw new N(44);
-            8192 === (d.mode & 61440) && (b &= -513);
-            if (b & 65536 && !P(d.mode)) throw new N(54);
-            if (!g && (e = d ? 40960 === (d.mode & 61440) ? 32 : P(d.mode) && ("r" !== Kb(b) || b & 576) ? 31 : Jb(d, Kb(b)) : 44)) throw new N(e);
-            b & 512 && !g && (e = d, e = "string" == typeof e ? S(e, { hb: true }).node : e, Yb(null, e, 0));
-            b &= -131713;
-            e = Ob({ node: d, path: fa(d), flags: b, seekable: true, position: 0, Ma: d.Ma, uc: [], error: false });
-            e.Ma.open && e.Ma.open(e);
-            g && ka(d, c & 511);
-            !k.logReadFiles || b & 1 || a in Fb || (Fb[a] = 1);
-            return e;
-          }
-          function oa(a) {
-            if (null === a.bb) throw new N(8);
-            a.Eb && (a.Eb = null);
-            try {
-              a.Ma.close && a.Ma.close(a);
-            } catch (b) {
-              throw b;
-            } finally {
-              Bb[a.bb] = null;
-            }
-            a.bb = null;
-          }
-          function Zb(a, b, c) {
-            if (null === a.bb) throw new N(8);
-            if (!a.seekable || !a.Ma.Ya) throw new N(70);
-            if (0 != c && 1 != c && 2 != c) throw new N(28);
-            a.position = a.Ma.Ya(a, b, c);
-            a.uc = [];
-          }
-          function $b(a, b, c, d, e) {
-            if (0 > d || 0 > e) throw new N(28);
-            if (null === a.bb) throw new N(8);
-            if (1 === (a.flags & 2097155)) throw new N(8);
-            if (P(a.node.mode)) throw new N(31);
-            if (!a.Ma.read) throw new N(28);
-            var g = "undefined" != typeof e;
-            if (!g) e = a.position;
-            else if (!a.seekable) throw new N(70);
-            b = a.Ma.read(a, b, c, d, e);
-            g || (a.position += b);
-            return b;
-          }
-          function na(a, b, c, d, e) {
-            if (0 > d || 0 > e) throw new N(28);
-            if (null === a.bb) throw new N(8);
-            if (0 === (a.flags & 2097155)) throw new N(8);
-            if (P(a.node.mode)) throw new N(31);
-            if (!a.Ma.write) throw new N(28);
-            a.seekable && a.flags & 1024 && Zb(a, 0, 2);
-            var g = "undefined" != typeof e;
-            if (!g) e = a.position;
-            else if (!a.seekable) throw new N(70);
-            b = a.Ma.write(a, b, c, d, e, void 0);
-            g || (a.position += b);
-            return b;
-          }
-          function sa(a) {
-            var b = b || 0;
-            var c = "binary";
-            "utf8" !== c && "binary" !== c && Ka(`Invalid encoding type "${c}"`);
-            b = ma(a, b);
-            a = Wb(a).size;
-            var d = new Uint8Array(a);
-            $b(b, d, 0, a, 0);
-            "utf8" === c && (d = db(d));
-            oa(b);
-            return d;
-          }
-          function W(a, b, c) {
-            a = ha("/dev/" + a);
-            var d = ia(!!b, !!c);
-            W.Rb ?? (W.Rb = 64);
-            var e = W.Rb++ << 8 | 0;
-            rb(e, { open(g) {
-              g.seekable = false;
-            }, close() {
-              c?.buffer?.length && c(10);
-            }, read(g, h, q, w) {
-              for (var u = 0, x = 0; x < w; x++) {
-                try {
-                  var D = b();
-                } catch (ib) {
-                  throw new N(29);
-                }
-                if (void 0 === D && 0 === u) throw new N(6);
-                if (null === D || void 0 === D) break;
-                u++;
-                h[q + x] = D;
-              }
-              u && (g.node.$a = Date.now());
-              return u;
-            }, write(g, h, q, w) {
-              for (var u = 0; u < w; u++) try {
-                c(h[q + u]);
-              } catch (x) {
-                throw new N(29);
-              }
-              w && (g.node.Ua = g.node.Ta = Date.now());
-              return u;
-            } });
-            Tb(a, d, e);
-          }
-          var X = {};
-          function Y(a, b, c) {
-            if ("/" === b.charAt(0)) return b;
-            a = -100 === a ? "/" : T(a).path;
-            if (0 == b.length) {
-              if (!c) throw new N(44);
-              return a;
-            }
-            return a + "/" + b;
-          }
-          function ac(a, b) {
-            F[a >> 2] = b.cc;
-            F[a + 4 >> 2] = b.mode;
-            F[a + 8 >> 2] = b.rc;
-            F[a + 12 >> 2] = b.uid;
-            F[a + 16 >> 2] = b.nc;
-            F[a + 20 >> 2] = b.nb;
-            H[a + 24 >> 3] = BigInt(b.size);
-            E[a + 32 >> 2] = 4096;
-            E[a + 36 >> 2] = b.$b;
-            var c = b.$a.getTime(), d = b.Ua.getTime(), e = b.Ta.getTime();
-            H[a + 40 >> 3] = BigInt(Math.floor(c / 1e3));
-            F[a + 48 >> 2] = c % 1e3 * 1e6;
-            H[a + 56 >> 3] = BigInt(Math.floor(d / 1e3));
-            F[a + 64 >> 2] = d % 1e3 * 1e6;
-            H[a + 72 >> 3] = BigInt(Math.floor(e / 1e3));
-            F[a + 80 >> 2] = e % 1e3 * 1e6;
-            H[a + 88 >> 3] = BigInt(b.oc);
-            return 0;
-          }
-          var kc = void 0, Cc = () => {
-            var a = E[+kc >> 2];
-            kc += 4;
-            return a;
-          }, Ec = 0, Fc = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335], Gc = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334], Hc = {}, Ic = (a) => {
-            if (!(a instanceof Pa || "unwind" == a)) throw a;
-          }, Jc = (a) => {
-            Ea = a;
-            Va || 0 < Ec || (k.onExit?.(a), Da = true);
-            throw new Pa(a);
-          }, Kc = (a) => {
-            if (!Da) try {
-              a();
-            } catch (b) {
-              Ic(b);
-            } finally {
-              if (!(Va || 0 < Ec)) try {
-                Ea = a = Ea, Jc(a);
-              } catch (b) {
-                Ic(b);
-              }
-            }
-          }, Lc = {}, Nc = () => {
-            if (!Mc) {
-              var a = { USER: "web_user", LOGNAME: "web_user", PATH: "/", PWD: "/", HOME: "/home/web_user", LANG: (globalThis.navigator?.language ?? "C").replace("-", "_") + ".UTF-8", _: wa || "./this.program" }, b;
-              for (b in Lc) void 0 === Lc[b] ? delete a[b] : a[b] = Lc[b];
-              var c = [];
-              for (b in a) c.push(`${b}=${a[b]}`);
-              Mc = c;
-            }
-            return Mc;
-          }, Mc, Oc = (a, b, c, d) => {
-            var e = { string: (u) => {
-              var x = 0;
-              if (null !== u && void 0 !== u && 0 !== u) {
-                x = gb(u) + 1;
-                var D = y(x);
-                M(u, C, D, x);
-                x = D;
-              }
-              return x;
-            }, array: (u) => {
-              var x = y(u.length);
-              m.set(u, x);
-              return x;
-            } };
-            a = k["_" + a];
-            var g = [], h = 0;
-            if (d) for (var q = 0; q < d.length; q++) {
-              var w = e[c[q]];
-              w ? (0 === h && (h = pa()), g[q] = w(d[q])) : g[q] = d[q];
-            }
-            c = a(...g);
-            return c = (function(u) {
-              0 !== h && ra(h);
-              return "string" === b ? z(u) : "boolean" === b ? !!u : u;
-            })(c);
-          }, ea = (a) => {
-            var b = gb(a) + 1, c = ca(b);
-            c && M(a, C, c, b);
-            return c;
-          }, Pc, Qc = [], A = (a) => {
-            Pc.delete(Z.get(a));
-            Z.set(a, null);
-            Qc.push(a);
-          }, Rc = (a) => {
-            const b = a.length;
-            return [b % 128 | 128, b >> 7, ...a];
-          }, Sc = { i: 127, p: 127, j: 126, f: 125, d: 124, e: 111 }, Tc = (a) => Rc(Array.from(a, (b) => Sc[b])), va = (a, b) => {
-            if (!Pc) {
-              Pc = /* @__PURE__ */ new WeakMap();
-              var c = Z.length;
-              if (Pc) for (var d = 0; d < 0 + c; d++) {
-                var e = Z.get(d);
-                e && Pc.set(e, d);
-              }
-            }
-            if (c = Pc.get(a) || 0) return c;
-            c = Qc.length ? Qc.pop() : Z.grow(1);
-            try {
-              Z.set(c, a);
-            } catch (g) {
-              if (!(g instanceof TypeError)) throw g;
-              b = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0, 1, ...Rc([1, 96, ...Tc(b.slice(1)), ...Tc("v" === b[0] ? "" : b[0])]), 2, 7, 1, 1, 101, 1, 102, 0, 0, 7, 5, 1, 1, 102, 0, 0);
-              b = new WebAssembly.Module(b);
-              b = new WebAssembly.Instance(b, { e: { f: a } }).exports.f;
-              Z.set(c, b);
-            }
-            Pc.set(a, c);
-            return c;
-          };
-          R = Array(4096);
-          Rb(O, "/");
-          U("/tmp");
-          U("/home");
-          U("/home/web_user");
-          (function() {
-            U("/dev");
-            rb(259, { read: () => 0, write: (d, e, g, h) => h, Ya: () => 0 });
-            Tb("/dev/null", 259);
-            qb(1280, tb);
-            qb(1536, ub);
-            Tb("/dev/tty", 1280);
-            Tb("/dev/tty1", 1536);
-            var a = new Uint8Array(1024), b = 0, c = () => {
-              0 === b && (bb(a), b = a.byteLength);
-              return a[--b];
-            };
-            W("random", c);
-            W("urandom", c);
-            U("/dev/shm");
-            U("/dev/shm/tmp");
-          })();
-          (function() {
-            U("/proc");
-            var a = U("/proc/self");
-            U("/proc/self/fd");
-            Rb({ ab() {
-              var b = wb(a, "fd", 16895, 73);
-              b.Ma = { Ya: O.Ma.Ya };
-              b.La = { mb(c, d) {
-                c = +d;
-                var e = T(c);
-                c = { parent: null, ab: { Sb: "fake" }, La: { eb: () => e.path }, id: c + 1 };
-                return c.parent = c;
-              }, Ib() {
-                return Array.from(Bb.entries()).filter(([, c]) => c).map(([c]) => c.toString());
-              } };
-              return b;
-            } }, "/proc/self/fd");
-          })();
-          k.noExitRuntime && (Va = k.noExitRuntime);
-          k.print && (Ba = k.print);
-          k.printErr && (B = k.printErr);
-          k.wasmBinary && (Ca = k.wasmBinary);
-          k.thisProgram && (wa = k.thisProgram);
-          if (k.preInit) for ("function" == typeof k.preInit && (k.preInit = [k.preInit]); 0 < k.preInit.length; ) k.preInit.shift()();
-          k.stackSave = () => pa();
-          k.stackRestore = (a) => ra(a);
-          k.stackAlloc = (a) => y(a);
-          k.cwrap = (a, b, c, d) => {
-            var e = !c || c.every((g) => "number" === g || "boolean" === g);
-            return "string" !== b && e && !d ? k["_" + a] : (...g) => Oc(a, b, c, g);
-          };
-          k.addFunction = va;
-          k.removeFunction = A;
-          k.UTF8ToString = z;
-          k.stringToNewUTF8 = ea;
-          k.writeArrayToMemory = (a, b) => {
-            m.set(a, b);
-          };
-          var ca, da, yb, Uc, ra, y, pa, Ja, Z, Vc = {
-            a: (a, b, c, d) => Ka(`Assertion failed: ${z(a)}, at: ` + [b ? z(b) : "unknown filename", c, d ? z(d) : "unknown function"]),
-            i: function(a, b) {
-              try {
-                return a = z(a), ka(a, b), 0;
-              } catch (c) {
-                if ("undefined" == typeof X || "ErrnoError" !== c.name) throw c;
-                return -c.Pa;
-              }
-            },
-            L: function(a, b, c) {
-              try {
-                b = z(b);
-                b = Y(a, b);
-                if (c & -8) return -28;
-                var d = S(b, { hb: true }).node;
-                if (!d) return -44;
-                a = "";
-                c & 4 && (a += "r");
-                c & 2 && (a += "w");
-                c & 1 && (a += "x");
-                return a && Jb(d, a) ? -2 : 0;
-              } catch (e) {
-                if ("undefined" == typeof X || "ErrnoError" !== e.name) throw e;
-                return -e.Pa;
-              }
-            },
-            j: function(a, b) {
-              try {
-                var c = T(a);
-                Xb(c, c.node, b, false);
-                return 0;
-              } catch (d) {
-                if ("undefined" == typeof X || "ErrnoError" !== d.name) throw d;
-                return -d.Pa;
-              }
-            },
-            h: function(a) {
-              try {
-                var b = T(a);
-                Qb(b, b.node, { timestamp: Date.now(), dc: false });
-                return 0;
-              } catch (c) {
-                if ("undefined" == typeof X || "ErrnoError" !== c.name) throw c;
-                return -c.Pa;
-              }
-            },
-            b: function(a, b, c) {
-              kc = c;
-              try {
-                var d = T(a);
-                switch (b) {
-                  case 0:
-                    var e = Cc();
-                    if (0 > e) break;
-                    for (; Bb[e]; ) e++;
-                    return Pb(d, e).bb;
-                  case 1:
-                  case 2:
-                    return 0;
-                  case 3:
-                    return d.flags;
-                  case 4:
-                    return e = Cc(), d.flags |= e, 0;
-                  case 12:
-                    return e = Cc(), Fa[e + 0 >> 1] = 2, 0;
-                  case 13:
-                  case 14:
-                    return 0;
-                }
-                return -28;
-              } catch (g) {
-                if ("undefined" == typeof X || "ErrnoError" !== g.name) throw g;
-                return -g.Pa;
-              }
-            },
-            g: function(a, b) {
-              try {
-                var c = T(a), d = c.node, e = c.Ma.Wa;
-                a = e ? c : d;
-                e ??= d.La.Wa;
-                Nb(e);
-                var g = e(a);
-                return ac(b, g);
-              } catch (h) {
-                if ("undefined" == typeof X || "ErrnoError" !== h.name) throw h;
-                return -h.Pa;
-              }
-            },
-            H: function(a, b) {
-              b = -9007199254740992 > b || 9007199254740992 < b ? NaN : Number(b);
-              try {
-                if (isNaN(b)) return -61;
-                var c = T(a);
-                if (0 > b || 0 === (c.flags & 2097155)) throw new N(28);
-                Yb(c, c.node, b);
-                return 0;
-              } catch (d) {
-                if ("undefined" == typeof X || "ErrnoError" !== d.name) throw d;
-                return -d.Pa;
-              }
-            },
-            G: function(a, b) {
-              try {
-                if (0 === b) return -28;
-                var c = gb("/") + 1;
-                if (b < c) return -68;
-                M("/", C, a, b);
-                return c;
-              } catch (d) {
-                if ("undefined" == typeof X || "ErrnoError" !== d.name) throw d;
-                return -d.Pa;
-              }
-            },
-            K: function(a, b) {
-              try {
-                return a = z(a), ac(b, Wb(a, true));
-              } catch (c) {
-                if ("undefined" == typeof X || "ErrnoError" !== c.name) throw c;
-                return -c.Pa;
-              }
-            },
-            C: function(a, b, c) {
-              try {
-                return b = z(b), b = Y(a, b), U(b, c), 0;
-              } catch (d) {
-                if ("undefined" == typeof X || "ErrnoError" !== d.name) throw d;
-                return -d.Pa;
-              }
-            },
-            J: function(a, b, c, d) {
-              try {
-                b = z(b);
-                var e = d & 256;
-                b = Y(a, b, d & 4096);
-                return ac(c, e ? Wb(b, true) : Wb(b));
-              } catch (g) {
-                if ("undefined" == typeof X || "ErrnoError" !== g.name) throw g;
-                return -g.Pa;
-              }
-            },
-            x: function(a, b, c, d) {
-              kc = d;
-              try {
-                b = z(b);
-                b = Y(a, b);
-                var e = d ? Cc() : 0;
-                return ma(b, c, e).bb;
-              } catch (g) {
-                if ("undefined" == typeof X || "ErrnoError" !== g.name) throw g;
-                return -g.Pa;
-              }
-            },
-            v: function(a, b, c, d) {
-              try {
-                b = z(b);
-                b = Y(a, b);
-                if (0 >= d) return -28;
-                var e = S(b).node;
-                if (!e) throw new N(44);
-                if (!e.La.eb) throw new N(28);
-                var g = e.La.eb(e);
-                var h = Math.min(d, gb(g)), q = m[c + h];
-                M(g, C, c, d + 1);
-                m[c + h] = q;
-                return h;
-              } catch (w) {
-                if ("undefined" == typeof X || "ErrnoError" !== w.name) throw w;
-                return -w.Pa;
-              }
-            },
-            u: function(a) {
-              try {
-                return a = z(a), Vb(a), 0;
-              } catch (b) {
-                if ("undefined" == typeof X || "ErrnoError" !== b.name) throw b;
-                return -b.Pa;
-              }
-            },
-            f: function(a, b) {
-              try {
-                return a = z(a), ac(b, Wb(a));
-              } catch (c) {
-                if ("undefined" == typeof X || "ErrnoError" !== c.name) throw c;
-                return -c.Pa;
-              }
-            },
-            r: function(a, b, c) {
-              try {
-                b = z(b);
-                b = Y(a, b);
-                if (c) if (512 === c) Vb(b);
-                else return -28;
-                else ta(b);
-                return 0;
-              } catch (d) {
-                if ("undefined" == typeof X || "ErrnoError" !== d.name) throw d;
-                return -d.Pa;
-              }
-            },
-            q: function(a, b, c) {
-              try {
-                b = z(b);
-                b = Y(a, b, true);
-                var d = Date.now(), e, g;
-                if (c) {
-                  var h = F[c >> 2] + 4294967296 * E[c + 4 >> 2], q = E[c + 8 >> 2];
-                  1073741823 == q ? e = d : 1073741822 == q ? e = null : e = 1e3 * h + q / 1e6;
-                  c += 16;
-                  h = F[c >> 2] + 4294967296 * E[c + 4 >> 2];
-                  q = E[c + 8 >> 2];
-                  1073741823 == q ? g = d : 1073741822 == q ? g = null : g = 1e3 * h + q / 1e6;
-                } else g = e = d;
-                if (null !== (g ?? e)) {
-                  a = e;
-                  var w = S(b, { hb: true }).node;
-                  Nb(w.La.Xa)(w, { $a: a, Ua: g });
-                }
-                return 0;
-              } catch (u) {
-                if ("undefined" == typeof X || "ErrnoError" !== u.name) throw u;
-                return -u.Pa;
-              }
-            },
-            m: () => Ka(""),
-            l: () => {
-              Va = false;
-              Ec = 0;
-            },
-            A: function(a, b) {
-              a = -9007199254740992 > a || 9007199254740992 < a ? NaN : Number(a);
-              a = new Date(1e3 * a);
-              E[b >> 2] = a.getSeconds();
-              E[b + 4 >> 2] = a.getMinutes();
-              E[b + 8 >> 2] = a.getHours();
-              E[b + 12 >> 2] = a.getDate();
-              E[b + 16 >> 2] = a.getMonth();
-              E[b + 20 >> 2] = a.getFullYear() - 1900;
-              E[b + 24 >> 2] = a.getDay();
-              var c = a.getFullYear();
-              E[b + 28 >> 2] = (0 !== c % 4 || 0 === c % 100 && 0 !== c % 400 ? Gc : Fc)[a.getMonth()] + a.getDate() - 1 | 0;
-              E[b + 36 >> 2] = -(60 * a.getTimezoneOffset());
-              c = new Date(a.getFullYear(), 6, 1).getTimezoneOffset();
-              var d = new Date(a.getFullYear(), 0, 1).getTimezoneOffset();
-              E[b + 32 >> 2] = (c != d && a.getTimezoneOffset() == Math.min(d, c)) | 0;
-            },
-            y: function(a, b, c, d, e, g, h) {
-              e = -9007199254740992 > e || 9007199254740992 < e ? NaN : Number(e);
-              try {
-                var q = T(d);
-                if (0 !== (b & 2) && 0 === (c & 2) && 2 !== (q.flags & 2097155)) throw new N(2);
-                if (1 === (q.flags & 2097155)) throw new N(2);
-                if (!q.Ma.sb) throw new N(43);
-                if (!a) throw new N(28);
-                var w = q.Ma.sb(q, a, e, b, c);
-                var u = w.tc;
-                E[g >> 2] = w.Ub;
-                F[h >> 2] = u;
-                return 0;
-              } catch (x) {
-                if ("undefined" == typeof X || "ErrnoError" !== x.name) throw x;
-                return -x.Pa;
-              }
-            },
-            z: function(a, b, c, d, e, g) {
-              g = -9007199254740992 > g || 9007199254740992 < g ? NaN : Number(g);
-              try {
-                var h = T(e);
-                if (c & 2) {
-                  if (32768 !== (h.node.mode & 61440)) throw new N(43);
-                  d & 2 || h.Ma.tb && h.Ma.tb(h, C.slice(a, a + b), g, b, d);
-                }
-              } catch (q) {
-                if ("undefined" == typeof X || "ErrnoError" !== q.name) throw q;
-                return -q.Pa;
-              }
-            },
-            n: (a, b) => {
-              Hc[a] && (clearTimeout(Hc[a].id), delete Hc[a]);
-              if (!b) return 0;
-              var c = setTimeout(() => {
-                delete Hc[a];
-                Kc(() => Uc(a, performance.now()));
-              }, b);
-              Hc[a] = { id: c, Hc: b };
-              return 0;
-            },
-            B: (a, b, c, d) => {
-              var e = (/* @__PURE__ */ new Date()).getFullYear(), g = new Date(e, 0, 1).getTimezoneOffset();
-              e = new Date(e, 6, 1).getTimezoneOffset();
-              F[a >> 2] = 60 * Math.max(g, e);
-              E[b >> 2] = Number(g != e);
-              b = (h) => {
-                var q = Math.abs(h);
-                return `UTC${0 <= h ? "-" : "+"}${String(Math.floor(q / 60)).padStart(2, "0")}${String(q % 60).padStart(2, "0")}`;
-              };
-              a = b(g);
-              b = b(e);
-              e < g ? (M(a, C, c, 17), M(b, C, d, 17)) : (M(a, C, d, 17), M(b, C, c, 17));
-            },
-            d: () => Date.now(),
-            s: () => 2147483648,
-            c: () => performance.now(),
-            o: (a) => {
-              var b = C.length;
-              a >>>= 0;
-              if (2147483648 < a) return false;
-              for (var c = 1; 4 >= c; c *= 2) {
-                var d = b * (1 + 0.2 / c);
-                d = Math.min(d, a + 100663296);
-                a: {
-                  d = (Math.min(2147483648, 65536 * Math.ceil(Math.max(a, d) / 65536)) - Ja.buffer.byteLength + 65535) / 65536 | 0;
-                  try {
-                    Ja.grow(d);
-                    Ia();
-                    var e = 1;
-                    break a;
-                  } catch (g) {
-                  }
-                  e = void 0;
-                }
-                if (e) return true;
-              }
-              return false;
-            },
-            E: (a, b) => {
-              var c = 0, d = 0, e;
-              for (e of Nc()) {
-                var g = b + c;
-                F[a + d >> 2] = g;
-                c += M(e, C, g, Infinity) + 1;
-                d += 4;
-              }
-              return 0;
-            },
-            F: (a, b) => {
-              var c = Nc();
-              F[a >> 2] = c.length;
-              a = 0;
-              for (var d of c) a += gb(d) + 1;
-              F[b >> 2] = a;
-              return 0;
-            },
-            e: function(a) {
-              try {
-                var b = T(a);
-                oa(b);
-                return 0;
-              } catch (c) {
-                if ("undefined" == typeof X || "ErrnoError" !== c.name) throw c;
-                return c.Pa;
-              }
-            },
-            p: function(a, b) {
-              try {
-                var c = T(a);
-                m[b] = c.Va ? 2 : P(c.mode) ? 3 : 40960 === (c.mode & 61440) ? 7 : 4;
-                Fa[b + 2 >> 1] = 0;
-                H[b + 8 >> 3] = BigInt(0);
-                H[b + 16 >> 3] = BigInt(0);
-                return 0;
-              } catch (d) {
-                if ("undefined" == typeof X || "ErrnoError" !== d.name) throw d;
-                return d.Pa;
-              }
-            },
-            w: function(a, b, c, d) {
-              try {
-                a: {
-                  var e = T(a);
-                  a = b;
-                  for (var g, h = b = 0; h < c; h++) {
-                    var q = F[a >> 2], w = F[a + 4 >> 2];
-                    a += 8;
-                    var u = $b(e, m, q, w, g);
-                    if (0 > u) {
-                      var x = -1;
-                      break a;
-                    }
-                    b += u;
-                    if (u < w) break;
-                    "undefined" != typeof g && (g += u);
-                  }
-                  x = b;
-                }
-                F[d >> 2] = x;
-                return 0;
-              } catch (D) {
-                if ("undefined" == typeof X || "ErrnoError" !== D.name) throw D;
-                return D.Pa;
-              }
-            },
-            D: function(a, b, c, d) {
-              b = -9007199254740992 > b || 9007199254740992 < b ? NaN : Number(b);
-              try {
-                if (isNaN(b)) return 61;
-                var e = T(a);
-                Zb(e, b, c);
-                H[d >> 3] = BigInt(e.position);
-                e.Eb && 0 === b && 0 === c && (e.Eb = null);
-                return 0;
-              } catch (g) {
-                if ("undefined" == typeof X || "ErrnoError" !== g.name) throw g;
-                return g.Pa;
-              }
-            },
-            I: function(a) {
-              try {
-                var b = T(a);
-                return b.Ma?.lb?.(b);
-              } catch (c) {
-                if ("undefined" == typeof X || "ErrnoError" !== c.name) throw c;
-                return c.Pa;
-              }
-            },
-            t: function(a, b, c, d) {
-              try {
-                a: {
-                  var e = T(a);
-                  a = b;
-                  for (var g, h = b = 0; h < c; h++) {
-                    var q = F[a >> 2], w = F[a + 4 >> 2];
-                    a += 8;
-                    var u = na(e, m, q, w, g);
-                    if (0 > u) {
-                      var x = -1;
-                      break a;
-                    }
-                    b += u;
-                    if (u < w) break;
-                    "undefined" != typeof g && (g += u);
-                  }
-                  x = b;
-                }
-                F[d >> 2] = x;
-                return 0;
-              } catch (D) {
-                if ("undefined" == typeof X || "ErrnoError" !== D.name) throw D;
-                return D.Pa;
-              }
-            },
-            k: Jc
-          };
-          function Wc() {
-            function a() {
-              k.calledRun = true;
-              if (!Da) {
-                if (!k.noFSInit && !Db) {
-                  var b, c;
-                  Db = true;
-                  b ??= k.stdin;
-                  c ??= k.stdout;
-                  d ??= k.stderr;
-                  b ? W("stdin", b) : Ub("/dev/tty", "/dev/stdin");
-                  c ? W("stdout", null, c) : Ub("/dev/tty", "/dev/stdout");
-                  d ? W("stderr", null, d) : Ub("/dev/tty1", "/dev/stderr");
-                  ma("/dev/stdin", 0);
-                  ma("/dev/stdout", 1);
-                  ma("/dev/stderr", 1);
-                }
-                Xc.N();
-                Eb = false;
-                k.onRuntimeInitialized?.();
-                if (k.postRun) for ("function" == typeof k.postRun && (k.postRun = [k.postRun]); k.postRun.length; ) {
-                  var d = k.postRun.shift();
-                  Ra.push(d);
-                }
-                Qa(Ra);
-              }
-            }
-            if (0 < K) Ua = Wc;
-            else {
-              if (k.preRun) for ("function" == typeof k.preRun && (k.preRun = [k.preRun]); k.preRun.length; ) Ta();
-              Qa(Sa);
-              0 < K ? Ua = Wc : k.setStatus ? (k.setStatus("Running..."), setTimeout(() => {
-                setTimeout(() => k.setStatus(""), 1);
-                a();
-              }, 1)) : a();
-            }
-          }
-          var Xc;
-          (async function() {
-            function a(c) {
-              c = Xc = c.exports;
-              k._sqlite3_free = c.P;
-              k._sqlite3_value_text = c.Q;
-              k._sqlite3_prepare_v2 = c.R;
-              k._sqlite3_step = c.S;
-              k._sqlite3_reset = c.T;
-              k._sqlite3_exec = c.U;
-              k._sqlite3_finalize = c.V;
-              k._sqlite3_column_name = c.W;
-              k._sqlite3_column_text = c.X;
-              k._sqlite3_column_type = c.Y;
-              k._sqlite3_errmsg = c.Z;
-              k._sqlite3_clear_bindings = c._;
-              k._sqlite3_value_blob = c.$;
-              k._sqlite3_value_bytes = c.aa;
-              k._sqlite3_value_double = c.ba;
-              k._sqlite3_value_int = c.ca;
-              k._sqlite3_value_type = c.da;
-              k._sqlite3_result_blob = c.ea;
-              k._sqlite3_result_double = c.fa;
-              k._sqlite3_result_error = c.ga;
-              k._sqlite3_result_int = c.ha;
-              k._sqlite3_result_int64 = c.ia;
-              k._sqlite3_result_null = c.ja;
-              k._sqlite3_result_text = c.ka;
-              k._sqlite3_aggregate_context = c.la;
-              k._sqlite3_column_count = c.ma;
-              k._sqlite3_data_count = c.na;
-              k._sqlite3_column_blob = c.oa;
-              k._sqlite3_column_bytes = c.pa;
-              k._sqlite3_column_double = c.qa;
-              k._sqlite3_bind_blob = c.ra;
-              k._sqlite3_bind_double = c.sa;
-              k._sqlite3_bind_int = c.ta;
-              k._sqlite3_bind_text = c.ua;
-              k._sqlite3_bind_parameter_index = c.va;
-              k._sqlite3_sql = c.wa;
-              k._sqlite3_normalized_sql = c.xa;
-              k._sqlite3_changes = c.ya;
-              k._sqlite3_close_v2 = c.za;
-              k._sqlite3_create_function_v2 = c.Aa;
-              k._sqlite3_update_hook = c.Ba;
-              k._sqlite3_open = c.Ca;
-              ca = k._malloc = c.Da;
-              da = k._free = c.Ea;
-              k._RegisterExtensionFunctions = c.Fa;
-              yb = c.Ga;
-              Uc = c.Ha;
-              ra = c.Ia;
-              y = c.Ja;
-              pa = c.Ka;
-              Ja = c.M;
-              Z = c.O;
-              Ia();
-              K--;
-              k.monitorRunDependencies?.(K);
-              0 == K && Ua && (c = Ua, Ua = null, c());
-              return Xc;
-            }
-            K++;
-            k.monitorRunDependencies?.(K);
-            var b = { a: Vc };
-            if (k.instantiateWasm) return new Promise((c) => {
-              k.instantiateWasm(b, (d, e) => {
-                c(a(d, e));
-              });
-            });
-            La ??= k.locateFile ? k.locateFile("sql-wasm-browser.wasm", ya) : ya + "sql-wasm-browser.wasm";
-            return a((await Oa(b)).instance);
-          })();
-          Wc();
-          return Module;
-        });
-        return initSqlJsPromise;
-      };
-      if (typeof exports === "object" && typeof module === "object") {
-        module.exports = initSqlJs;
-        module.exports.default = initSqlJs;
-      } else if (typeof define === "function" && define["amd"]) {
-        define([], function() {
-          return initSqlJs;
-        });
-      } else if (typeof exports === "object") {
-        exports["Module"] = initSqlJs;
-      }
-    }
-  });
-
-  // src/errors.js
-  var I6Error = class _I6Error extends Error {
-    /**
-     * @param {string} message - Human readable description.
-     * @param {Object} [details]
-     * @param {I6ErrorCode} [details.code] - Failure kind. Defaults to "http" when a status is given.
-     * @param {number} [details.status] - HTTP status code, when the server answered.
-     * @param {*} [details.body] - Error body of the response (parsed JSON, or raw text).
-     * @param {*} [details.cause] - The underlying error, if any.
-     */
-    constructor(message, { code, status, body, cause } = {}) {
-      super(message, cause === void 0 ? void 0 : { cause });
-      this.name = "I6Error";
-      this.code = code ?? (status === void 0 ? void 0 : "http");
-      this.status = status;
-      this.body = body;
-    }
-    /**
-     * Builds an "http" error from a failed generated-client result ({status, error}).
-     * @param {string} message
-     * @param {{status: number, error?: *}} result
-     * @returns {I6Error}
-     */
-    static fromResult(message, result) {
-      return new _I6Error(`${message} with status ${result.status}`, {
-        code: "http",
-        status: result.status,
-        body: result.error?.message,
-        cause: result.error
-      });
-    }
-  };
+  // src/invoker/invoker.js
   function codeFromStatus(status) {
     if (status === 401) return "unauthenticated";
     if (status === 403) return "forbidden";
@@ -2202,11 +10,54 @@
   function apiErrorFromResponse(status, text) {
     return { status, code: codeFromStatus(status), message: text || `HTTP ${status}`, cause: text };
   }
-  function apiErrorFromNetwork(cause) {
-    return { status: 0, code: "network", message: cause?.message || "network error", cause };
-  }
-
-  // src/invoker/invoker.js
+  var Resp = class {
+    #parser;
+    #parsed = false;
+    #value = null;
+    #text = null;
+    /**
+     * @param {number} status - HTTP status code.
+     * @param {Headers} headers - HTTP response headers.
+     * @param {() => *} parser - Lazy parser function.
+     * @param {string} [text] - Raw response body text.
+     */
+    constructor(status, headers, parser, text = "") {
+      this.status = status;
+      this.headers = headers;
+      this.ok = this.status >= 200 && this.status < 300;
+      this.#parser = parser;
+      this.#text = text;
+    }
+    /**
+     * Raw body text of the response.
+     * @returns {string}
+     */
+    get text() {
+      return this.#text;
+    }
+    /**
+     * Structured error information when response is not ok.
+     * @returns {{status: number, code: string, message: string, cause: *}|null}
+     */
+    get error() {
+      if (!this.ok) {
+        return apiErrorFromResponse(this.status, this.#text);
+      }
+      return null;
+    }
+    /**
+     * Parses and returns the deserialized response value.
+     * Throws an error if deserialization fails or if the response status is not ok.
+     * @returns {T}
+     */
+    parse() {
+      if (!this.#parsed) {
+        this.#value = this.#parser();
+        this.#parsed = true;
+      }
+      return this.#value;
+    }
+  };
   var Invoker = class {
     /**
      * Constructs an Invoker instance.
@@ -2216,17 +67,35 @@
       this._services = services;
     }
     /**
+     * @param {{tokenType: string, url: string}} opts
+     * @return {{token:string, required: boolean}}
+     */
+    async resolveToken(opts) {
+      let ret = { required: false, token: "" };
+      if (!opts.tokenType || opts.tokenType === "none") {
+        return ret;
+      }
+      ret.required = true;
+      const url = new URL(opts.url);
+      if (opts.tokenType === "user") {
+        ret.token = await this._services.tokens().getValidAccessToken();
+      } else if (opts.tokenType === "dataset") {
+        const parts = url.pathname.split("/");
+        if (parts[0] === "") parts.shift();
+        if (parts[2] !== "dataset") throw new Error(`cannot resolve dataset name ${opts.tokenType}: ${url.pathname}`);
+        const dataset = parts[3];
+        if (!dataset) throw new Error(`cannot resolve dataset name ${opts.tokenType}: ${url.pathname}`);
+        ret.token = await this._services.tokens().getValidDatasetAccessToken(dataset);
+      }
+      return ret;
+    }
+    /**
      * Sends an HTTP request using the Fetch API.
      *
      * @param {InvokeOptions} opts - Request options including path/URL, query params, and fetch options.
-     * Credentials are always set to "include" so the session cookie is sent. Note that `opts`
-     * is modified (credentials, and headers/body when `json` is given). An HTTP error status
-     * does not throw; check `ok` on the returned Response.
      * @returns {Promise<Response>} A promise that resolves to the fetch Response.
-     * @throws {TypeError} If the network request fails (from fetch).
      */
     async invoke(opts) {
-      console.log("invoke req", { ...opts, headers: opts.headers && Object.fromEntries(new Headers(opts.headers)), labels: opts.opts?.labels });
       opts.url = opts.url || `${this._services.config().baseUrl}/${opts.path}`;
       if (opts.query) {
         const search = new URLSearchParams();
@@ -2245,30 +114,24 @@
         }
       }
       opts.headers = new Headers(opts.headers);
-      const datasetToken = opts.opts?.datasetToken || this._services.config().datasetToken;
-      const bearerToken = opts.opts?.bearerToken || this._services.config().bearerToken || (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("i6_user_access_token") : null);
-      if (!opts.headers.has("Authorization") && datasetToken) {
-        opts.headers.set("Authorization", "Dataset " + datasetToken);
-      }
+      const bearerToken = opts.opts?.bearerToken;
       if (!opts.headers.has("Authorization") && bearerToken) {
         opts.headers.set("Authorization", "Bearer " + bearerToken);
       }
-      if (!opts.headers.has("Authorization")) {
-        const url = new URL(opts.url);
-        const split = url.pathname.split("/");
-        const idx = split.indexOf("dataset");
-        let token = "";
-        if (idx < 0) {
-          token = await this._services.tokens().getValidAccessToken();
-        } else {
-          const dataset = split[idx + 1];
-          token = await this._services.tokens().getValidDatasetAccessToken(dataset);
-        }
-        if (token) {
-          opts.headers.set("Authorization", "Bearer " + token);
+      if (!opts.headers.has("Authorization") && opts.opts?.labels?.token_type && opts.opts.labels.token_type !== "none") {
+        const tk = await this.resolveToken({
+          tokenType: opts.opts.labels.token_type,
+          url: opts.url
+        });
+        if (tk.token) {
+          opts.headers.set("Authorization", "Bearer " + tk.token);
+        } else if (tk.required) {
+          if (opts.opts.labels.token_type == "user") {
+            return new Response(JSON.stringify({ error: "Unauthorized", message: "Unauthorized" }), { status: 401, statusText: "Unauthorized" });
+          }
+          return new Response(JSON.stringify({ error: "Forbidden", message: "Forbidden" }), { status: 403, statusText: "Forbidden" });
         }
       }
-      console.log(opts);
       if (opts.json) {
         opts.headers.set("Content-Type", "application/json");
         opts.body = JSON.stringify(opts.json);
@@ -2283,35 +146,30 @@
       return fetch(opts.url, opts);
     }
     /**
-     * Like `invoke`, but never throws: resolves with `{status, ok, <key>}` on success and with
-     * `{status, ok: false, error}` (see `I6ApiError`) on an HTTP error or a network failure.
-     * A success with status 204 or an empty body resolves with `{status, ok: true}` and no `<key>`.
+     * Resolves with a `Resp` instance holding the HTTP status, headers, and lazy `parse()`.
+     * Network errors bubble up directly as native exceptions.
+     * @template T
      * @param {InvokeOptions} opts - Same as `invoke`.
-     * @param {"payload"|"body"} [key] - Where the parsed JSON of a success is put.
-     * @returns {Promise<{status: number, ok: boolean, error?: import("../errors.js").I6ApiError} & Record<string, any>>}
+     * @returns {Promise<Resp<T>>}
      */
-    async invokeResult(opts, key = "payload") {
-      let resp;
-      try {
-        resp = await this.invoke(opts);
-      } catch (cause) {
-        return { status: 0, ok: false, error: apiErrorFromNetwork(cause) };
-      }
-      const result = { status: resp.status, ok: resp.ok };
-      try {
-        if (resp.ok) {
-          const text = resp.status === 204 ? "" : await resp.text();
-          if (text) {
-            result[key] = JSON.parse(text);
-          }
-        } else {
-          result.error = apiErrorFromResponse(resp.status, await resp.text());
+    async invokeResult(opts) {
+      const resp = await this.invoke(opts);
+      const text = resp.status === 204 ? "" : await resp.text();
+      const parser = () => {
+        if (!resp.ok) {
+          const apiErr = apiErrorFromResponse(resp.status, text);
+          const err = new Error(apiErr.message);
+          err.status = apiErr.status;
+          err.code = apiErr.code;
+          err.cause = apiErr.cause;
+          throw err;
         }
-      } catch (cause) {
-        result.ok = false;
-        result.error = apiErrorFromNetwork(cause);
-      }
-      return result;
+        if (!text) {
+          return null;
+        }
+        return JSON.parse(text);
+      };
+      return new Resp(resp.status, resp.headers, parser, text);
     }
   };
 
@@ -2351,11 +209,7 @@
       const config = this._services.config();
       const s = config.sessionStorage || config.storageSession;
       if (typeof s === "function") {
-        try {
-          return s();
-        } catch {
-          return null;
-        }
+        return s();
       }
       if (s) {
         return s;
@@ -2401,22 +255,18 @@
         return true;
       }
       if (typeof window !== "undefined" && window.location) {
-        try {
-          const parsed = new URL(url, window.location.origin);
-          if (parsed.origin === window.location.origin) {
-            return true;
-          }
-          const config = this._services.config();
-          if (config.callbackUrl) {
-            const cbOrigin = new URL(config.callbackUrl, window.location.origin).origin;
-            if (parsed.origin === cbOrigin) return true;
-          }
-          if (config.userExchangeCallbackUrl) {
-            const excOrigin = new URL(config.userExchangeCallbackUrl, window.location.origin).origin;
-            if (parsed.origin === excOrigin) return true;
-          }
-        } catch {
-          return false;
+        const parsed = new URL(url, window.location.origin);
+        if (parsed.origin === window.location.origin) {
+          return true;
+        }
+        const config = this._services.config();
+        if (config.callbackUrl) {
+          const cbOrigin = new URL(config.callbackUrl, window.location.origin).origin;
+          if (parsed.origin === cbOrigin) return true;
+        }
+        if (config.userExchangeCallbackUrl) {
+          const excOrigin = new URL(config.userExchangeCallbackUrl, window.location.origin).origin;
+          if (parsed.origin === excOrigin) return true;
         }
       }
       return false;
@@ -2744,11 +594,7 @@
       const config = this._services.config();
       const s = config.storage || config.localStorage;
       if (typeof s === "function") {
-        try {
-          return s();
-        } catch {
-          return null;
-        }
+        return s();
       }
       if (s) {
         return s;
@@ -2798,11 +644,7 @@
       if (!s) {
         return null;
       }
-      try {
-        return JSON.parse(s);
-      } catch {
-        return null;
-      }
+      return JSON.parse(s);
     }
     /**
      * Stores user token credentials in storage under `'i6_user_user_token'`.
@@ -2816,7 +658,7 @@
       storage.setItem(USER_TOKEN_KEY, JSON.stringify(token));
     }
     /**
-     * Retrieves the raw stored user access token JWT string without checking expiration or refreshing.
+     * Retrieves the current user access token directly from storage without expiration checks or refresh attempts.
      * Use {@link Tokens#getValidAccessToken} when fresh/valid credentials are required.
      *
      * @returns {string|undefined} The signed EdDSA user access token JWT,
@@ -2826,13 +668,10 @@
       return this.getUserToken()?.user_access_token;
     }
     /**
-     * Clears all stored authentication and authorization tokens from storage.
-     * Removes both the user token (`'i6_user_user_token'`) and all cached dataset
-     * access tokens (`'i6_dataset_access_tokens'`).
+     * Clears stored user token credentials from storage.
      * @returns {void}
      */
-    clearTokens() {
-      this.clearDatasetTokens();
+    clearUserToken() {
       const storage = this._getStorage();
       if (!storage) return;
       storage.removeItem(USER_TOKEN_KEY);
@@ -2883,7 +722,6 @@
       const config = this._services.config();
       const baseUrl = config.servUrls?.["decsuite"] || config.decsuiteUrl || config.baseUrl || "";
       const redeemUrl = `${baseUrl}/api/decsuite/auth/checkoutredeem`;
-      console.log("REDEEM checkoutCode", checkoutCode);
       const resp = await fetch(redeemUrl, {
         method: "POST",
         headers: {
@@ -2902,8 +740,7 @@
       delete data.dataset_id;
       this.clearDatasetTokens();
       this.setUserToken(data);
-      console.log("REDEEM ret", ret);
-      let ret = {
+      const ret = {
         ...data,
         dataset
       };
@@ -2912,9 +749,10 @@
     /**
      * Refreshes the user access token using the stored user refresh token via `POST /api/userz/auth/refresh`.
      * Enforces token family rotation by storing the newly rotated refresh token and fresh access token.
-     * Deduplicates concurrent in-flight refresh requests to prevent token reuse conflicts.
+     * If session renewal is revoked or family reuse is detected, wipes the stored user session.
+     * Concurrent refresh calls are deduplicated using an in-flight promise cache.
      *
-     * @returns {Promise<UserToken|null>} The refreshed token credentials, or null if refresh failed / token revoked.
+     * @returns {Promise<UserToken|null>} The newly refreshed user token credentials or null if renewal failed.
      */
     async refresh() {
       if (this._refreshPromise) {
@@ -2947,8 +785,6 @@
           const data = await resp.json();
           this.setUserToken(data);
           return data;
-        } catch {
-          return null;
         } finally {
           this._refreshPromise = null;
         }
@@ -2966,20 +802,17 @@
       const token = this.getUserToken();
       const refreshToken = token?.user_refresh_token;
       if (refreshToken) {
-        try {
-          const userzUrl = this._getUserzUrl();
-          const logoutUrl = `${userzUrl}/api/userz/auth/logout`;
-          await fetch(logoutUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              refresh_token: refreshToken
-            })
-          });
-        } catch {
-        }
+        const userzUrl = this._getUserzUrl();
+        const logoutUrl = `${userzUrl}/api/userz/auth/logout`;
+        await fetch(logoutUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            refresh_token: refreshToken
+          })
+        });
       }
       this.clearTokens();
       return true;
@@ -3016,11 +849,7 @@
       if (!storage) return {};
       const s = storage.getItem(DATASET_TOKENS_KEY);
       if (!s) return {};
-      try {
-        return JSON.parse(s) || {};
-      } catch {
-        return {};
-      }
+      return JSON.parse(s) || {};
     }
     /**
      * Retrieves the cached dataset access token object for a specific dataset from storage.
@@ -3124,8 +953,6 @@
           const data = await resp.json();
           this.setDatasetToken(dataset, data);
           return data;
-        } catch {
-          return null;
         } finally {
           this._datasetTokenPromises.delete(dataset);
         }
@@ -3133,6 +960,16 @@
       this._datasetTokenPromises.set(dataset, promise);
       const result = await promise;
       return result?.access_token || null;
+    }
+    /**
+     * Clears all session credentials (both user and dataset tokens) from storage.
+     * Effectively resets client authentication state.
+     *
+     * @returns {void}
+     */
+    clearTokens() {
+      this.clearUserToken();
+      this.clearDatasetTokens();
     }
   };
 
@@ -3149,12 +986,10 @@
      * Asks ingestz for a signed upload URL (ingestz-get-url API) and uploads a single file to it.
      * @param {UploadParams} params - Upload parameters.
      * @returns {Promise<UploadResult>} Resolves with the ingest id on a successful upload.
-     * @throws {I6Error} With code "invalid_argument" if file is not a single File, "http" or
-     *   "network" if a request fails. Rejects with an AbortError if `signal` aborts.
      */
     async upload({ dataset, table, partitions, file, onProgress, signal, contentType, serviceOpts }) {
       if (!(file instanceof File)) {
-        throw new I6Error("file must be a single File.", { code: "invalid_argument" });
+        throw new TypeError("file must be a single File.");
       }
       signal?.throwIfAborted();
       const { ingestId, url } = await this.#getUrl({ dataset, table, partitions, serviceOpts });
@@ -3167,7 +1002,6 @@
      * @private
      * @param {GetUrlParams} params - Parameters for requesting the upload URL.
      * @returns {Promise<{ingestId: string, url: string}>} The ingest id and the signed PUT URL.
-     * @throws {I6Error} If the request fails or no upload URL is returned.
      */
     async #getUrl({ dataset, table, partitions, serviceOpts }) {
       const resp = await this._services.apis().ingestzGetUrl({
@@ -3175,13 +1009,14 @@
         payload: { table, partitions, amount: 1 }
       }, serviceOpts);
       if (!resp.ok) {
-        throw I6Error.fromResult("Get upload URL failed", resp);
+        throw new Error(`Get upload URL failed with status ${resp.status}: ${resp.error?.message ?? ""}`);
       }
-      const uploads = resp.payload?.uploads;
+      const data = resp.parse();
+      const uploads = data?.uploads;
       if (!uploads?.[0]) {
-        throw new I6Error("Get upload URL returned no upload URL.", { code: "no_upload_url" });
+        throw new Error("Get upload URL returned no upload URL.");
       }
-      return { ingestId: resp.payload.ingest_id, url: uploads[0] };
+      return { ingestId: data.ingest_id, url: uploads[0] };
     }
     /**
      * Uploads a file to a signed PUT URL using XMLHttpRequest (fetch has no upload progress).
@@ -3204,15 +1039,11 @@
           if (xhr.status >= 200 && xhr.status < 300) {
             done(resolve);
           } else {
-            done(reject, new I6Error(`Upload failed with status ${xhr.status}`, {
-              code: "http",
-              status: xhr.status,
-              body: xhr.responseText
-            }));
+            done(reject, new Error(`Upload failed with status ${xhr.status}: ${xhr.responseText}`));
           }
         });
         xhr.addEventListener("error", () => {
-          done(reject, new I6Error("Network error occurred during upload.", { code: "network" }));
+          done(reject, new TypeError("Network error occurred during upload."));
         });
         xhr.addEventListener("abort", () => {
           done(reject, abortError());
@@ -3247,300 +1078,13 @@
       this._services = services;
     }
     /**
-     * Create Customer Portal
-     * 
-     * Creates a Stripe billing portal session URL where the user can manage cards, auto-renew, and plans.
-     * 
-     * @param {apiDszCreateCustomerPortalReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateCustomerPortalResp>>}
-     */
-    async dszCreateCustomerPortal(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/portal`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Update Subscription Plan
-     * 
-     * Updates the plan (price) of the Stripe subscription for a dataset product/solution.
-     * 
-     * @param {apiDszUpdateSubscriptionPlanReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszUpdateSubscriptionPlanResp>>}
-     */
-    async dszUpdateSubscriptionPlan(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solution/${encodeURIComponent(String(req.params.solution))}/subscription/plan`,
-        json: req.payload,
-        opts
-      }, "body");
-    }
-    /**
-     * Current User Profile
-     * 
-     * Retrieves current authenticated user identity profile metadata.
-     * 
-     * @param {apiUserAuthMeReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserAuthMeResp>>}
-     */
-    async userAuthMe(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "servname": "userz",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/me`,
-        headers: req.headers,
-        opts
-      }, "payload");
-    }
-    /**
-     * Password Reset Email Dispatch
-     * 
-     * Dispatches an out-of-band password reset email via Identity Platform.
-     * 
-     * @param {apiUserAuthPasswordResetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserAuthPasswordResetResp>>}
-     */
-    async userAuthPasswordReset(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "servname": "userz",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/password/reset`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * List Store Displays
-     * 
-     * Lists all active store displays configured for a store under a specific dataset.
-     * 
-     * @param {apiDszStoreDisplayListReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayListResp>>}
-     */
-    async dszStoreDisplayList(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/display/list`,
-        query: req.query,
-        opts
-      }, "payload");
-    }
-    /**
-     * List Payments
-     * 
-     * Lists the Stripe payments (invoices) of a dataset. The list is empty for datasets without a Stripe customer.
-     * 
-     * @param {apiDszListPaymentsReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListPaymentsResp>>}
-     */
-    async dszListPayments(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/payments`,
-        opts
-      }, "payload");
-    }
-    /**
-     * List Plans
-     * 
-     * Lists the plans a subscription of a solution can be switched to, with the price data from Stripe.
-     * 
-     * @param {apiDszListPlansReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListPlansResp>>}
-     */
-    async dszListPlans(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "user",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/solution/${encodeURIComponent(String(req.params.solution))}/plans`,
-        opts
-      }, "payload");
-    }
-    /**
-     * Create Dataset Access Token
-     * 
-     * Mints a short-lived dataset access token for an authenticated user.
-     * 
-     * @param {apiUserDatasetTokenAccessCreateReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserDatasetTokenAccessCreateResp>>}
-     */
-    async userDatasetTokenAccessCreate(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "servname": "userz",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/dataset-access-token/${encodeURIComponent(String(req.params.dataset))}`,
-        headers: req.headers,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Revoke Dataset Refresh Token
-     * 
-     * Instantly revokes a machine dataset refresh token by JTI.
-     * 
-     * @param {apiUserDatasetTokenRefreshDeleteReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserDatasetTokenRefreshDeleteResp>>}
-     */
-    async userDatasetTokenRefreshDelete(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "servname": "userz",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "DELETE",
-        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/dataset-refresh-token/${encodeURIComponent(String(req.params.dataset))}/jti/${encodeURIComponent(String(req.params.jti))}`,
-        headers: req.headers,
-        opts
-      }, "body");
-    }
-    /**
-     * Event Ingestion
-     * 
-     * Ingests events data into a target dataset table.
-     * 
-     * @param {apiIngestzEventRelevanceFashionEventReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionEventResp>>}
-     */
-    async ingestzEventRelevanceFashionEvent(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        "sinkable": "true",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/event/relevance-fashion-event/text.txt`,
-        json: req.payload,
-        opts,
-        sinkable: true
-      }, "body");
-    }
-    /**
-     * List Dataset Tables
-     * 
-     * Lists files and tables in the specified dataset.
-     * 
-     * @param {apiDszTableListReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableListResp>>}
-     */
-    async dszTableList(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/table-list`,
-        query: req.query,
-        opts
-      }, "payload");
-    }
-    /**
-     * Human User Session Logout
-     * 
-     * Revokes an active human user session by marking the refresh token and its token family as revoked in userzsession.
-     * 
-     * @param {apiUserAuthLogoutReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserAuthLogoutResp>>}
-     */
-    async userAuthLogout(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "servname": "userz",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/logout`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Email and Password Sign-Up
-     * 
-     * Registers a new user with Identity Platform and dispatches a verification email.
-     * 
-     * @param {apiUserAuthPasswordSignupReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserAuthPasswordSignupResp>>}
-     */
-    async userAuthPasswordSignup(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "servname": "userz",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/signup/password`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
      * Human User Session Refresh
      * 
      * Exchanges a human user refresh token for fresh access and rotated refresh tokens.
      * 
      * @param {apiUserAuthRefreshReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserAuthRefreshResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthRefreshResp>>}
      */
     async userAuthRefresh(req, opts) {
       opts = opts || {};
@@ -3553,18 +1097,62 @@
         url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/refresh-user`,
         json: req.payload,
         opts
-      }, "payload");
+      });
     }
     /**
-     * Attenuate Dataset Access Token
+     * Revoke Dataset Refresh Token
      * 
-     * Derives an in-flight attenuated child access token with dropped privileges from an active access token.
+     * Instantly revokes a machine dataset refresh token by JTI.
      * 
-     * @param {apiUserDatasetTokenAccessAttenuateReq} req
+     * @param {apiUserDatasetTokenRefreshDeleteReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserDatasetTokenAccessAttenuateResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshDeleteResp>>}
      */
-    async userDatasetTokenAccessAttenuate(req, opts) {
+    async userDatasetTokenRefreshDelete(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "servname": "userz",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "DELETE",
+        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/dataset-refresh-token/${encodeURIComponent(String(req.params.dataset))}/jti/${encodeURIComponent(String(req.params.jti))}`,
+        headers: req.headers,
+        opts
+      });
+    }
+    /**
+     * Create Customer Portal
+     * 
+     * Creates a Stripe billing portal session URL where the user can manage cards, auto-renew, and plans.
+     * 
+     * @param {apiDszCreateCustomerPortalReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateCustomerPortalResp>>}
+     */
+    async dszCreateCustomerPortal(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/portal`,
+        json: req.payload,
+        opts
+      });
+    }
+    /**
+     * Google Sign-In Credential Exchange
+     * 
+     * Verifies a Google OAuth ID token via Identity Platform and mints a single-use PKCE code.
+     * 
+     * @param {apiUserAuthGoogleReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthGoogleResp>>}
+     */
+    async userAuthGoogle(req, opts) {
       opts = opts || {};
       opts.labels = {
         "servname": "userz",
@@ -3572,58 +1160,32 @@
       };
       return this._services.invoker().invokeResult({
         method: "POST",
-        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/attenuate`,
-        headers: req.headers,
+        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/google`,
         json: req.payload,
         opts
-      }, "payload");
+      });
     }
     /**
-     * Create Dataset Refresh Token
+     * Start Pipeline
      * 
-     * Provisions a long-lived machine dataset refresh token with an Ed25519 keypair.
+     * Starts a pipeline on a dataset with the given params and returns its id.
      * 
-     * @param {apiUserDatasetTokenRefreshCreateReq} req
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserDatasetTokenRefreshCreateResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
      */
-    async userDatasetTokenRefreshCreate(req, opts) {
+    async pipezStartRelevanceFashionRelevanceFashionMain(req, opts) {
       opts = opts || {};
       opts.labels = {
-        "servname": "userz",
+        "token_type": "dataset",
         ...opts.labels || {}
       };
       return this._services.invoker().invokeResult({
         method: "POST",
-        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/dataset-refresh-token/${encodeURIComponent(String(req.params.dataset))}`,
-        headers: req.headers,
+        path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/start/relevance_fashion/relevance-fashion-main`,
         json: req.payload,
         opts
-      }, "payload");
-    }
-    /**
-     * Event Ingestion
-     * 
-     * Ingests events data into a target dataset table.
-     * 
-     * @param {apiIngestzEventRelevanceFashionCatalogReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzEventRelevanceFashionCatalogResp>>}
-     */
-    async ingestzEventRelevanceFashionCatalog(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        "sinkable": "true",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/event/relevance-fashion-catalog/text.txt`,
-        json: req.payload,
-        opts,
-        sinkable: true
-      }, "body");
+      });
     }
     /**
      * Create Store Display
@@ -3632,12 +1194,12 @@
      * 
      * @param {apiDszStoreDisplayCreateReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStoreDisplayCreateResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayCreateResp>>}
      */
     async dszStoreDisplayCreate(req, opts) {
       opts = opts || {};
       opts.labels = {
-        "injectable_auth": "dataset",
+        "token_type": "dataset",
         ...opts.labels || {}
       };
       return this._services.invoker().invokeResult({
@@ -3645,92 +1207,74 @@
         path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/display/create`,
         json: req.payload,
         opts
-      }, "payload");
+      });
     }
     /**
-     * List Active Dataset Solutions
+     * Event Ingestion
      * 
-     * Lists all active solutions configured for a specific dataset.
+     * Ingests events data into a target dataset table.
      * 
-     * @param {apiDszDatasetSolutionsReq} req
+     * @param {apiIngestzEventRelevanceFashionCatalogReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDatasetSolutionsResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionCatalogResp>>}
      */
-    async dszDatasetSolutions(req, opts) {
+    async ingestzEventRelevanceFashionCatalog(req, opts) {
       opts = opts || {};
       opts.labels = {
-        "injectable_auth": "dataset",
+        "sinkable": "true",
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/event/relevance-fashion-catalog/text.txt`,
+        json: req.payload,
+        opts,
+        sinkable: true
+      });
+    }
+    /**
+     * Start Pipeline
+     * 
+     * Starts a pipeline on a dataset with the given params and returns its id.
+     * 
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
+     */
+    async pipezStartRelevanceFashionRelevanceFashionBatchIngest(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/start/relevance_fashion/relevance-fashion-batch-ingest`,
+        json: req.payload,
+        opts
+      });
+    }
+    /**
+     * List Ingestion Tokens
+     * 
+     * Lists all active data ingestion tokens for a specific dataset.
+     * 
+     * @param {apiDszListIngestionTokensReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListIngestionTokensResp>>}
+     */
+    async dszListIngestionTokens(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
         ...opts.labels || {}
       };
       return this._services.invoker().invokeResult({
         method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solutions`,
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/ingestiontoken/list`,
         opts
-      }, "payload");
-    }
-    /**
-     * Get Solution Domain
-     * 
-     * Retrieves the active solutions and their corresponding domains for a given store in a dataset.
-     * 
-     * @param {apiDszDomainGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDomainGetResp>>}
-     */
-    async dszDomainGet(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/solution-domain`,
-        query: req.query,
-        opts
-      }, "payload");
-    }
-    /**
-     * List Recsys Tokens
-     * 
-     * Lists all active recommendation system tokens for a specific dataset.
-     * 
-     * @param {apiDszListRecsysTokensReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListRecsysTokensResp>>}
-     */
-    async dszListRecsysTokens(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/recsystoken/list`,
-        opts
-      }, "payload");
-    }
-    /**
-     * Get Subscription
-     * 
-     * Gets the plan and the status of the Stripe subscription of a dataset product/solution. The payload is empty for contracts without Stripe.
-     * 
-     * @param {apiDszGetSubscriptionReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszGetSubscriptionResp>>}
-     */
-    async dszGetSubscription(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solution/${encodeURIComponent(String(req.params.solution))}/subscription`,
-        opts
-      }, "payload");
+      });
     }
     /**
      * Device Authorization Code Initiation
@@ -3739,7 +1283,7 @@
      * 
      * @param {apiUserAuthDeviceCodeReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserAuthDeviceCodeResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthDeviceCodeResp>>}
      */
     async userAuthDeviceCode(req, opts) {
       opts = opts || {};
@@ -3752,7 +1296,351 @@
         url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/device/code`,
         json: req.payload,
         opts
-      }, "payload");
+      });
+    }
+    /**
+     * Current User Profile
+     * 
+     * Retrieves current authenticated user identity profile metadata.
+     * 
+     * @param {apiUserAuthMeReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthMeResp>>}
+     */
+    async userAuthMe(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "servname": "userz",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/me`,
+        headers: req.headers,
+        opts
+      });
+    }
+    /**
+     * List Datasets
+     * 
+     * Lists all datasets available to the user.
+     * 
+     * @param {apiDszListDatasetsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListDatasetsResp>>}
+     */
+    async dszListDatasets(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "user",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/user-id/${encodeURIComponent(String(req.params.userId))}/datasets`,
+        opts
+      });
+    }
+    /**
+     * Create Recsys Token
+     * 
+     * Creates a read/recommendation token for the recommendation system associated with a specific dataset.
+     * 
+     * @param {apiDszCreateRecsysTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateRecsysTokenResp>>}
+     */
+    async dszCreateRecsysToken(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/recsystoken/create`,
+        json: req.payload,
+        opts
+      });
+    }
+    /**
+     * Create Stripe Checkout
+     * 
+     * Creates a Stripe checkout session for a subscription and returns its id and url.
+     * 
+     * @param {apiDszStripeCheckoutReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStripeCheckoutResp>>}
+     */
+    async dszStripeCheckout(req, opts) {
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/stripe/checkout`,
+        json: req.payload,
+        opts
+      });
+    }
+    /**
+     * List Plans
+     * 
+     * Lists the plans a subscription of a solution can be switched to, with the price data from Stripe.
+     * 
+     * @param {apiDszListPlansReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListPlansResp>>}
+     */
+    async dszListPlans(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "user",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/solution/${encodeURIComponent(String(req.params.solution))}/plans`,
+        opts
+      });
+    }
+    /**
+     * Human User Session Logout
+     * 
+     * Revokes an active human user session by marking the refresh token and its token family as revoked in userzsession.
+     * 
+     * @param {apiUserAuthLogoutReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthLogoutResp>>}
+     */
+    async userAuthLogout(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "servname": "userz",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/logout`,
+        json: req.payload,
+        opts
+      });
+    }
+    /**
+     * Email and Password Sign-Up
+     * 
+     * Registers a new user with Identity Platform and dispatches a verification email.
+     * 
+     * @param {apiUserAuthPasswordSignupReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSignupResp>>}
+     */
+    async userAuthPasswordSignup(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "servname": "userz",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/signup/password`,
+        json: req.payload,
+        opts
+      });
+    }
+    /**
+     * Get Ingestion Upload URLs
+     * 
+     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
+     * 
+     * @param {apiIngestzGetUrlReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiIngestzGetUrlResp>>}
+     */
+    async ingestzGetUrl(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/get-url`,
+        json: req.payload,
+        opts
+      });
+    }
+    /**
+     * Get Dataset Signed URLs
+     * 
+     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     * 
+     * @param {apiDszSignedUrlReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszSignedUrlResp>>}
+     */
+    async dszSignedUrl(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/signed-url`,
+        json: req.payload,
+        opts
+      });
+    }
+    /**
+     * Create Store
+     * 
+     * Creates a store configuration under a specific dataset.
+     * 
+     * @param {apiDszCreateStoreReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateStoreResp>>}
+     */
+    async dszCreateStore(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/create`,
+        json: req.payload,
+        opts
+      });
+    }
+    /**
+     * Create Ingestion Token
+     * 
+     * Creates a write token for data ingestion into a specific dataset.
+     * 
+     * @param {apiDszCreateIngestionTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateIngestionTokenResp>>}
+     */
+    async dszCreateIngestionToken(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/ingestiontoken/create`,
+        json: req.payload,
+        opts
+      });
+    }
+    /**
+     * List Dataset Tables
+     * 
+     * Lists files and tables in the specified dataset.
+     * 
+     * @param {apiDszTableListReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszTableListResp>>}
+     */
+    async dszTableList(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/table-list`,
+        query: req.query,
+        opts
+      });
+    }
+    /**
+     * List Pipelines
+     * 
+     * Lists the pipelines of a dataset, optionally filtered, with cursor pagination.
+     * 
+     * @param {apiPipezListReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezListResp>>}
+     */
+    async pipezList(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/list`,
+        query: req.query,
+        opts
+      });
+    }
+    /**
+     * Get Solution Domain
+     * 
+     * Retrieves the active solutions and their corresponding domains for a given store in a dataset.
+     * 
+     * @param {apiDszDomainGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDomainGetResp>>}
+     */
+    async dszDomainGet(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/solution-domain`,
+        query: req.query,
+        opts
+      });
+    }
+    /**
+     * List Payments
+     * 
+     * Lists the Stripe payments (invoices) of a dataset. The list is empty for datasets without a Stripe customer.
+     * 
+     * @param {apiDszListPaymentsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListPaymentsResp>>}
+     */
+    async dszListPayments(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/payments`,
+        opts
+      });
+    }
+    /**
+     * Device Token Polling & Exchange
+     * 
+     * Polled by CLI clients to check status and exchange an authorized device code for active user tokens.
+     * 
+     * @param {apiUserAuthDeviceTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthDeviceTokenResp>>}
+     */
+    async userAuthDeviceToken(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "servname": "userz",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/device/token`,
+        json: req.payload,
+        opts
+      });
     }
     /**
      * Refresh Dataset Access Token
@@ -3761,7 +1649,7 @@
      * 
      * @param {apiUserDatasetTokenRefreshReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserDatasetTokenRefreshResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshResp>>}
      */
     async userDatasetTokenRefresh(req, opts) {
       opts = opts || {};
@@ -3775,116 +1663,30 @@
         headers: req.headers,
         json: req.payload,
         opts
-      }, "payload");
+      });
     }
     /**
-     * Delete Token
+     * Create Dataset Refresh Token
      * 
-     * Deletes (revokes) a specific token (e.g. ingestion or recsys token) associated with a dataset.
+     * Provisions a long-lived machine dataset refresh token with an Ed25519 keypair.
      * 
-     * @param {apiDszDeleteTokenReq} req
+     * @param {apiUserDatasetTokenRefreshCreateReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszDeleteTokenResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshCreateResp>>}
      */
-    async dszDeleteToken(req, opts) {
+    async userDatasetTokenRefreshCreate(req, opts) {
       opts = opts || {};
       opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "DELETE",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/token/delete`,
-        query: req.query,
-        opts
-      }, "body");
-    }
-    /**
-     * Get Model Signed URLs
-     * 
-     * Generates presigned URLs for accessing model files in the specified dataset.
-     * 
-     * @param {apiDszModelGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszModelGetResp>>}
-     */
-    async dszModelGet(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
+        "servname": "userz",
         ...opts.labels || {}
       };
       return this._services.invoker().invokeResult({
         method: "POST",
-        path: `api/model/dataset/${encodeURIComponent(String(req.params.dataset))}/signed-get/${encodeURIComponent(String(req.params.model_name))}`,
+        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/dataset-refresh-token/${encodeURIComponent(String(req.params.dataset))}`,
+        headers: req.headers,
         json: req.payload,
         opts
-      }, "payload");
-    }
-    /**
-     * Get Ingestion Upload URLs
-     * 
-     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
-     * 
-     * @param {apiIngestzGetUrlReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiIngestzGetUrlResp>>}
-     */
-    async ingestzGetUrl(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/get-url`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Get Pipeline
-     * 
-     * Gets a pipeline of a dataset by its id.
-     * 
-     * @param {apiPipezGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezGetResp>>}
-     */
-    async pipezGet(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/id/${encodeURIComponent(String(req.params.id))}`,
-        opts
-      }, "payload");
-    }
-    /**
-     * Update Payment Auto Renew
-     * 
-     * Turns auto renew on or off for the Stripe subscription of a dataset product/solution.
-     * 
-     * @param {apiDszUpdatePaymentAutoRenewReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszUpdatePaymentAutoRenewResp>>}
-     */
-    async dszUpdatePaymentAutoRenew(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solution/${encodeURIComponent(String(req.params.solution))}/payment/autorenew`,
-        json: req.payload,
-        opts
-      }, "body");
+      });
     }
     /**
      * List Dataset Refresh Tokens
@@ -3893,7 +1695,7 @@
      * 
      * @param {apiUserDatasetTokenRefreshListReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserDatasetTokenRefreshListResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshListResp>>}
      */
     async userDatasetTokenRefreshList(req, opts) {
       opts = opts || {};
@@ -3906,28 +1708,93 @@
         url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/dataset-refresh-token/${encodeURIComponent(String(req.params.dataset))}`,
         headers: req.headers,
         opts
-      }, "payload");
+      });
     }
     /**
-     * List Stores
+     * Get Pipeline
      * 
-     * Lists all stores configured under a specific dataset.
+     * Gets a pipeline of a dataset by its id.
      * 
-     * @param {apiDszListStoresReq} req
+     * @param {apiPipezGetReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListStoresResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezGetResp>>}
      */
-    async dszListStores(req, opts) {
+    async pipezGet(req, opts) {
       opts = opts || {};
       opts.labels = {
-        "injectable_auth": "dataset",
+        "token_type": "dataset",
         ...opts.labels || {}
       };
       return this._services.invoker().invokeResult({
         method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/list`,
+        path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/id/${encodeURIComponent(String(req.params.id))}`,
         opts
-      }, "payload");
+      });
+    }
+    /**
+     * Load Table File as JSON
+     * 
+     * Load a table file from the datalake as JSON and return it.
+     * 
+     * @param {apiDszResultLastBatchSummaryReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszResultLastBatchSummaryResp>>}
+     */
+    async dszResultLastBatchSummary(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/results/last-batch-summary`,
+        query: req.query,
+        opts
+      });
+    }
+    /**
+     * List Store Displays
+     * 
+     * Lists all active store displays configured for a store under a specific dataset.
+     * 
+     * @param {apiDszStoreDisplayListReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayListResp>>}
+     */
+    async dszStoreDisplayList(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/display/list`,
+        query: req.query,
+        opts
+      });
+    }
+    /**
+     * List Active Dataset Solutions
+     * 
+     * Lists all active solutions configured for a specific dataset.
+     * 
+     * @param {apiDszDatasetSolutionsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDatasetSolutionsResp>>}
+     */
+    async dszDatasetSolutions(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solutions`,
+        opts
+      });
     }
     /**
      * Model Predict
@@ -3936,13 +1803,13 @@
      * 
      * @param {apiTfzModelPredictReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiTfzModelPredictResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiTfzModelPredictResp>>}
      */
     async tfzModelPredict(req, opts) {
       opts = opts || {};
       opts.labels = {
-        "injectable_auth": "dataset",
         "servname": "tfinfer",
+        "token_type": "dataset",
         ...opts.labels || {}
       };
       return this._services.invoker().invokeResult({
@@ -3950,138 +1817,7 @@
         url: `${this._services.config().servUrls?.["tfinfer"] ?? this._services.config().baseUrl}/api/model/dataset/${encodeURIComponent(String(req.params.dataset))}/${encodeURIComponent(String(req.params.model_name))}/${encodeURIComponent(String(req.params.version))}/predict`,
         json: req.payload,
         opts
-      }, "payload");
-    }
-    /**
-     * Device Token Polling & Exchange
-     * 
-     * Polled by CLI clients to check status and exchange an authorized device code for active user tokens.
-     * 
-     * @param {apiUserAuthDeviceTokenReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserAuthDeviceTokenResp>>}
-     */
-    async userAuthDeviceToken(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "servname": "userz",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/device/token`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Email and Password Sign-In
-     * 
-     * Authenticates an email and password against Identity Platform, enforcing confirmed emails and minting a PKCE code.
-     * 
-     * @param {apiUserAuthPasswordSigninReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserAuthPasswordSigninResp>>}
-     */
-    async userAuthPasswordSignin(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "servname": "userz",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/signin/password`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Load Table File as JSON
-     * 
-     * Load a table file from the datalake as JSON and return it.
-     * 
-     * @param {apiDszResultRelevanceFashionCatalogReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszResultRelevanceFashionCatalogResp>>}
-     */
-    async dszResultRelevanceFashionCatalog(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/results/relevance-fashion-catalog`,
-        query: req.query,
-        opts
-      }, "payload");
-    }
-    /**
-     * Start Pipeline
-     * 
-     * Starts a pipeline on a dataset with the given params and returns its id.
-     * 
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
-     */
-    async pipezStartRelevanceFashionRelevanceFashionMain(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/start/relevance_fashion/relevance-fashion-main`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * List Datasets
-     * 
-     * Lists all datasets available to the user.
-     * 
-     * @param {apiDszListDatasetsReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListDatasetsResp>>}
-     */
-    async dszListDatasets(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "user",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/user-id/${encodeURIComponent(String(req.params.userId))}/datasets`,
-        opts
-      }, "payload");
-    }
-    /**
-     * Create Recsys Token
-     * 
-     * Creates a read/recommendation token for the recommendation system associated with a specific dataset.
-     * 
-     * @param {apiDszCreateRecsysTokenReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateRecsysTokenResp>>}
-     */
-    async dszCreateRecsysToken(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/recsystoken/create`,
-        json: req.payload,
-        opts
-      }, "payload");
+      });
     }
     /**
      * PKCE Authorization Code Exchange
@@ -4090,7 +1826,7 @@
      * 
      * @param {apiUserAuthExchangeReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserAuthExchangeResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthExchangeResp>>}
      */
     async userAuthExchange(req, opts) {
       opts = opts || {};
@@ -4103,167 +1839,18 @@
         url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/exchange`,
         json: req.payload,
         opts
-      }, "payload");
+      });
     }
     /**
-     * Get Dataset Signed URLs
+     * Attenuate Dataset Access Token
      * 
-     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     * Derives an in-flight attenuated child access token with dropped privileges from an active access token.
      * 
-     * @param {apiDszSignedUrlReq} req
+     * @param {apiUserDatasetTokenAccessAttenuateReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszSignedUrlResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessAttenuateResp>>}
      */
-    async dszSignedUrl(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/signed-url`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Load Table File as JSON
-     * 
-     * Load a table file from the datalake as JSON and return it.
-     * 
-     * @param {apiDszResultLastBatchSummaryReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszResultLastBatchSummaryResp>>}
-     */
-    async dszResultLastBatchSummary(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/results/last-batch-summary`,
-        query: req.query,
-        opts
-      }, "payload");
-    }
-    /**
-     * Start Pipeline
-     * 
-     * Starts a pipeline on a dataset with the given params and returns its id.
-     * 
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
-     */
-    async pipezStartRelevanceFashionRelevanceFashionBatchIngest(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/start/relevance_fashion/relevance-fashion-batch-ingest`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * List Pipelines
-     * 
-     * Lists the pipelines of a dataset, optionally filtered, with cursor pagination.
-     * 
-     * @param {apiPipezListReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiPipezListResp>>}
-     */
-    async pipezList(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "GET",
-        path: `api/pipe/dataset/${encodeURIComponent(String(req.params.dataset))}/list`,
-        query: req.query,
-        opts
-      }, "payload");
-    }
-    /**
-     * Create Store
-     * 
-     * Creates a store configuration under a specific dataset.
-     * 
-     * @param {apiDszCreateStoreReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateStoreResp>>}
-     */
-    async dszCreateStore(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/create`,
-        json: req.payload,
-        opts
-      }, "body");
-    }
-    /**
-     * Create Ingestion Token
-     * 
-     * Creates a write token for data ingestion into a specific dataset.
-     * 
-     * @param {apiDszCreateIngestionTokenReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszCreateIngestionTokenResp>>}
-     */
-    async dszCreateIngestionToken(req, opts) {
-      opts = opts || {};
-      opts.labels = {
-        "injectable_auth": "dataset",
-        ...opts.labels || {}
-      };
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/ingestiontoken/create`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Create Stripe Checkout
-     * 
-     * Creates a Stripe checkout session for a subscription and returns its id and url.
-     * 
-     * @param {apiDszStripeCheckoutReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszStripeCheckoutResp>>}
-     */
-    async dszStripeCheckout(req, opts) {
-      return this._services.invoker().invokeResult({
-        method: "POST",
-        path: `api/stripe/checkout`,
-        json: req.payload,
-        opts
-      }, "payload");
-    }
-    /**
-     * Google Sign-In Credential Exchange
-     * 
-     * Verifies a Google OAuth ID token via Identity Platform and mints a single-use PKCE code.
-     * 
-     * @param {apiUserAuthGoogleReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiUserAuthGoogleResp>>}
-     */
-    async userAuthGoogle(req, opts) {
+    async userDatasetTokenAccessAttenuate(req, opts) {
       opts = opts || {};
       opts.labels = {
         "servname": "userz",
@@ -4271,10 +1858,210 @@
       };
       return this._services.invoker().invokeResult({
         method: "POST",
-        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/google`,
+        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/attenuate`,
+        headers: req.headers,
         json: req.payload,
         opts
-      }, "payload");
+      });
+    }
+    /**
+     * Create Dataset Access Token
+     * 
+     * Mints a short-lived dataset access token for an authenticated user.
+     * 
+     * @param {apiUserDatasetTokenAccessCreateReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessCreateResp>>}
+     */
+    async userDatasetTokenAccessCreate(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "servname": "userz",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/dataset-access-token/${encodeURIComponent(String(req.params.dataset))}`,
+        headers: req.headers,
+        json: req.payload,
+        opts
+      });
+    }
+    /**
+     * Event Ingestion
+     * 
+     * Ingests events data into a target dataset table.
+     * 
+     * @param {apiIngestzEventRelevanceFashionEventReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionEventResp>>}
+     */
+    async ingestzEventRelevanceFashionEvent(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "sinkable": "true",
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ingest/dataset/${encodeURIComponent(String(req.params.dataset))}/event/relevance-fashion-event/text.txt`,
+        json: req.payload,
+        opts,
+        sinkable: true
+      });
+    }
+    /**
+     * List Stores
+     * 
+     * Lists all stores configured under a specific dataset.
+     * 
+     * @param {apiDszListStoresReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListStoresResp>>}
+     */
+    async dszListStores(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/store/list`,
+        opts
+      });
+    }
+    /**
+     * Delete Token
+     * 
+     * Deletes (revokes) a specific token (e.g. ingestion or recsys token) associated with a dataset.
+     * 
+     * @param {apiDszDeleteTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDeleteTokenResp>>}
+     */
+    async dszDeleteToken(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "DELETE",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/token/delete`,
+        query: req.query,
+        opts
+      });
+    }
+    /**
+     * Get Model Signed URLs
+     * 
+     * Generates presigned URLs for accessing model files in the specified dataset.
+     * 
+     * @param {apiDszModelGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszModelGetResp>>}
+     */
+    async dszModelGet(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/model/dataset/${encodeURIComponent(String(req.params.dataset))}/signed-get/${encodeURIComponent(String(req.params.model_name))}`,
+        json: req.payload,
+        opts
+      });
+    }
+    /**
+     * Get Subscription
+     * 
+     * Gets the plan and the status of the Stripe subscription of a dataset product/solution. The payload is empty for contracts without Stripe.
+     * 
+     * @param {apiDszGetSubscriptionReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszGetSubscriptionResp>>}
+     */
+    async dszGetSubscription(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solution/${encodeURIComponent(String(req.params.solution))}/subscription`,
+        opts
+      });
+    }
+    /**
+     * Update Subscription Plan
+     * 
+     * Updates the plan (price) of the Stripe subscription for a dataset product/solution.
+     * 
+     * @param {apiDszUpdateSubscriptionPlanReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszUpdateSubscriptionPlanResp>>}
+     */
+    async dszUpdateSubscriptionPlan(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solution/${encodeURIComponent(String(req.params.solution))}/subscription/plan`,
+        json: req.payload,
+        opts
+      });
+    }
+    /**
+     * Password Reset Email Dispatch
+     * 
+     * Dispatches an out-of-band password reset email via Identity Platform.
+     * 
+     * @param {apiUserAuthPasswordResetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordResetResp>>}
+     */
+    async userAuthPasswordReset(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "servname": "userz",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/password/reset`,
+        json: req.payload,
+        opts
+      });
+    }
+    /**
+     * Email and Password Sign-In
+     * 
+     * Authenticates an email and password against Identity Platform, enforcing confirmed emails and minting a PKCE code.
+     * 
+     * @param {apiUserAuthPasswordSigninReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSigninResp>>}
+     */
+    async userAuthPasswordSignin(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "servname": "userz",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        url: `${this._services.config().servUrls?.["userz"] ?? this._services.config().baseUrl}/api/userz/auth/signin/password`,
+        json: req.payload,
+        opts
+      });
     }
     /**
      * Get Model Metadata
@@ -4283,14 +2070,14 @@
      * 
      * @param {apiTfzModelMetadataReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiTfzModelMetadataResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiTfzModelMetadataResp>>}
      */
     async tfzModelMetadata(req, opts) {
       return this._services.invoker().invokeResult({
         method: "GET",
         path: `api/metadata/${encodeURIComponent(String(req.params.model_name))}/${encodeURIComponent(String(req.params.version))}`,
         opts
-      }, "payload");
+      });
     }
     /**
      * Sample Fraction
@@ -4299,7 +2086,7 @@
      * 
      * @param {apiSampleFractionReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiSampleFractionResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiSampleFractionResp>>}
      */
     async sampleFraction(req, opts) {
       return this._services.invoker().invokeResult({
@@ -4309,7 +2096,7 @@
         headers: req.headers,
         json: req.payload,
         opts
-      }, "payload");
+      });
     }
     /**
      * Get Dataset Table File
@@ -4318,40 +2105,84 @@
      * 
      * @param {apiDszTableGetReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszTableGetResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszTableGetResp>>}
      */
     async dszTableGet(req, opts) {
       opts = opts || {};
       opts.labels = {
-        "injectable_auth": "dataset",
+        "token_type": "dataset",
         ...opts.labels || {}
       };
       return this._services.invoker().invokeResult({
         method: "GET",
         path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/table-file/{path...}`,
         opts
-      }, "body");
+      });
     }
     /**
-     * List Ingestion Tokens
+     * Load Table File as JSON
      * 
-     * Lists all active data ingestion tokens for a specific dataset.
+     * Load a table file from the datalake as JSON and return it.
      * 
-     * @param {apiDszListIngestionTokensReq} req
+     * @param {apiDszResultRelevanceFashionCatalogReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../errors.js").I6Result<apiDszListIngestionTokensResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszResultRelevanceFashionCatalogResp>>}
      */
-    async dszListIngestionTokens(req, opts) {
+    async dszResultRelevanceFashionCatalog(req, opts) {
       opts = opts || {};
       opts.labels = {
-        "injectable_auth": "dataset",
+        "token_type": "dataset",
         ...opts.labels || {}
       };
       return this._services.invoker().invokeResult({
         method: "GET",
-        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/ingestiontoken/list`,
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/results/relevance-fashion-catalog`,
+        query: req.query,
         opts
-      }, "payload");
+      });
+    }
+    /**
+     * List Recsys Tokens
+     * 
+     * Lists all active recommendation system tokens for a specific dataset.
+     * 
+     * @param {apiDszListRecsysTokensReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListRecsysTokensResp>>}
+     */
+    async dszListRecsysTokens(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "GET",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/recsystoken/list`,
+        opts
+      });
+    }
+    /**
+     * Update Payment Auto Renew
+     * 
+     * Turns auto renew on or off for the Stripe subscription of a dataset product/solution.
+     * 
+     * @param {apiDszUpdatePaymentAutoRenewReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszUpdatePaymentAutoRenewResp>>}
+     */
+    async dszUpdatePaymentAutoRenew(req, opts) {
+      opts = opts || {};
+      opts.labels = {
+        "token_type": "dataset",
+        ...opts.labels || {}
+      };
+      return this._services.invoker().invokeResult({
+        method: "POST",
+        path: `api/ds/dataset/${encodeURIComponent(String(req.params.dataset))}/solution/${encodeURIComponent(String(req.params.solution))}/payment/autorenew`,
+        json: req.payload,
+        opts
+      });
     }
   };
   var SdkFuncs = class {
@@ -4361,26 +2192,6 @@
      */
     constructor(services) {
       this._services = services;
-    }
-    /**
-     * Get Attached Revenue
-     * 
-     * Gets the revenue attached to recommendations for a store and period.
-     * 
-     * @param {sdkFuncProductRelevanceFashionDashAttachedRevenueReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>}
-     */
-    async productRelevanceFashionDashAttachedRevenueV1(req, opts) {
-      const dash = this._services.dash();
-      const ret = await dash.query({
-        dataset: req.input.dataset,
-        dashName: "product-relevance-fashion-dash-attached-revenue",
-        params: req.input,
-        partitions: { "version": "v1", ...req.partitions },
-        serviceOpts: opts
-      });
-      return ret;
     }
     /**
      * List Showcase Categories
@@ -4516,11 +2327,60 @@
       });
       return ret;
     }
+    /**
+     * Get Attached Revenue
+     * 
+     * Gets the revenue attached to recommendations for a store and period.
+     * 
+     * @param {sdkFuncProductRelevanceFashionDashAttachedRevenueReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashAttachedRevenueOutput>}
+     */
+    async productRelevanceFashionDashAttachedRevenueV1(req, opts) {
+      const dash = this._services.dash();
+      const ret = await dash.query({
+        dataset: req.input.dataset,
+        dashName: "product-relevance-fashion-dash-attached-revenue",
+        params: req.input,
+        partitions: { "version": "v1", ...req.partitions },
+        serviceOpts: opts
+      });
+      return ret;
+    }
   };
 
   // src/internal/fs/fs.js
   var base = "i6/fs";
-  var readText = async (dir, fileName) => (await (await dir.getFileHandle(fileName)).getFile()).text();
+  var getDirIfExists = async (parent, name) => {
+    try {
+      return await parent.getDirectoryHandle(name);
+    } catch (e) {
+      if (e.name === "NotFoundError") return null;
+      throw e;
+    }
+  };
+  var getFileIfExists = async (parent, name) => {
+    try {
+      return await parent.getFileHandle(name);
+    } catch (e) {
+      if (e.name === "NotFoundError") return null;
+      throw e;
+    }
+  };
+  var readTextIfExists = async (dir, fileName) => {
+    const fileHandle = await getFileIfExists(dir, fileName);
+    if (!fileHandle) return null;
+    return (await fileHandle.getFile()).text();
+  };
+  var removeEntryIfExists = async (dir, name, opts) => {
+    try {
+      await dir.removeEntry(name, opts);
+      return true;
+    } catch (e) {
+      if (e.name === "NotFoundError") return false;
+      throw e;
+    }
+  };
   var writeFile = async (dir, fileName, data) => {
     const writable = await (await dir.getFileHandle(fileName, { create: true })).createWritable();
     await writable.write(data);
@@ -4530,6 +2390,14 @@
     let dir = await navigator.storage.getDirectory();
     for (const segment of base.split("/")) {
       dir = await dir.getDirectoryHandle(segment);
+    }
+    return dir;
+  };
+  var baseDirIfExists = async () => {
+    let dir = await navigator.storage.getDirectory();
+    for (const segment of base.split("/")) {
+      dir = await getDirIfExists(dir, segment);
+      if (!dir) return null;
     }
     return dir;
   };
@@ -4543,36 +2411,33 @@
      */
     async cleanFile(opts) {
       if (!opts || !opts.name) throw new TypeError("fs: opts.name is required");
-      try {
-        const parent = await baseDir();
-        const dir = await parent.getDirectoryHandle(opts.name);
-        const released = await readText(dir, "version.txt").then((v) => "v" + v, () => null);
-        for await (const [entryName, entry] of dir.entries()) {
-          if (released && entry.kind === "directory" && entryName < released) {
-            await dir.removeEntry(entryName, { recursive: true });
-          }
+      const parent = await baseDirIfExists();
+      if (!parent) return;
+      const dir = await getDirIfExists(parent, opts.name);
+      if (!dir) return;
+      const versionText = await readTextIfExists(dir, "version.txt");
+      const released = versionText ? "v" + versionText : null;
+      for await (const [entryName, entry] of dir.entries()) {
+        if (released && entry.kind === "directory" && entryName < released) {
+          await removeEntryIfExists(dir, entryName, { recursive: true });
         }
-        for await (const _ of dir.entries()) return;
-        await parent.removeEntry(opts.name);
-      } catch (e) {
-        if (e.name !== "NotFoundError") throw e;
       }
+      for await (const _ of dir.entries()) return;
+      await removeEntryIfExists(parent, opts.name);
     }
     /**
      * Cleans all files, see cleanFile.
      * @returns {Promise<void>}
      */
     async clean() {
-      try {
-        const names = [];
-        for await (const [entryName, entry] of (await baseDir()).entries()) {
-          if (entry.kind === "directory") names.push(entryName);
-        }
-        for (const name of names) {
-          await this.cleanFile({ name });
-        }
-      } catch (e) {
-        if (e.name !== "NotFoundError") throw e;
+      const parent = await baseDirIfExists();
+      if (!parent) return;
+      const names = [];
+      for await (const [entryName, entry] of parent.entries()) {
+        if (entry.kind === "directory") names.push(entryName);
+      }
+      for (const name of names) {
+        await this.cleanFile({ name });
       }
     }
     /**
@@ -4584,19 +2449,20 @@
      */
     async get(opts) {
       if (!opts || !opts.name) throw new TypeError("fs: opts.name is required");
-      try {
-        const dir = await (await baseDir()).getDirectoryHandle(opts.name);
-        const version = opts.version || await readText(dir, "version.txt");
-        const versionDir = await dir.getDirectoryHandle("v" + version);
-        return {
-          name: opts.name,
-          version,
-          etag: await readText(versionDir, "etag.txt")
-        };
-      } catch (e) {
-        if (e.name === "NotFoundError") return null;
-        throw e;
-      }
+      const baseHandle = await baseDirIfExists();
+      if (!baseHandle) return null;
+      const dir = await getDirIfExists(baseHandle, opts.name);
+      if (!dir) return null;
+      const version = opts.version || await readTextIfExists(dir, "version.txt");
+      if (!version) return null;
+      const versionDir = await getDirIfExists(dir, "v" + version);
+      if (!versionDir) return null;
+      const etag = await readTextIfExists(versionDir, "etag.txt");
+      return {
+        name: opts.name,
+        version,
+        etag
+      };
     }
     /**
      * Creates a new version, unless the latest version already has this etag.
@@ -4618,8 +2484,11 @@
       for await (const [entryName, entry] of dir.entries()) {
         if (entry.kind === "directory" && entryName.startsWith("v") && (!latest || entryName > latest)) latest = entryName;
       }
-      if (latest && await readText(await dir.getDirectoryHandle(latest), "etag.txt").catch(() => null) === opts.etag) {
-        return { name: opts.name, version: latest.substring(1), etag: opts.etag };
+      if (latest) {
+        const latestDir = await getDirIfExists(dir, latest);
+        if (latestDir && await readTextIfExists(latestDir, "etag.txt") === opts.etag) {
+          return { name: opts.name, version: latest.substring(1), etag: opts.etag };
+        }
       }
       if (opts.data === void 0) throw new TypeError("fs: opts.data is required to create a new version");
       const version = (/* @__PURE__ */ new Date()).toISOString();
@@ -4683,15 +2552,14 @@
     async discard(opts) {
       if (!opts || !opts.name) throw new TypeError("fs: opts.name is required");
       if (!opts.version) throw new TypeError("fs: opts.version is required");
-      try {
-        const dir = await (await baseDir()).getDirectoryHandle(opts.name);
-        if (await readText(dir, "version.txt").catch(() => null) === opts.version) {
-          throw new Error(`fs: version ${opts.version} of ${opts.name} is the released one`);
-        }
-        await dir.removeEntry("v" + opts.version, { recursive: true });
-      } catch (e) {
-        if (e.name !== "NotFoundError") throw e;
+      const baseHandle = await baseDirIfExists();
+      if (!baseHandle) return;
+      const dir = await getDirIfExists(baseHandle, opts.name);
+      if (!dir) return;
+      if (await readTextIfExists(dir, "version.txt") === opts.version) {
+        throw new Error(`fs: version ${opts.version} of ${opts.name} is the released one`);
       }
+      await removeEntryIfExists(dir, "v" + opts.version, { recursive: true });
     }
   };
   var fs = new FS();
@@ -4735,8 +2603,7 @@
         success = true;
       } finally {
         if (!success) {
-          await fs.discard(ref).catch(() => {
-          });
+          await fs.discard(ref);
         }
       }
       return fs.release(ref);
@@ -4758,34 +2625,43 @@
     return !!partitions && typeof partitions === "object" && !Array.isArray(partitions) && Object.values(partitions).every((v) => typeof v === "string");
   }
   async function downloadFile(name, url) {
-    try {
-      const ref = await downloader.update({ name, url });
-      debug(`${name} is ready`, ref);
-      return ref;
-    } catch (cause) {
-      throw new I6Error(`could not get ${url}: ${cause.message}`, { code: "asset", status: cause.status, cause });
-    }
+    const ref = await downloader.update({ name, url });
+    debug(`${name} is ready`, ref);
+    return ref;
   }
 
   // src/internal/sqlitez/sqlitez.js
   var SQLJS_VERSION = "1.14.2";
   var SQLJS_WASM_URL = `https://cdn.jsdelivr.net/npm/sql.js@${SQLJS_VERSION}/dist/`;
   var SQLITE_HEADER = "SQLite format 3\0";
-  var sqlJs = null;
+  var sqlJsPromise = null;
   function loadSqlJs() {
-    sqlJs ??= Promise.resolve().then(() => __toESM(require_sql_wasm_browser(), 1)).then((m) => (m.default || m)({ locateFile: (file) => SQLJS_WASM_URL + file }));
-    return sqlJs;
+    if (sqlJsPromise) return sqlJsPromise;
+    sqlJsPromise = (async () => {
+      if (typeof window !== "undefined" && typeof window.initSqlJs === "function") {
+        return window.initSqlJs({ locateFile: (file) => `${SQLJS_WASM_URL}${file}` });
+      }
+      await new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = `${SQLJS_WASM_URL}sql-wasm.js`;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error(`could not load ${script.src}`));
+        document.head.appendChild(script);
+      });
+      return window.initSqlJs({ locateFile: (file) => `${SQLJS_WASM_URL}${file}` });
+    })();
+    return sqlJsPromise;
   }
   var SqliteConn = class {
     /**
-     * Use `sqlitez.open`, not this constructor.
-     * @param {Object} db - The sql.js database.
+     * @param {Object} db - The sql.js Database instance.
      */
     constructor(db) {
       this.db = db;
     }
     /**
-     * Closes the connection, freeing the database. Closing twice is fine.
+     * Closes the connection and frees its memory. Calling it more than once does nothing.
+     * After `close`, every other method throws.
      * @returns {Promise<void>}
      */
     async close() {
@@ -4800,7 +2676,6 @@
      * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query (never concatenate them).
      * @returns {Promise<SqliteRow[]>} The rows (empty array when none), each one an object by column name.
      * @throws {TypeError} If opts.query is missing.
-     * @throws {I6Error} With code "query" if the connection is closed or sqlite rejects the query.
      */
     async query(opts) {
       if (!opts || !opts.query) throw new TypeError("sqlitez: opts.query is required");
@@ -4816,8 +2691,6 @@
           rows.push(stmt.getAsObject());
         }
         return rows;
-      } catch (cause) {
-        throw new I6Error(`sqlitez: query failed: ${cause.message}`, { code: "query", cause });
       } finally {
         if (stmt) stmt.free();
       }
@@ -4829,16 +2702,11 @@
      * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query.
      * @returns {Promise<void>}
      * @throws {TypeError} If opts.query is missing.
-     * @throws {I6Error} With code "query" if the connection is closed or sqlite rejects the statement.
      */
     async update(opts) {
       if (!opts || !opts.query) throw new TypeError("sqlitez: opts.query is required");
       const db = this.#alive();
-      try {
-        db.run(opts.query, opts.params);
-      } catch (cause) {
-        throw new I6Error(`sqlitez: update failed: ${cause.message}`, { code: "query", cause });
-      }
+      db.run(opts.query, opts.params);
     }
     /**
      * Runs a query stored in the `namedqueries` table of the sqlite (columns `name` and `query`).
@@ -4847,13 +2715,12 @@
      * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the stored query.
      * @returns {Promise<SqliteRow[]>} The rows of the stored query, like `query`.
      * @throws {TypeError} If opts.name is missing.
-     * @throws {I6Error} With code "query" if the connection is closed, there is no such table or named query, or the query fails.
      */
     async namedQuery(opts) {
       if (!opts || !opts.name) throw new TypeError("sqlitez: opts.name is required");
       const found = await this.query({ query: "SELECT query FROM namedqueries WHERE name = ?", params: [opts.name] });
       if (found.length === 0) {
-        throw new I6Error(`sqlitez: no named query "${opts.name}"`, { code: "query" });
+        throw new Error(`sqlitez: no named query "${opts.name}"`);
       }
       return this.query({ query: String(found[0].query), params: opts.params });
     }
@@ -4868,17 +2735,12 @@
      * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
      * @returns {Promise<*>} The parsed `ret` of the first row, or null if there is no row or `ret` is null.
      * @throws {TypeError} If opts.name is missing or opts.params is not an array.
-     * @throws {I6Error} With code "query" if `namedQuery` fails, the rows have no `ret` column, or `ret` is not valid JSON.
      */
     async namedJsonQuery(opts) {
       if (!opts || !opts.name) throw new TypeError("sqlitez: opts.name is required");
       const ret = await this.namedStringQuery(opts);
       if (ret === null) return null;
-      try {
-        return JSON.parse(ret);
-      } catch (cause) {
-        throw new I6Error(`sqlitez: "ret" of named query "${opts.name}" is not valid JSON: ${cause.message}`, { code: "query", cause });
-      }
+      return JSON.parse(ret);
     }
     /**
      * Like `namedJsonQuery` (same JSON params bound as `?1`, `?2`, ...), but the `ret` column is returned as is,
@@ -4888,7 +2750,6 @@
      * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
      * @returns {Promise<string|null>} The `ret` of the first row as a string, or null if there is no row or `ret` is null.
      * @throws {TypeError} If opts.name is missing or opts.params is not an array.
-     * @throws {I6Error} With code "query" if `namedQuery` fails or the rows have no `ret` column.
      */
     async namedStringQuery(opts) {
       if (!opts || !opts.name) throw new TypeError("sqlitez: opts.name is required");
@@ -4896,17 +2757,16 @@
       const rows = await this.namedQuery({ name: opts.name, params: (opts.params ?? []).map((value) => JSON.stringify(value ?? null)) });
       if (rows.length === 0) return null;
       if (!("ret" in rows[0])) {
-        throw new I6Error(`sqlitez: named query "${opts.name}" returned no "ret" column`, { code: "query" });
+        throw new Error(`sqlitez: named query "${opts.name}" returned no "ret" column`);
       }
       if (rows[0].ret === null) return null;
       return String(rows[0].ret);
     }
     /**
      * @returns {Object} The sql.js database.
-     * @throws {I6Error} With code "query" if the connection is closed.
      */
     #alive() {
-      if (!this.db) throw new I6Error("sqlitez: the connection is closed", { code: "query" });
+      if (!this.db) throw new Error("sqlitez: the connection is closed");
       return this.db;
     }
   };
@@ -4917,23 +2777,17 @@
      * @param {string} opts.path - required, OPFS path of the file (what `fs.resolve` returns for a downloaded file).
      * @returns {Promise<SqliteConn>} The connection. The caller must `close()` it.
      * @throws {TypeError} If opts.path is missing.
-     * @throws {I6Error} With code "asset" if the file cannot be read or is not a sqlite file.
      */
     async open(opts) {
       if (!opts || !opts.path) throw new TypeError("sqlitez: opts.path is required");
-      let bytes;
-      try {
-        const segments = opts.path.split("/");
-        const fileName = segments.pop();
-        let dir = await navigator.storage.getDirectory();
-        for (const segment of segments) dir = await dir.getDirectoryHandle(segment);
-        const file = await (await dir.getFileHandle(fileName)).getFile();
-        bytes = new Uint8Array(await file.arrayBuffer());
-      } catch (cause) {
-        throw new I6Error(`sqlitez: could not read ${opts.path}: ${cause.message}`, { code: "asset", cause });
-      }
+      const segments = opts.path.split("/");
+      const fileName = segments.pop();
+      let dir = await navigator.storage.getDirectory();
+      for (const segment of segments) dir = await dir.getDirectoryHandle(segment);
+      const file = await (await dir.getFileHandle(fileName)).getFile();
+      const bytes = new Uint8Array(await file.arrayBuffer());
       if (new TextDecoder().decode(bytes.subarray(0, 16)) !== SQLITE_HEADER) {
-        throw new I6Error(`sqlitez: ${opts.path} is not a sqlite file`, { code: "asset" });
+        throw new Error(`sqlitez: ${opts.path} is not a sqlite file`);
       }
       const SQL = await loadSqlJs();
       return new SqliteConn(new SQL.Database(bytes));
@@ -4946,8 +2800,8 @@
   var LITERT_WASM_URL = `https://cdn.jsdelivr.net/npm/@litertjs/core@${LITERT_VERSION}/wasm/`;
 
   // src/infer/infer.js
-  var DEFAULT_LIMIT = 20;
   var FILES = { sqlite: "sqlite.bin", tflite: "tflite.bin" };
+  var DEFAULT_LIMIT = 20;
   var debug2 = debugLogger("infer");
   var Infer = class {
     /**
@@ -4958,19 +2812,16 @@
       this._services = services;
     }
     /**
-     * Runs the model for the given params and returns what the output query gives.
+     * Runs the model in the browser and returns its recommendation result.
      * @param {InferOptions} opts - Inference options.
-     * @returns {Promise<*>} The `ret` of the named query `model-${modelName}-output`, plus a generated `rec_id` (uuid). Sends the `recraw` event with that id.
-     * @throws {I6Error} With code "invalid_argument" if opts is malformed, has no `sessionId` and `userId` or the model inputs do not fit the model,
-     *   "asset" if a download fails, "model" if loading or running the model fails, "query" if the sqlite fails.
+     * @returns {Promise<*>} The results of the model.
      */
     async run(opts) {
       validate(opts);
+      const startedAt = performance.now();
       const { modelName, params, sessionId, userId } = opts;
       const ids = { sessionId, userId };
       const queryName = (kind) => `model-${modelName}-${kind}`;
-      const startedAt = performance.now();
-      debug2("run start", { modelName, dataset: opts.dataset, partitions: opts.partitions, limit: opts.limit ?? DEFAULT_LIMIT, params });
       const urls = await this._assetUrls(opts);
       debug2("1/4 model files located", { sqlite: withoutQuery(urls.sqlite), tflite: withoutQuery(urls.tflite) });
       const cacheName = (kind) => `infer-${modelName}-${partitionsKey(opts.partitions)}-${kind}`;
@@ -4984,13 +2835,14 @@
           conn.namedStringQuery({ name: queryName("input"), params: [params] })
           // loadModel({ ref: tfliteRef, wasmUrl: opts.litertWasm }),
         ]);
-        if (!inputs) throw new I6Error(`infer: ${queryName("input")} returned no model inputs`, { code: "query" });
+        if (!inputs) throw new Error(`infer: ${queryName("input")} returned no model inputs`);
         debug2("2/4 input query", queryName("input"), "| bound as ?1:", params, "| returned (model inputs):", preview(inputs));
         debug2("3/4 calling the model on the server", { model_name: modelName, version: opts.partitions.version, model_partitions: opts.partitions });
         const modelStartedAt = performance.now();
         const outputs = await this.callModel(inputs, opts);
-        debug2("3/4 model answered", { ms: Math.round(performance.now() - modelStartedAt), ok: outputs?.ok, status: outputs?.status, error: outputs?.error, outputs: preview(outputs?.payload?.outputs) });
-        let modelOutputsAndLimit = [JSON.parse(outputs.payload.outputs), opts.limit ?? DEFAULT_LIMIT];
+        const data = outputs.parse();
+        debug2("3/4 model answered", { ms: Math.round(performance.now() - modelStartedAt), ok: outputs?.ok, status: outputs?.status, error: outputs?.error, outputs: preview(data?.outputs) });
+        let modelOutputsAndLimit = [JSON.parse(data.outputs), opts.limit ?? DEFAULT_LIMIT];
         debug2("4/4 output query", queryName("output"), "| bound as ?1 (model outputs) and ?2 (limit):", preview(modelOutputsAndLimit));
         const result = await conn.namedJsonQuery({ name: queryName("output"), params: modelOutputsAndLimit });
         debug2("output query returned (after namedJsonQuery)", result);
@@ -5022,28 +2874,26 @@
      * Asks `selectResults` which of the recommended skus are shown and sends their sku ids as the `recshow` event.
      * @param {SelectResultsOptions} opts - Select options.
      * @returns {Promise<*>} What `selectResults` returned, as is (the default sets the `rating` of each sku; see `defaultSelectResults`).
-     * @throws {I6Error} With code "invalid_argument" if `selectResults` is not a function, `recId` is missing, `opts` has no `sessionId` and
-     *   `userId`, or `selectResults` returned an item with no `sku_id` or a sku not in the results; "event" if an event is not accepted.
      */
     async selectResults(opts) {
       const selectResults = opts?.selectResults ?? defaultSelectResults;
       if (typeof selectResults !== "function") {
-        throw new I6Error("infer: opts.selectResults must be a function", { code: "invalid_argument" });
+        throw new TypeError("infer: opts.selectResults must be a function");
       }
       const { req, results, recId, sessionId, userId } = opts;
-      if (!recId) throw new I6Error("infer: opts.recId is required", { code: "invalid_argument" });
+      if (!recId) throw new TypeError("infer: opts.recId is required");
       if (!sessionId || !userId) {
-        throw new I6Error("infer: opts needs sessionId and userId", { code: "invalid_argument" });
+        throw new TypeError("infer: opts needs sessionId and userId");
       }
       const ids = { sessionId, userId };
       const selected = await selectResults(req, results);
       if (!Array.isArray(selected?.results)) {
-        throw new I6Error("infer: selectResults must return { results: [...] }", { code: "invalid_argument" });
+        throw new TypeError("infer: selectResults must return { results: [...] }");
       }
       const shown = {
         skus: selected.results.map((item, i) => {
           const skuId = item?.sku_id;
-          if (!skuId) throw new I6Error(`infer: selectResults returned an item with no sku_id at results[${i}]`, { code: "invalid_argument" });
+          if (!skuId) throw new TypeError(`infer: selectResults returned an item with no sku_id at results[${i}]`);
           return { sku_id: skuId };
         })
       };
@@ -5061,7 +2911,6 @@
      * @param {"recraw"|"recshow"} kind - Which event.
      * @param {*} payload - What the event carries, any JSON.
      * @returns {Promise<void>}
-     * @throws {I6Error} With code "event" if the event is not accepted.
      */
     async #sendRecEvent(opts, ids, recId, kind, payload) {
       await this._services.apis().ingestzEventRelevanceFashionEvent({
@@ -5082,11 +2931,10 @@
       }, opts.serviceOpts);
     }
     /**
-     * Finds where the model files are: the signed URLs of the model API, unless opts has both URLs (tests).
+     * Finds where the two model files are: the signed URLs of the model API, unless opts has them (tests).
      * @private
      * @param {InferOptions} opts - Inference options.
      * @returns {Promise<{sqlite: string, tflite: string}>} Download URLs of the files.
-     * @throws {I6Error} With code "asset" if the API gave no URL for a file.
      */
     async _assetUrls(opts) {
       if (opts.sqliteUrl) return { sqlite: opts.sqliteUrl, tflite: opts.tfliteUrl };
@@ -5095,10 +2943,11 @@
         params: { dataset, model_name: modelName },
         payload: { model_version: opts.partitions.version, model_partitions: partitions }
       }, opts.serviceOpts);
-      const byName = Object.fromEntries((resp.payload?.urls ?? []).map((file) => [file.name, file.url]));
+      const data = resp.parse();
+      const byName = Object.fromEntries((data?.urls ?? []).map((file) => [file.name, file.url]));
       const missing = Object.values(FILES).find((name) => !byName[name]);
       if (missing) {
-        throw new I6Error(`infer: the model api gave no "${missing}" file: ${resp.error?.message ?? JSON.stringify(Object.keys(byName))}`, { code: "asset", status: resp.error?.status, cause: resp.error });
+        throw new Error(`infer: the model api gave no "${missing}" file: ${resp.error?.message ?? JSON.stringify(Object.keys(byName))}`);
       }
       return { sqlite: byName[FILES.sqlite], tflite: byName[FILES.tflite] };
     }
@@ -5113,17 +2962,17 @@
   }
   function validate(opts) {
     for (const key of ["modelName", "dataset", "sessionId", "userId"]) {
-      if (!opts || !opts[key]) throw new I6Error(`infer: opts.${key} is required`, { code: "invalid_argument" });
+      if (!opts || !opts[key]) throw new TypeError(`infer: opts.${key} is required`);
     }
     if (!isPartitions(opts.partitions)) {
-      throw new I6Error("infer: opts.partitions must be an object of string values", { code: "invalid_argument" });
+      throw new TypeError("infer: opts.partitions must be an object of string values");
     }
-    if (opts.params === void 0) throw new I6Error("infer: opts.params is required", { code: "invalid_argument" });
+    if (opts.params === void 0) throw new TypeError("infer: opts.params is required");
     if (opts.limit !== void 0 && !(Number.isInteger(opts.limit) && opts.limit > 0)) {
-      throw new I6Error("infer: opts.limit must be a positive integer", { code: "invalid_argument" });
+      throw new TypeError("infer: opts.limit must be a positive integer");
     }
     if (!opts.sqliteUrl !== !opts.tfliteUrl) {
-      throw new I6Error("infer: opts.sqliteUrl and opts.tfliteUrl go together", { code: "invalid_argument" });
+      throw new TypeError("infer: opts.sqliteUrl and opts.tfliteUrl go together");
     }
   }
   async function defaultSelectResults(req, results) {
@@ -5158,8 +3007,6 @@
      * Downloads the dash sqlite (cached by etag), runs the named query `dash-${dashName}` with `params` and returns its result.
      * @param {DashOptions} opts - Dash options.
      * @returns {Promise<*>} The `ret` of the named query.
-     * @throws {I6Error} With code "invalid_argument" if opts is malformed, "asset" if the download fails,
-     *   "query" if the sqlite fails.
      */
     async query(opts) {
       validate2(opts);
@@ -5180,7 +3027,6 @@
      * @private
      * @param {DashOptions} opts - Dash options.
      * @returns {Promise<string>} Download URL of the sqlite.
-     * @throws {I6Error} With code "asset" if the API gave no URL.
      */
     async _sqliteUrl(opts) {
       if (opts.sqliteUrl) return opts.sqliteUrl;
@@ -5195,17 +3041,19 @@
           ]
         }
       }, opts.serviceOpts);
-      const url = resp.payload?.urls?.[0]?.url;
-      if (!url) throw new I6Error(`dash: the api gave no "${SQLITE_FILE}" file: ${resp.error?.message ?? "empty answer"}`, { code: "asset", status: resp.error?.status, cause: resp.error });
+      if (!resp.ok) throw new Error(`dash: the api gave no "${SQLITE_FILE}" file: ${resp.error?.message ?? "empty answer"}`);
+      const payload = resp.parse();
+      const url = payload?.urls?.[0]?.url;
+      if (!url) throw new Error(`dash: the api gave no "${SQLITE_FILE}" file: empty answer`);
       return url;
     }
   };
   function validate2(opts) {
     for (const key of ["dashName", "dataset"]) {
-      if (!opts || !opts[key]) throw new I6Error(`dash: opts.${key} is required`, { code: "invalid_argument" });
+      if (!opts || !opts[key]) throw new TypeError(`dash: opts.${key} is required`);
     }
     if (!isPartitions(opts.partitions)) {
-      throw new I6Error("dash: opts.partitions must be an object of string values", { code: "invalid_argument" });
+      throw new TypeError("dash: opts.partitions must be an object of string values");
     }
   }
 
@@ -5438,7 +3286,7 @@
       this._service.bind(evt, fn);
     }
   };
-  I6Sdk.I6Error = I6Error;
   window.I6Sdk = I6Sdk;
+  I6Sdk.Resp = Resp;
 })();
 //# sourceMappingURL=i6sdk-web.js.map

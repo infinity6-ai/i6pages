@@ -1,4 +1,34 @@
 const base = "i6/fs";
+const getDirIfExists = async (parent, name) => {
+  try {
+    return await parent.getDirectoryHandle(name);
+  } catch (e) {
+    if (e.name === "NotFoundError") return null;
+    throw e;
+  }
+};
+const getFileIfExists = async (parent, name) => {
+  try {
+    return await parent.getFileHandle(name);
+  } catch (e) {
+    if (e.name === "NotFoundError") return null;
+    throw e;
+  }
+};
+const readTextIfExists = async (dir, fileName) => {
+  const fileHandle = await getFileIfExists(dir, fileName);
+  if (!fileHandle) return null;
+  return (await fileHandle.getFile()).text();
+};
+const removeEntryIfExists = async (dir, name, opts) => {
+  try {
+    await dir.removeEntry(name, opts);
+    return true;
+  } catch (e) {
+    if (e.name === "NotFoundError") return false;
+    throw e;
+  }
+};
 const readText = async (dir, fileName) => (await (await dir.getFileHandle(fileName)).getFile()).text();
 const writeFile = async (dir, fileName, data) => {
   const writable = await (await dir.getFileHandle(fileName, { create: true })).createWritable();
@@ -12,6 +42,14 @@ const baseDir = async () => {
   }
   return dir;
 };
+const baseDirIfExists = async () => {
+  let dir = await navigator.storage.getDirectory();
+  for (const segment of base.split("/")) {
+    dir = await getDirIfExists(dir, segment);
+    if (!dir) return null;
+  }
+  return dir;
+};
 class FS {
   /**
    * Removes the versions older than version.txt, and the whole file if it is left empty.
@@ -22,36 +60,33 @@ class FS {
    */
   async cleanFile(opts) {
     if (!opts || !opts.name) throw new TypeError("fs: opts.name is required");
-    try {
-      const parent = await baseDir();
-      const dir = await parent.getDirectoryHandle(opts.name);
-      const released = await readText(dir, "version.txt").then((v) => "v" + v, () => null);
-      for await (const [entryName, entry] of dir.entries()) {
-        if (released && entry.kind === "directory" && entryName < released) {
-          await dir.removeEntry(entryName, { recursive: true });
-        }
+    const parent = await baseDirIfExists();
+    if (!parent) return;
+    const dir = await getDirIfExists(parent, opts.name);
+    if (!dir) return;
+    const versionText = await readTextIfExists(dir, "version.txt");
+    const released = versionText ? "v" + versionText : null;
+    for await (const [entryName, entry] of dir.entries()) {
+      if (released && entry.kind === "directory" && entryName < released) {
+        await removeEntryIfExists(dir, entryName, { recursive: true });
       }
-      for await (const _ of dir.entries()) return;
-      await parent.removeEntry(opts.name);
-    } catch (e) {
-      if (e.name !== "NotFoundError") throw e;
     }
+    for await (const _ of dir.entries()) return;
+    await removeEntryIfExists(parent, opts.name);
   }
   /**
    * Cleans all files, see cleanFile.
    * @returns {Promise<void>}
    */
   async clean() {
-    try {
-      const names = [];
-      for await (const [entryName, entry] of (await baseDir()).entries()) {
-        if (entry.kind === "directory") names.push(entryName);
-      }
-      for (const name of names) {
-        await this.cleanFile({ name });
-      }
-    } catch (e) {
-      if (e.name !== "NotFoundError") throw e;
+    const parent = await baseDirIfExists();
+    if (!parent) return;
+    const names = [];
+    for await (const [entryName, entry] of parent.entries()) {
+      if (entry.kind === "directory") names.push(entryName);
+    }
+    for (const name of names) {
+      await this.cleanFile({ name });
     }
   }
   /**
@@ -63,19 +98,20 @@ class FS {
    */
   async get(opts) {
     if (!opts || !opts.name) throw new TypeError("fs: opts.name is required");
-    try {
-      const dir = await (await baseDir()).getDirectoryHandle(opts.name);
-      const version = opts.version || await readText(dir, "version.txt");
-      const versionDir = await dir.getDirectoryHandle("v" + version);
-      return {
-        name: opts.name,
-        version,
-        etag: await readText(versionDir, "etag.txt")
-      };
-    } catch (e) {
-      if (e.name === "NotFoundError") return null;
-      throw e;
-    }
+    const baseHandle = await baseDirIfExists();
+    if (!baseHandle) return null;
+    const dir = await getDirIfExists(baseHandle, opts.name);
+    if (!dir) return null;
+    const version = opts.version || await readTextIfExists(dir, "version.txt");
+    if (!version) return null;
+    const versionDir = await getDirIfExists(dir, "v" + version);
+    if (!versionDir) return null;
+    const etag = await readTextIfExists(versionDir, "etag.txt");
+    return {
+      name: opts.name,
+      version,
+      etag
+    };
   }
   /**
    * Creates a new version, unless the latest version already has this etag.
@@ -97,8 +133,11 @@ class FS {
     for await (const [entryName, entry] of dir.entries()) {
       if (entry.kind === "directory" && entryName.startsWith("v") && (!latest || entryName > latest)) latest = entryName;
     }
-    if (latest && await readText(await dir.getDirectoryHandle(latest), "etag.txt").catch(() => null) === opts.etag) {
-      return { name: opts.name, version: latest.substring(1), etag: opts.etag };
+    if (latest) {
+      const latestDir = await getDirIfExists(dir, latest);
+      if (latestDir && await readTextIfExists(latestDir, "etag.txt") === opts.etag) {
+        return { name: opts.name, version: latest.substring(1), etag: opts.etag };
+      }
     }
     if (opts.data === void 0) throw new TypeError("fs: opts.data is required to create a new version");
     const version = (/* @__PURE__ */ new Date()).toISOString();
@@ -162,15 +201,14 @@ class FS {
   async discard(opts) {
     if (!opts || !opts.name) throw new TypeError("fs: opts.name is required");
     if (!opts.version) throw new TypeError("fs: opts.version is required");
-    try {
-      const dir = await (await baseDir()).getDirectoryHandle(opts.name);
-      if (await readText(dir, "version.txt").catch(() => null) === opts.version) {
-        throw new Error(`fs: version ${opts.version} of ${opts.name} is the released one`);
-      }
-      await dir.removeEntry("v" + opts.version, { recursive: true });
-    } catch (e) {
-      if (e.name !== "NotFoundError") throw e;
+    const baseHandle = await baseDirIfExists();
+    if (!baseHandle) return;
+    const dir = await getDirIfExists(baseHandle, opts.name);
+    if (!dir) return;
+    if (await readTextIfExists(dir, "version.txt") === opts.version) {
+      throw new Error(`fs: version ${opts.version} of ${opts.name} is the released one`);
     }
+    await removeEntryIfExists(dir, "v" + opts.version, { recursive: true });
   }
 }
 const fs = new FS();

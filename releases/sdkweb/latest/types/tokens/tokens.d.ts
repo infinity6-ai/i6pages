@@ -132,7 +132,7 @@ declare class Tokens {
      */
     setUserToken(token: UserToken): void;
     /**
-     * Retrieves the raw stored user access token JWT string without checking expiration or refreshing.
+     * Retrieves the current user access token directly from storage without expiration checks or refresh attempts.
      * Use {@link Tokens#getValidAccessToken} when fresh/valid credentials are required.
      *
      * @returns {string|undefined} The signed EdDSA user access token JWT,
@@ -140,12 +140,10 @@ declare class Tokens {
      */
     getAccessToken(): string | undefined;
     /**
-     * Clears all stored authentication and authorization tokens from storage.
-     * Removes both the user token (`'i6_user_user_token'`) and all cached dataset
-     * access tokens (`'i6_dataset_access_tokens'`).
+     * Clears stored user token credentials from storage.
      * @returns {void}
      */
-    clearTokens(): void;
+    clearUserToken(): void;
     /**
      * Exchanges an authorization code and PKCE code verifier for user token credentials
      * via `POST /api/userz/auth/exchange`, and persists them in localStorage.
@@ -171,9 +169,10 @@ declare class Tokens {
     /**
      * Refreshes the user access token using the stored user refresh token via `POST /api/userz/auth/refresh`.
      * Enforces token family rotation by storing the newly rotated refresh token and fresh access token.
-     * Deduplicates concurrent in-flight refresh requests to prevent token reuse conflicts.
+     * If session renewal is revoked or family reuse is detected, wipes the stored user session.
+     * Concurrent refresh calls are deduplicated using an in-flight promise cache.
      *
-     * @returns {Promise<UserToken|null>} The refreshed token credentials, or null if refresh failed / token revoked.
+     * @returns {Promise<UserToken|null>} The newly refreshed user token credentials or null if renewal failed.
      */
     refresh(): Promise<UserToken | null>;
     /**
@@ -247,5 +246,12 @@ declare class Tokens {
      * @returns {Promise<string|null>} The active dataset access token string, or null if unauthorized/error.
      */
     getValidDatasetAccessToken(dataset: string, skewSeconds?: number): Promise<string | null>;
+    /**
+     * Clears all session credentials (both user and dataset tokens) from storage.
+     * Effectively resets client authentication state.
+     *
+     * @returns {void}
+     */
+    clearTokens(): void;
 }
 export { Tokens };
