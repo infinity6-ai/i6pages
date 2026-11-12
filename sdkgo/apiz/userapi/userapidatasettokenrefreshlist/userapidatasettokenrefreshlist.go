@@ -5,13 +5,14 @@ import (
 	"github.com/infinity6-ai/gox/schemaz/schemaz"
 	"go.code.infinity6.ai/sdkgo/sdkgo/dsz/lakedsz"
 	"go.code.infinity6.ai/sdkgo/sdkgo/dsz/solution"
+	"go.code.infinity6.ai/sdkgo/sdkgo/grants"
 )
 
 type RefreshTokenSummary struct {
 	Jti        string            `json:"jti"`
 	Dataset    lakedsz.Dataset   `json:"dataset"`
 	Solution   solution.Solution `json:"solution"`
-	Grants     uint8             `json:"grants"`
+	Grants     grants.Grant      `json:"grants"`
 	Labels     map[string]string `json:"labels,omitempty"`
 	CreatedBy  string            `json:"created_by"`
 	CreatedAt  int64             `json:"created_at"`

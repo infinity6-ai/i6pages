@@ -1,4 +1,4 @@
-package token
+package grants
 
 import (
 	"fmt"
@@ -11,37 +11,48 @@ import (
 type Grant uint8
 
 const (
-	// GrantSystem grants internal platform orchestration permissions.
-	GrantSystem Grant = 1 << 0 // 1 (0x01)
+	// System grants internal platform orchestration permissions.
+	System Grant = 1 << 0 // 1 (0x01)
 
-	// GrantAdmin grants permission to manage grants, solutions, and credentials.
-	GrantAdmin Grant = 1 << 1 // 2 (0x02)
+	// Admin grants permission to manage grants, solutions, and credentials.
+	Admin Grant = 1 << 1 // 2 (0x02)
 
-	// GrantWrite grants permission to ingest, mutate, and update data and pipelines.
-	GrantWrite Grant = 1 << 2 // 4 (0x04)
+	// Write grants permission to ingest, mutate, and update data and pipelines.
+	Write Grant = 1 << 2 // 4 (0x04)
 
-	// GrantRead grants permission to query, inspect, and export data.
-	GrantRead Grant = 1 << 3 // 8 (0x08)
+	// Read grants permission to query, inspect, and export data.
+	Read Grant = 1 << 3 // 8 (0x08)
+
+	// Backward-compatible explicit aliases:
+	GrantSystem = System
+	GrantAdmin  = Admin
+	GrantWrite  = Write
+	GrantRead   = Read
 )
 
-// GrantInfo describes a grant for catalogs, UI checkboxes, and documentation.
-type GrantInfo struct {
+// Info describes a grant for catalogs, UI checkboxes, and documentation.
+type Info struct {
 	Id          Grant  `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
 
 // Catalog lists all registered grants, their bitmask IDs, and human descriptions.
-var Catalog = []GrantInfo{
-	{Id: GrantSystem, Name: "system", Description: "Internal platform orchestration permissions."},
-	{Id: GrantAdmin, Name: "admin", Description: "Manage dataset grants, solutions, and credentials."},
-	{Id: GrantWrite, Name: "write", Description: "Ingest, mutate, and update data and pipelines."},
-	{Id: GrantRead, Name: "read", Description: "Query, inspect, and export data."},
+var Catalog = []Info{
+	{Id: System, Name: "system", Description: "Internal platform orchestration permissions."},
+	{Id: Admin, Name: "admin", Description: "Manage dataset grants, solutions, and credentials."},
+	{Id: Write, Name: "write", Description: "Ingest, mutate, and update data and pipelines."},
+	{Id: Read, Name: "read", Description: "Query, inspect, and export data."},
 }
 
-// AllGrants returns a bitmask containing all registered grants combined.
+// All returns a bitmask containing all registered grants combined.
+func All() Grant {
+	return System | Admin | Write | Read
+}
+
+// AllGrants is an alias for All.
 func AllGrants() Grant {
-	return GrantSystem | GrantAdmin | GrantWrite | GrantRead
+	return All()
 }
 
 // Parse parses a string representation into a Grant (e.g. "read", "write,admin", or "12").
@@ -61,13 +72,13 @@ func Parse(s string) (Grant, error) {
 	for _, part := range parts {
 		switch strings.TrimSpace(strings.ToLower(part)) {
 		case "system", "sys":
-			res |= GrantSystem
+			res |= System
 		case "admin", "adm":
-			res |= GrantAdmin
+			res |= Admin
 		case "write", "wr":
-			res |= GrantWrite
+			res |= Write
 		case "read", "rd":
-			res |= GrantRead
+			res |= Read
 		default:
 			return 0, fmt.Errorf("invalid grant name: %q", part)
 		}
@@ -78,16 +89,16 @@ func Parse(s string) (Grant, error) {
 // Format returns a human-readable pipe-delimited string (e.g. "admin|write|read").
 func (g Grant) Format() string {
 	var parts []string
-	if g&GrantSystem != 0 {
+	if g&System != 0 {
 		parts = append(parts, "system")
 	}
-	if g&GrantAdmin != 0 {
+	if g&Admin != 0 {
 		parts = append(parts, "admin")
 	}
-	if g&GrantWrite != 0 {
+	if g&Write != 0 {
 		parts = append(parts, "write")
 	}
-	if g&GrantRead != 0 {
+	if g&Read != 0 {
 		parts = append(parts, "read")
 	}
 	if len(parts) == 0 {

@@ -5,12 +5,13 @@ import (
 	"github.com/infinity6-ai/gox/schemaz/schemaz"
 	"go.code.infinity6.ai/sdkgo/sdkgo/dsz/lakedsz"
 	"go.code.infinity6.ai/sdkgo/sdkgo/dsz/solution"
+	"go.code.infinity6.ai/sdkgo/sdkgo/grants"
 )
 
 type Req struct {
 	Dataset    lakedsz.Dataset   `json:"dataset"`
 	Solution   solution.Solution `json:"solution"`
-	Grants     uint8             `json:"grants,omitempty"` // Optional: If omitted or 0, defaults to caller's registered grants on the dataset. Limited to registered grants.
+	Grants     grants.Grant      `json:"grants,omitempty"` // Optional: If omitted or 0, defaults to caller's registered grants on the dataset. Limited to registered grants.
 	Labels     map[string]string `json:"labels,omitempty"`
 	ExpSeconds int64             `json:"exp_seconds,omitempty"`
 	Annotation string            `json:"annotation,omitempty"`
@@ -22,7 +23,7 @@ type Resp struct {
 	Dataset    lakedsz.Dataset   `json:"dataset"`
 	PrivKey    string            `json:"priv_key"` // Base64URL-encoded Ed25519 private key (returned once only)
 	Solution   solution.Solution `json:"solution"`
-	Grants     uint8             `json:"grants"`
+	Grants     grants.Grant      `json:"grants"`
 	Labels     map[string]string `json:"labels,omitempty"`
 	ExpiresAt  int64             `json:"expires_at"`
 	Annotation string            `json:"annotation,omitempty"`

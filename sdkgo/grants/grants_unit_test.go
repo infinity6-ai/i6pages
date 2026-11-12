@@ -1,4 +1,4 @@
-package token
+package grants
 
 import (
 	"testing"
@@ -7,21 +7,27 @@ import (
 )
 
 func TestUnitGrantConstantsAndCatalog(t *testing.T) {
-	require.Equal(t, Grant(1), GrantSystem)
-	require.Equal(t, Grant(2), GrantAdmin)
-	require.Equal(t, Grant(4), GrantWrite)
-	require.Equal(t, Grant(8), GrantRead)
+	require.Equal(t, Grant(1), System)
+	require.Equal(t, Grant(2), Admin)
+	require.Equal(t, Grant(4), Write)
+	require.Equal(t, Grant(8), Read)
+
+	require.Equal(t, System, GrantSystem)
+	require.Equal(t, Admin, GrantAdmin)
+	require.Equal(t, Write, GrantWrite)
+	require.Equal(t, Read, GrantRead)
 
 	require.Len(t, Catalog, 4)
 	require.Equal(t, "system", Catalog[0].Name)
-	require.Equal(t, GrantSystem, Catalog[0].Id)
+	require.Equal(t, System, Catalog[0].Id)
 	require.Equal(t, "admin", Catalog[1].Name)
-	require.Equal(t, GrantAdmin, Catalog[1].Id)
+	require.Equal(t, Admin, Catalog[1].Id)
 	require.Equal(t, "write", Catalog[2].Name)
-	require.Equal(t, GrantWrite, Catalog[2].Id)
+	require.Equal(t, Write, Catalog[2].Id)
 	require.Equal(t, "read", Catalog[3].Name)
-	require.Equal(t, GrantRead, Catalog[3].Id)
+	require.Equal(t, Read, Catalog[3].Id)
 
+	require.Equal(t, Grant(15), All())
 	require.Equal(t, Grant(15), AllGrants())
 }
 
@@ -47,21 +53,21 @@ func TestUnitGrantParse(t *testing.T) {
 	t.Run("Single name parse", func(t *testing.T) {
 		check(t, testScenario{
 			input: "read",
-			want:  GrantRead,
+			want:  Read,
 		})
 	})
 
 	t.Run("Multiple comma-separated names parse", func(t *testing.T) {
 		check(t, testScenario{
 			input: "read,write,admin",
-			want:  GrantRead | GrantWrite | GrantAdmin,
+			want:  Read | Write | Admin,
 		})
 	})
 
 	t.Run("Short aliases parse", func(t *testing.T) {
 		check(t, testScenario{
 			input: "rd,wr,adm,sys",
-			want:  GrantRead | GrantWrite | GrantAdmin | GrantSystem,
+			want:  Read | Write | Admin | System,
 		})
 	})
 
@@ -108,21 +114,21 @@ func TestUnitGrantFormat(t *testing.T) {
 
 	t.Run("Single grant formats correctly", func(t *testing.T) {
 		check(t, testScenario{
-			grant: GrantRead,
+			grant: Read,
 			want:  "read",
 		})
 	})
 
 	t.Run("Combined grants format with pipe separator", func(t *testing.T) {
 		check(t, testScenario{
-			grant: GrantAdmin | GrantWrite | GrantRead,
+			grant: Admin | Write | Read,
 			want:  "admin|write|read",
 		})
 	})
 
 	t.Run("All grants format correctly", func(t *testing.T) {
 		check(t, testScenario{
-			grant: AllGrants(),
+			grant: All(),
 			want:  "system|admin|write|read",
 		})
 	})
@@ -146,8 +152,8 @@ func TestUnitGrantBitmaskOperations(t *testing.T) {
 
 	t.Run("Has exact grant", func(t *testing.T) {
 		check(t, testScenario{
-			current:  GrantRead | GrantWrite,
-			required: []Grant{GrantRead},
+			current:  Read | Write,
+			required: []Grant{Read},
 			hasWant:  true,
 			anyWant:  true,
 		})
@@ -155,8 +161,8 @@ func TestUnitGrantBitmaskOperations(t *testing.T) {
 
 	t.Run("Has multiple grants simultaneously", func(t *testing.T) {
 		check(t, testScenario{
-			current:  GrantAdmin | GrantWrite | GrantRead,
-			required: []Grant{GrantWrite, GrantRead},
+			current:  Admin | Write | Read,
+			required: []Grant{Write, Read},
 			hasWant:  true,
 			anyWant:  true,
 		})
@@ -164,8 +170,8 @@ func TestUnitGrantBitmaskOperations(t *testing.T) {
 
 	t.Run("Missing one of required grants", func(t *testing.T) {
 		check(t, testScenario{
-			current:  GrantRead,
-			required: []Grant{GrantRead, GrantWrite},
+			current:  Read,
+			required: []Grant{Read, Write},
 			hasWant:  false,
 			anyWant:  true,
 		})
@@ -173,16 +179,16 @@ func TestUnitGrantBitmaskOperations(t *testing.T) {
 
 	t.Run("Missing all required grants", func(t *testing.T) {
 		check(t, testScenario{
-			current:  GrantRead,
-			required: []Grant{GrantAdmin, GrantWrite},
+			current:  Read,
+			required: []Grant{Admin, Write},
 			hasWant:  false,
 			anyWant:  false,
 		})
 	})
 
 	t.Run("Join grants helper combines properly", func(t *testing.T) {
-		joined := Join(GrantRead, GrantWrite, GrantAdmin)
-		require.Equal(t, GrantRead|GrantWrite|GrantAdmin, joined)
-		require.Equal(t, joined, JoinGrants(GrantRead, GrantWrite, GrantAdmin))
+		joined := Join(Read, Write, Admin)
+		require.Equal(t, Read|Write|Admin, joined)
+		require.Equal(t, joined, JoinGrants(Read, Write, Admin))
 	})
 }

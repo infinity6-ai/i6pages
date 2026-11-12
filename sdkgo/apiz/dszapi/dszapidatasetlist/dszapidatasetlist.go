@@ -3,6 +3,7 @@ package dszapidatasetlist
 import (
 	"github.com/infinity6-ai/gox/routez/apiz"
 	"github.com/infinity6-ai/gox/schemaz/schemaz"
+	"go.code.infinity6.ai/sdkgo/sdkgo/grants"
 	"go.code.infinity6.ai/sdkgo/sdkgo/speclabels/speclabeltokentype"
 )
 
@@ -12,9 +13,9 @@ type Solution struct {
 }
 
 type Dataset struct {
-	Id     string   `json:"id"`
-	Name   string   `json:"name"`
-	Grants []string `json:"grants,omitempty"`
+	Id     string       `json:"id"`
+	Name   string       `json:"name"`
+	Grants grants.Grant `json:"grants"`
 }
 
 type DszListDatasetsReq struct {
@@ -98,16 +99,8 @@ func (d *Api) ApiDataRefs() *apiz.DataRefs {
 												Field: func() any { return &(*element).Name },
 											},
 											"grants": {
-												Desc: &schemaz.Desc{Summary: "List of grants or permissions the user has on this dataset."},
-												Array: schemaz.NewArray(schemaz.ArrayOptions[[]string, string]{
-													Slice: func() *[]string { return &(*element).Grants },
-													Get: func(idx int, grant *string) *schemaz.Schema {
-														return &schemaz.Schema{
-															Desc:  &schemaz.Desc{Summary: "Grant/permission value."},
-															Field: func() any { return grant },
-														}
-													},
-												}),
+												Desc:  &schemaz.Desc{Summary: "Compact grant bitmask held by the user on this dataset."},
+												Field: func() any { return &(*element).Grants },
 											},
 										}
 									},
