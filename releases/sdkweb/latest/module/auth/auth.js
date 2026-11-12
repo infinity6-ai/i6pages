@@ -219,7 +219,6 @@ class Auth {
    * @throws {Error} If state mismatch occurs, token exchange fails, or server returns an error.
    */
   async handleCallback() {
-    console.log("[i6sdk] auth.handleCallback called");
     if (typeof window === "undefined") return null;
     const params = new URLSearchParams(window.location.search);
     const checkoutCode = params.get("checkout_code");
@@ -248,17 +247,15 @@ class Auth {
       storage.removeItem(AUTH_STATE_KEY);
     }
     const returnedState = params.get("state");
-    if (storedState || returnedState) {
-      if (!storedState || returnedState !== storedState) {
-        throw new Error("State mismatch / CSRF attempt");
-      }
+    if (!storedState || returnedState !== storedState) {
+      throw new Error("State mismatch / CSRF attempt");
     }
-    let codeVerifier = storage ? storage.getItem(CODE_VERIFIER_KEY) : null;
+    const codeVerifier = storage ? storage.getItem(CODE_VERIFIER_KEY) : null;
     if (storage) {
       storage.removeItem(CODE_VERIFIER_KEY);
     }
     if (!codeVerifier) {
-      codeVerifier = params.get("code_verifier") || "";
+      throw new Error("Missing PKCE code verifier in session storage");
     }
     await this._services.tokens().exchange(code, codeVerifier);
     let callback = params.get("callback");
