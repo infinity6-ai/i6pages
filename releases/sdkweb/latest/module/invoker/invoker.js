@@ -25,6 +25,7 @@ class Invoker {
    * @throws {TypeError} If the network request fails (from fetch).
    */
   async invoke(opts) {
+    console.log("invoke req", { ...opts, headers: opts.headers && Object.fromEntries(new Headers(opts.headers)), labels: opts.opts?.labels });
     opts.url = opts.url || `${this._services.config().baseUrl}/${opts.path}`;
     if (opts.query) {
       const search = new URLSearchParams();
