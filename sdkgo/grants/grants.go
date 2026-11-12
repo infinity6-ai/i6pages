@@ -158,9 +158,7 @@ func (Grant) JSTypedef() (*jstypez.Typedef, *jstypez.Typedefs) {
 			Typ:  "1 | 2 | 4 | 8 | number",
 			GoTyp: "grants.Grant",
 			Summary: "Compact permission bitmask: 1=System, 2=Admin, 4=Write, 8=Read, 15=All. " +
-				"Combine using bitwise OR (|) or bitmapz.join(...). " +
-				"Inspect with bitmapz.containsAll(grant, Grants.Read) or bitmapz.split(grant). " +
-				"Encode/decode with bitmapz.serialize(grant) / bitmapz.deserialize(bytes).",
+				"Combine using bitwise OR (|) or bitmapz.join(...).",
 		},
 	}
 
