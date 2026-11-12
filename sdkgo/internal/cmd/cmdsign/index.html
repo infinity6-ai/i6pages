@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity6 — Request Signing & Binary Wire Protocol</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #162032;
+            --bg-card-hover: #1c2a42;
+            --border: #23354d;
+            --border-highlight: #3b82f6;
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --code-bg: #0d131f;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 32px 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid var(--accent-blue);
+            color: #93c5fd;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 2.4rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ffffff 0%, #93c5fd 50%, #60a5fa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            max-width: 780px;
+            margin: 0 auto 20px;
+        }
+
+        .pills {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        .pill.green {
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #6ee7b7;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 48px 0 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        /* File Links Grid */
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .file-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .file-card:hover {
+            border-color: var(--accent-blue);
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .file-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .file-name {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #60a5fa;
+        }
+
+        .file-tag {
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .tag-core { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .tag-cmd  { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .tag-test { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+        .file-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .file-footer {
+            font-size: 0.8rem;
+            color: #93c5fd;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Diagrams */
+        .diagram-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+            overflow-x: auto;
+        }
+
+        .diagram-heading {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #f3f4f6;
+        }
+
+        .diagram-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        /* Binary Wire Box Diagram */
+        .binary-layout {
+            display: flex;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            min-width: 650px;
+        }
+
+        .binary-cell {
+            padding: 12px 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border-right: 1px solid var(--border);
+        }
+
+        .binary-cell:last-child {
+            border-right: none;
+        }
+
+        .cell-version { flex: 1.2; background: #1e293b; border-top: 3px solid #38bdf8; }
+        .cell-exp     { flex: 1.6; background: #1e2238; border-top: 3px solid #818cf8; }
+        .cell-nonce   { flex: 2.2; background: #231d38; border-top: 3px solid #c084fc; }
+        .cell-pub     { flex: 3.2; background: #162a2b; border-top: 3px solid #2dd4bf; }
+        .cell-sig     { flex: 5.5; background: #2a201c; border-top: 3px solid #fb923c; }
+
+        .cell-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .cell-size {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+        }
+
+        .cell-offset {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Pipeline / Flow Diagram */
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 24px 0;
+            overflow-x: auto;
+            padding: 8px 0;
+        }
+
+        .flow-step {
+            flex: 1;
+            min-width: 170px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .flow-step.highlight {
+            border-color: var(--accent-blue);
+            background: #172554;
+        }
+
+        .step-num {
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 700;
+            line-height: 22px;
+            margin-bottom: 8px;
+        }
+
+        .step-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #f3f4f6;
+            margin-bottom: 4px;
+        }
+
+        .step-text {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+
+        .flow-arrow {
+            color: var(--text-muted);
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        /* Code Block */
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #e5e7eb;
+            margin: 14px 0;
+        }
+
+        .code-annotation {
+            color: #60a5fa;
+            font-weight: 600;
+        }
+
+        .code-comment {
+            color: #9ca3af;
+        }
+
+        footer {
+            margin-top: 60px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            padding-top: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="hero-badge">Pure Go Reference Implementation</div>
+            <h1>Request Signing & Binary Wire Protocol</h1>
+            <p class="subtitle">
+                Cryptographic Proof-of-Possession (Sender-Constrained Tokens) for Infinity6 microservices.
+                Self-contained, standard-library Go reference with zero external crypto dependencies.
+            </p>
+            <div class="pills">
+                <span class="pill green">Zero Dependencies (No cryptz)</span>
+                <span class="pill">Ed25519 Asymmetric PoP</span>
+                <span class="pill">89-Byte / 121-Byte Binary Packing</span>
+                <span class="pill">100% Stateless Microservice Verification</span>
+            </div>
+        </header>
+
+        <!-- File Navigation Grid -->
+        <h2 class="section-title">📂 Package Source Files</h2>
+        <div class="file-grid">
+            <a href="./cmdsign_pure.go" class="file-card">
+                <div>
+                    <div class="file-header">
+                        <span class="file-name">cmdsign_pure.go</span>
+                        <span class="file-tag tag-core">Core Reference</span>
+                    </div>
+                    <p class="file-desc">
+                        100% pure standard library implementation of request signing, canonical string derivation, Ed25519 signatures, and binary packing. Use this as developer documentation.
+                    </p>
+                </div>
+                <div class="file-footer">View pure Go code &rarr;</div>
+            </a>
+
+            <a href="./cmdsign_request.go" class="file-card">
+                <div>
+                    <div class="file-header">
+                        <span class="file-name">cmdsign_request.go</span>
+                        <span class="file-tag tag-cmd">CLI Command</span>
+                    </div>
+                    <p class="file-desc">
+                        Implements <code>sdkgo sign request</code>. Signs HTTP requests for downstream microservices, producing the composite single-header <code>X-I6-Signature: &lt;envelope&gt;.&lt;token&gt;</code>.
+                    </p>
+                </div>
+                <div class="file-footer">View request signer CLI &rarr;</div>
+            </a>
+
+            <a href="./cmdsign_assertion.go" class="file-card">
+                <div>
+                    <div class="file-header">
+                        <span class="file-name">cmdsign_assertion.go</span>
+                        <span class="file-tag tag-cmd">CLI Command</span>
+                    </div>
+                    <p class="file-desc">
+                        Implements <code>sdkgo sign assertion</code>. Signs standalone 121-byte refresh assertions for unattended machine token minting at <code>POST /api/userz/refresh-dataset</code>.
+                    </p>
+                </div>
+                <div class="file-footer">View assertion signer CLI &rarr;</div>
+            </a>
+
+            <a href="./cmdsign_keygen.go" class="file-card">
+                <div>
+                    <div class="file-header">
+                        <span class="file-name">cmdsign_keygen.go</span>
+                        <span class="file-tag tag-cmd">CLI Command</span>
+                    </div>
+                    <p class="file-desc">
+                        Implements <code>sdkgo sign keygen</code>. Generates fresh Ed25519 keypairs for development, displaying Base64URL and Hex public keys (JTI), private keys, and seeds.
+                    </p>
+                </div>
+                <div class="file-footer">View keygen CLI &rarr;</div>
+            </a>
+
+            <a href="./cmdsign.go" class="file-card">
+                <div>
+                    <div class="file-header">
+                        <span class="file-name">cmdsign.go</span>
+                        <span class="file-tag tag-cmd">CLI Root</span>
+                    </div>
+                    <p class="file-desc">
+                        Root Cobra command declaration, help descriptions, and subcommand registration via <code>Prepare(parent *cobra.Command)</code>.
+                    </p>
+                </div>
+                <div class="file-footer">View root command &rarr;</div>
+            </a>
+
+            <a href="./cmdsign_unit_test.go" class="file-card">
+                <div>
+                    <div class="file-header">
+                        <span class="file-name">cmdsign_unit_test.go</span>
+                        <span class="file-tag tag-test">Unit Tests</span>
+                    </div>
+                    <p class="file-desc">
+                        Comprehensive unit tests validating that pure standard-library signatures are byte-for-byte accepted by production <code>reqsign.Verify</code> and <code>reqsign.UnpackAssertion</code>.
+                    </p>
+                </div>
+                <div class="file-footer">View unit tests &rarr;</div>
+            </a>
+        </div>
+
+        <!-- Signing Pipeline Flow -->
+        <h2 class="section-title">🔄 Flow 1: End-to-End Request Signing Pipeline</h2>
+        <div class="diagram-container">
+            <div class="diagram-heading">Downstream Request Signing (Flow 5 — Microservices)</div>
+            <p class="diagram-desc">How a client cryptographically binds an HTTP request to its held dataset access token:</p>
+
+            <div class="flow-diagram">
+                <div class="flow-step">
+                    <div class="step-num">1</div>
+                    <div class="step-title">HTTP Request</div>
+                    <div class="step-text">Method, Path, Sorted Query, Body</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="step-num">2</div>
+                    <div class="step-title">Canonicalization</div>
+                    <div class="step-text">Build 7-Line Canonical UTF-8 String</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step highlight">
+                    <div class="step-num">3</div>
+                    <div class="step-title">Ed25519 Sign</div>
+                    <div class="step-text">Sign over canonical string using Client Private Key</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="step-num">4</div>
+                    <div class="step-title">Pack Binary</div>
+                    <div class="step-text">89-Byte SigEnvelope Base64URL (119 chars)</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="step-num">5</div>
+                    <div class="step-title">Single Wire Header</div>
+                    <div class="step-text"><code>&lt;envelope&gt;.&lt;access_token&gt;</code> (~299 chars)</div>
+                </div>
+            </div>
+
+            <pre><code><span class="code-comment">// The 7-line canonical representation signed by Ed25519:</span>
+<span class="code-annotation">[1] METHOD</span>:             POST
+<span class="code-annotation">[2] PATH</span>:               /api/datasetmanager/dataset/ds1/query
+<span class="code-annotation">[3] CANONICAL QUERY</span>:    limit=100&offset=0
+<span class="code-annotation">[4] BODY SHA-256</span>:       2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae
+<span class="code-annotation">[5] TOKEN SHA-256</span>:      59f5edb150e8343e9cd59f6e177255e030b1a95d55bcdda9840a2866cf98eb8d <span class="code-comment">&larr; Binds specific Access Token</span>
+<span class="code-annotation">[6] EXPIRATION SECONDS</span>: 1794510482
+<span class="code-annotation">[7] NONCE HEX</span>:          b1bd22c0cb962fa920ee354489ad8fd6 <span class="code-comment">&larr; Anti-replay (zeros = time-windowed)</span></code></pre>
+        </div>
+
+        <!-- Binary Layouts -->
+        <h2 class="section-title">📐 Flow 2: Fixed Binary Layouts & Wire Formats</h2>
+        <div class="diagram-container">
+            <div class="diagram-heading">A. 89-Byte Binary Signature Envelope (SigEnvelope)</div>
+            <p class="diagram-desc">Used for requests to downstream services (combined with access token as <code>X-I6-Signature: &lt;envelope&gt;.&lt;token&gt;</code>):</p>
+
+            <div class="binary-layout">
+                <div class="binary-cell cell-version">
+                    <span class="cell-title">Type & Flags</span>
+                    <span class="cell-size">1 Byte (uint8)</span>
+                    <span class="cell-offset">[0:1] 0x02 | 0x80</span>
+                </div>
+                <div class="binary-cell cell-exp">
+                    <span class="cell-title">Exp (Epoch Sec)</span>
+                    <span class="cell-size">8 Bytes (uint64 BE)</span>
+                    <span class="cell-offset">[1:9]</span>
+                </div>
+                <div class="binary-cell cell-nonce">
+                    <span class="cell-title">Nonce Buffer</span>
+                    <span class="cell-size">16 Bytes</span>
+                    <span class="cell-offset">[9:25]</span>
+                </div>
+                <div class="binary-cell cell-sig">
+                    <span class="cell-title">Ed25519 Digital Signature</span>
+                    <span class="cell-size">64 Bytes</span>
+                    <span class="cell-offset">[25:89]</span>
+                </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                &bull; <strong>Wire Encoding:</strong> 89 bytes &times; 4/3 = <strong>119 unpadded Base64URL characters</strong>.<br>
+                &bull; <strong>Token Theft Immunity:</strong> The access token embeds the client's public key; if stolen without the private key, signatures cannot be forged.
+            </p>
+
+            <div style="margin-top: 32px;"></div>
+
+            <div class="diagram-heading">B. 121-Byte Binary Refresh Assertion (RefreshAssertion)</div>
+            <p class="diagram-desc">Used for unattended token renewal at <code>POST /api/userz/refresh-dataset</code> (embeds client public key):</p>
+
+            <div class="binary-layout">
+                <div class="binary-cell cell-version">
+                    <span class="cell-title">Type & Flags</span>
+                    <span class="cell-size">1 Byte (uint8)</span>
+                    <span class="cell-offset">[0:1] 0x03 | 0x80</span>
+                </div>
+                <div class="binary-cell cell-exp">
+                    <span class="cell-title">Exp (Epoch Sec)</span>
+                    <span class="cell-size">8 Bytes (uint64 BE)</span>
+                    <span class="cell-offset">[1:9]</span>
+                </div>
+                <div class="binary-cell cell-nonce">
+                    <span class="cell-title">Nonce Buffer</span>
+                    <span class="cell-size">16 Bytes</span>
+                    <span class="cell-offset">[9:25]</span>
+                </div>
+                <div class="binary-cell cell-pub">
+                    <span class="cell-title">Client Public Key (JTI)</span>
+                    <span class="cell-size">32 Bytes</span>
+                    <span class="cell-offset">[25:57]</span>
+                </div>
+                <div class="binary-cell cell-sig">
+                    <span class="cell-title">Ed25519 Digital Signature</span>
+                    <span class="cell-size">64 Bytes</span>
+                    <span class="cell-offset">[57:121]</span>
+                </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                &bull; <strong>Wire Encoding:</strong> 121 bytes &times; 4/3 = <strong>162 unpadded Base64URL characters</strong>.<br>
+                &bull; <strong>Self-Contained Proof:</strong> Proves ownership of the refresh credential without requiring an existing access token.
+            </p>
+        </div>
+
+        <!-- CLI Quickstart -->
+        <h2 class="section-title">⚡ Command-Line Quickstart</h2>
+        <div class="diagram-container">
+            <div class="diagram-heading">Run Directly via Go CLI</div>
+            <p class="diagram-desc">No build required; run directly from the <code>i6sdk</code> workspace root:</p>
+
+            <pre><code><span class="code-comment"># 1. Generate a test Ed25519 keypair:</span>
+go run ./main.go sign keygen
+
+<span class="code-comment"># 2. Sign an HTTP request to a downstream microservice:</span>
+go run ./main.go sign request \
+  --key @privkey.txt \
+  --url "https://api.infinity6.ai/api/datasetmanager/data?limit=10" \
+  --token "&lt;access_token&gt;"
+
+<span class="code-comment"># 3. Output only the raw header for shell scripting:</span>
+SIG=$(go run ./main.go sign request -k @key.txt -u /api/data -t &lt;token&gt; --quiet)
+curl -H "X-I6-Signature: $SIG" https://api.infinity6.ai/api/data
+
+<span class="code-comment"># 4. Sign a standalone refresh assertion for unattended machine renewal:</span>
+ASSERTION=$(go run ./main.go sign assertion -k @key.txt --quiet)
+curl -X POST https://api.infinity6.ai/api/userz/refresh-dataset \
+  -H "X-I6-Signature: $ASSERTION" \
+  -H "Content-Type: application/json" \
+  -d '{"dataset":"ds-sales"}'</code></pre>
+        </div>
+
+        <footer>
+            Infinity6 Platform Engineering &bull; Pure Go Reference Documentation &bull; <code>cmdsign</code>
+        </footer>
+    </div>
+</body>
+</html>
