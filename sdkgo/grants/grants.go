@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/infinity6-ai/gox/commonz/bitmapz"
+	"go.code.infinity6.ai/sdkgo/genjsz/jstypez"
 )
 
 // Grant represents a compact permission bitmask over datasets and solutions.
@@ -140,4 +141,28 @@ func AnyGrant(current Grant, expected ...Grant) bool {
 // JoinGrants combines multiple grants into a single bitmask (package-level helper).
 func JoinGrants(grants ...Grant) Grant {
 	return bitmapz.Join(grants...)
+}
+
+// JSTypedef implements jstypez.CustomType to generate a typed enum/bitmask in the JS SDK.
+func (Grant) JSTypedef() (*jstypez.Typedef, *jstypez.Typedefs) {
+	ref := &jstypez.Typedef{
+		Head: &jstypez.Tuple{
+			Typ:   "Grant",
+			GoTyp: "grants.Grant",
+		},
+	}
+
+	def := &jstypez.Typedef{
+		Head: &jstypez.Tuple{
+			Name:    "Grant",
+			Typ:     "1 | 2 | 4 | 8 | number",
+			GoTyp:   "grants.Grant",
+			Summary: "Compact permission bitmask: 1=System, 2=Admin, 4=Write, 8=Read",
+		},
+	}
+
+	tdfs := &jstypez.Typedefs{}
+	tdfs.Add(def)
+
+	return ref, tdfs
 }
