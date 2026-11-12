@@ -1,5 +1,6 @@
 import { Services, Apis, SdkFuncs } from "./services/services.js";
 import { Resp } from "./invoker/invoker.js";
+import { bitmapz } from "./internal/bitmapz/bitmapz.js";
 const DEFAULT_CONFIG = {
   baseUrl: "https://decsuite.sandbox.rs.infinity6.ai",
   servUrls: {
@@ -99,6 +100,15 @@ class I6Sdk {
     this._service.bind(evt, fn);
   }
 }
+const Grants = Object.freeze({
+  System: 1,
+  Admin: 2,
+  Write: 4,
+  Read: 8,
+  All: 15
+});
 window.I6Sdk = I6Sdk;
 I6Sdk.Resp = Resp;
-export { I6Sdk, Resp };
+I6Sdk.bitmapz = bitmapz;
+I6Sdk.Grants = Grants;
+export { I6Sdk, Resp, bitmapz, Grants };

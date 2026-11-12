@@ -3,6 +3,7 @@
  */
 import { Apis, SdkFuncs } from "./services/services.js";
 import { Resp } from "./invoker/invoker.js";
+import { bitmapz } from "./internal/bitmapz/bitmapz.js";
 export type I6Storage = {
     /**
      * - Retrieves an item by key.
@@ -131,5 +132,17 @@ declare class I6Sdk {
 }
 declare namespace I6Sdk {
     export { Resp };
+    export { bitmapz };
+    export { Grants };
 }
-export { I6Sdk, Resp };
+/**
+ * Permissions catalog and bitmask constants matching Go's grants package.
+ */
+declare const Grants: Readonly<{
+    System: 1;
+    Admin: 2;
+    Write: 4;
+    Read: 8;
+    All: 15;
+}>;
+export { I6Sdk, Resp, bitmapz, Grants };
