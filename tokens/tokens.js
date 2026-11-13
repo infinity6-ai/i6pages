@@ -230,6 +230,109 @@ export async function signRequest(privKeyStr, method, path, query, bodyBytes, ac
 // --- Local Token Inspection & Diagnostics ---
 
 /**
+ * Parses CLI output (go run . token dataset create-refresh), JSON, or raw Ed25519 private keys.
+ * @param {string} text
+ * @returns {Object|null}
+ */
+export function parseRefreshKeypair(text) {
+    text = (text || "").trim();
+    if (!text) return null;
+
+    let jti = "";
+    let dataset = "";
+    let privKey = "";
+    let annotation = "";
+    let expiresAt = null;
+    let expiresAtStr = "";
+
+    // 1. Check if CLI block output
+    if (/Dataset Refresh Token Created:/i.test(text) || (/JTI:/i.test(text) && /Private Key:/i.test(text))) {
+        const jtiM = text.match(/JTI:\s*([A-Za-z0-9_-]+)/i);
+        const dsM = text.match(/Dataset:\s*([A-Za-z0-9_-]+)/i);
+        const privM = text.match(/Private Key:\s*([A-Za-z0-9_-]+)/i);
+        const annotM = text.match(/Annotation:\s*(.+)/i);
+        const expM = text.match(/Expires At:\s*(.+)/i);
+
+        if (jtiM) jti = jtiM[1].trim();
+        if (dsM) dataset = dsM[1].trim();
+        if (privM) privKey = privM[1].trim();
+        if (annotM) annotation = annotM[1].trim();
+        if (expM) {
+            expiresAtStr = expM[1].trim();
+            const parsed = Date.parse(expiresAtStr);
+            if (!isNaN(parsed)) expiresAt = parsed;
+        }
+    } else if (text.startsWith("{") && text.endsWith("}")) {
+        try {
+            const obj = JSON.parse(text);
+            if (obj.priv_key || obj.private_key || (obj.jti && obj.dataset)) {
+                jti = obj.jti || "";
+                dataset = obj.dataset || "";
+                privKey = obj.priv_key || obj.private_key || "";
+                annotation = obj.annotation || "";
+                if (obj.expires_at) {
+                    if (typeof obj.expires_at === "number") expiresAt = obj.expires_at;
+                    else {
+                        expiresAtStr = String(obj.expires_at);
+                        const parsed = Date.parse(expiresAtStr);
+                        if (!isNaN(parsed)) expiresAt = parsed;
+                    }
+                }
+            }
+        } catch (_) {}
+    } else if (!text.includes(".") && !text.includes(" ") && !text.includes("\n") && (text.length === 86 || text.length === 43)) {
+        privKey = text;
+    }
+
+    if (!privKey && !jti) return null;
+
+    let seedHex = "";
+    let pubKeyHex = "";
+    let derivedJti = "";
+    let keyValid = false;
+
+    if (privKey) {
+        try {
+            const bytes = base64UrlDecodeToBytes(privKey);
+            if (bytes.length === 64) {
+                const seedBytes = bytes.subarray(0, 32);
+                const pubBytes = bytes.subarray(32, 64);
+                seedHex = bytesToHex(seedBytes);
+                pubKeyHex = bytesToHex(pubBytes);
+                derivedJti = base64UrlEncode(pubBytes);
+                keyValid = true;
+                if (!jti) jti = derivedJti;
+            } else if (bytes.length === 32) {
+                seedHex = bytesToHex(bytes);
+                keyValid = true;
+            }
+        } catch (_) {}
+    }
+
+    const isExpired = expiresAt ? Date.now() >= expiresAt : false;
+    const timeRemainingSeconds = expiresAt ? Math.round((expiresAt - Date.now()) / 1000) : null;
+
+    return {
+        kind: "dataset_refresh_keypair",
+        checkable: false,
+        summary: `Dataset Refresh Keypair (${dataset || "machine keypair"}${annotation ? ' - ' + annotation : ''})`,
+        dataset,
+        jti,
+        derivedJti,
+        privKey,
+        seedHex,
+        pubKeyHex,
+        annotation,
+        expiresAt,
+        expiresAtStr: expiresAt ? new Date(expiresAt).toISOString() : expiresAtStr,
+        isExpired,
+        timeRemainingSeconds,
+        keyValid,
+        raw: text
+    };
+}
+
+/**
  * Recursively inspects and describes any i6 token locally without contacting any server.
  * @param {string} rawToken - Any input token string
  * @returns {Object} Described token structure
@@ -238,6 +341,12 @@ export function describeToken(rawToken) {
     const str = (rawToken || "").trim();
     if (!str) {
         return { kind: "empty", checkable: false, summary: "Empty token input" };
+    }
+
+    // Case 0: Dataset Refresh Keypair CLI output, JSON, or raw Ed25519 key
+    const keypair = parseRefreshKeypair(str);
+    if (keypair) {
+        return keypair;
     }
 
     const parts = str.split(".");

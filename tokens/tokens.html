@@ -54,6 +54,7 @@
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                         <button type="button" class="btn btn-secondary btn-outline" id="load-sample-sig">Sample Signature</button>
                         <button type="button" class="btn btn-secondary btn-outline" id="load-sample-jwt">Sample JWT</button>
+                        <button type="button" class="btn btn-secondary btn-outline" id="load-sample-keypair">Sample Refresh Keypair</button>
                         <button type="button" class="btn btn-secondary btn-outline" id="load-sample-assertion">Sample Assertion</button>
                         <button type="button" class="btn btn-secondary btn-outline" id="clear-inspect-input">Clear</button>
                     </div>
@@ -159,6 +160,33 @@
                                 <span class="kv-val" id="local-dataset-pubkey" style="font-family: monospace; font-size: 11px;">-</span>
                             </div>
                         </div>
+
+                        <!-- Dataset Refresh Keypair Details -->
+                        <div class="sub-card" id="local-keypair-card" style="display: none;">
+                            <div class="sub-card-head">
+                                <span class="sub-card-title">Dataset Refresh Keypair (Signing Credentials)</span>
+                                <span class="badge badge-accent">Ed25519</span>
+                            </div>
+                            <div class="kv-list">
+                                <span class="kv-key">Dataset:</span>
+                                <span class="kv-val" id="local-keypair-dataset">-</span>
+                                <span class="kv-key">Public Key (JTI):</span>
+                                <span class="kv-val" id="local-keypair-jti" style="font-family: monospace; font-size: 11px;">-</span>
+                                <span class="kv-key">Public Key (Hex):</span>
+                                <span class="kv-val" id="local-keypair-pubhex" style="font-family: monospace; font-size: 11px;">-</span>
+                                <span class="kv-key">Annotation:</span>
+                                <span class="kv-val" id="local-keypair-annotation">-</span>
+                                <span class="kv-key">Private Key Seed (Hex):</span>
+                                <span class="kv-val" id="local-keypair-seedhex" style="font-family: monospace; font-size: 11px;">-</span>
+                                <span class="kv-key">Key Consistency:</span>
+                                <span class="kv-val" id="local-keypair-consistency">-</span>
+                            </div>
+                            <div style="margin-top: 14px;">
+                                <button type="button" id="btn-use-inspected-keypair" class="btn btn-secondary" style="width: 100%;">
+                                    <span>Load Keypair into Signing Wizard (Step 2) &rarr;</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -167,6 +195,23 @@
                     <div class="card-head">
                         <h2>2. Server Check (<code>/api/userz/token/check</code>)</h2>
                         <span id="server-status-badge" class="badge">Not Checked</span>
+                    </div>
+
+                    <!-- Notice when keypair is inspected -->
+                    <div id="check-keypair-notice" class="sub-card" style="display: none;">
+                        <div class="sub-card-head">
+                            <span class="sub-card-title">Client Identity & Signing Keypair</span>
+                            <span class="badge badge-accent">Refresh Keypair</span>
+                        </div>
+                        <p style="font-size: 13px; color: var(--muted); margin: 0 0 10px;">
+                            This is an Ed25519 client keypair for generating request signatures and minting PoP access tokens. It cannot be passed directly to <code>/api/userz/token/check</code> as an HTTP Bearer or request signature.
+                        </p>
+                        <p style="font-size: 13px; margin: 0 0 12px;">
+                            To verify this keypair, load it into the <strong>Request Signing Wizard</strong> to sign an API request or mint a dataset access token.
+                        </p>
+                        <button type="button" id="btn-notice-open-wizard" class="btn" style="width: 100%;">
+                            <span>Open in Request Signing Wizard &rarr;</span>
+                        </button>
                     </div>
 
                     <!-- Context drawer for Request Signatures -->
@@ -765,7 +810,10 @@
             $('local-jwt-card').style.display = 'none';
             $('local-assertion-card').style.display = 'none';
             $('local-dataset-card').style.display = 'none';
+            $('local-keypair-card').style.display = 'none';
             $('local-expiry-card').style.display = 'none';
+            $('check-keypair-notice').style.display = 'none';
+            $('btn-run-check').style.display = 'inline-flex';
 
             if (desc.kind === 'user_jwt') {
                 kindBadge.textContent = 'User JWT (EdDSA)';
@@ -813,6 +861,32 @@
                 $('local-dataset-id').textContent = desc.dataset || '-';
                 $('local-dataset-pubkey').textContent = desc.clientPubKeyB64 || '(unbound / bearer)';
                 $('check-request-context').style.display = 'none';
+            } else if (desc.kind === 'dataset_refresh_keypair') {
+                kindBadge.textContent = 'Dataset Refresh Keypair';
+                if (desc.expiresAt) {
+                    $('local-expiry-card').style.display = 'block';
+                    renderExpiry(desc.expiresAt, desc.isExpired, desc.timeRemainingSeconds);
+                }
+                $('local-keypair-card').style.display = 'block';
+                $('local-keypair-dataset').textContent = desc.dataset || '(not specified)';
+                $('local-keypair-jti').textContent = desc.jti || '(no public key)';
+                $('local-keypair-pubhex').textContent = desc.pubKeyHex || '-';
+                $('local-keypair-annotation').textContent = desc.annotation || '(none)';
+                $('local-keypair-seedhex').textContent = desc.seedHex || '-';
+                if (desc.derivedJti && desc.jti) {
+                    const match = desc.derivedJti === desc.jti;
+                    $('local-keypair-consistency').innerHTML = match ?
+                        `<span style="color: var(--success); font-weight: 600;">✔ Verified (Private key matches JTI)</span>` :
+                        `<span style="color: var(--err); font-weight: 600;">⚠️ Mismatch: Private key derives ${desc.derivedJti}</span>`;
+                } else if (desc.keyValid) {
+                    $('local-keypair-consistency').innerHTML = `<span style="color: var(--success); font-weight: 600;">✔ Valid Ed25519 Key</span>`;
+                } else {
+                    $('local-keypair-consistency').textContent = '-';
+                }
+
+                $('check-keypair-notice').style.display = 'block';
+                $('check-request-context').style.display = 'none';
+                $('btn-run-check').style.display = 'none';
             } else {
                 kindBadge.textContent = 'Unknown Format';
                 kindBadge.className = 'badge badge-warn';
@@ -926,6 +1000,46 @@
             inspectInput.value = base64UrlEncode(buf);
             updateLocalDescribe();
         });
+
+        $('load-sample-keypair').addEventListener('click', () => {
+            inspectInput.value = `Dataset Refresh Token Created:
+  JTI:         FBJWJtjS3-_5Bak86k2besJdKP6SQneeAhpLfSoyYYQ
+  Dataset:     dectest
+  Private Key: fLWBJV3lhclrne7WBqpjI6rZ0hlPsh5puIIjNTxr7O4UElYm2NLf7_kFqTzqTZt6wl0o_pJCd54CGkt9KjJhhA
+  Annotation:  t3
+  Expires At:  2126-10-20T23:48:54Z`;
+            updateLocalDescribe();
+        });
+
+        function loadInspectedKeypairIntoWizard() {
+            if (!state.inspectData || state.inspectData.kind !== 'dataset_refresh_keypair') return;
+            const d = state.inspectData;
+            if (d.dataset) {
+                state.keypair.dataset = d.dataset;
+                $('wiz-dataset').value = d.dataset;
+                $('wiz-sign-path').value = `/api/ds/dataset/${encodeURIComponent(d.dataset)}/solutions`;
+            }
+            if (d.privKey) {
+                state.keypair.privKey = d.privKey;
+                $('wiz-privkey').value = d.privKey;
+            }
+            if (d.jti) {
+                state.keypair.jti = d.jti;
+                $('wiz-jti').value = d.jti;
+            }
+            checkBoundTokenKeyMatch();
+            updateWizardCanonicalPreview();
+
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector('[data-tab="tab-wizard"]').classList.add('active');
+            $('tab-wizard').classList.add('active');
+            goToStep(2);
+            showToast("Keypair loaded into Signing Wizard!");
+        }
+
+        $('btn-use-inspected-keypair').addEventListener('click', loadInspectedKeypairIntoWizard);
+        $('btn-notice-open-wizard').addEventListener('click', loadInspectedKeypairIntoWizard);
 
         $('clear-inspect-input').addEventListener('click', () => {
             inspectInput.value = '';
