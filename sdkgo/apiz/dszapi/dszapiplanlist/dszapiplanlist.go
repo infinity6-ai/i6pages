@@ -28,6 +28,16 @@ type Plan struct {
 	LicAmount int64
 	// ReqAmount is the price of the request count, in the minor unit of the currency.
 	ReqAmount int64
+	// ReqAmountDecimal is the price of each request above IncludedRequests, in cents with decimal places
+	// (like Stripe unit_amount_decimal), e.g. "0.0294". "0" is explicitly free. Empty is not configured
+	// and the field is omitted from the response.
+	ReqAmountDecimal string
+	// IncludedRequests is the number of requests included per period. Nil with IncludedRequestsUnlimited
+	// false means not informed (the field is omitted from the response).
+	IncludedRequests *int64
+	// IncludedRequestsUnlimited makes included_requests null in the response (unlimited).
+	// A JSON null is not read back, so a Go client sees unlimited as nil, like not informed.
+	IncludedRequestsUnlimited bool
 }
 
 type Resp struct {
@@ -97,8 +107,8 @@ func (d *Api) ApiDataRefs() *apiz.DataRefs {
 							Slice: func() *[]Plan { return &d.Resp.Plans },
 							Get: func(idx int, element *Plan) *schemaz.Schema {
 								return &schemaz.Schema{
-									Object: func(_ bool) map[string]*schemaz.Schema {
-										return map[string]*schemaz.Schema{
+									Object: func(read bool) map[string]*schemaz.Schema {
+										fields := map[string]*schemaz.Schema{
 											"key": {
 												Desc:  &schemaz.Desc{Summary: "Plan key (base of the Stripe lookup keys {key}_lic and {key}_req), used to switch to the plan"},
 												Field: func() any { return &element.Key },
@@ -136,6 +146,25 @@ func (d *Api) ApiDataRefs() *apiz.DataRefs {
 												Field: func() any { return &element.ReqAmount },
 											},
 										}
+										// Omitted when not informed, which differs from null (included_requests) and "0" (req_amount_decimal).
+										if !read || element.ReqAmountDecimal != "" {
+											fields["req_amount_decimal"] = &schemaz.Schema{
+												Desc:  &schemaz.Desc{Summary: "Price of each request above included_requests, in cents with decimal places, as Stripe unit_amount_decimal (like 0.0294). \"0\" means no extra charge; absent means not configured"},
+												Field: func() any { return &element.ReqAmountDecimal },
+											}
+										}
+										if !read || element.IncludedRequestsUnlimited || element.IncludedRequests != nil {
+											fields["included_requests"] = &schemaz.Schema{
+												Desc: &schemaz.Desc{Summary: "Requests included per period of the plan. null means unlimited; absent means not informed"},
+												Field: func() any {
+													if read && element.IncludedRequestsUnlimited {
+														return nil
+													}
+													return &element.IncludedRequests
+												},
+											}
+										}
+										return fields
 									},
 								}
 							},

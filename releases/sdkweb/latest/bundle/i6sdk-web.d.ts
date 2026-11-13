@@ -1,446 +1,682 @@
 /**
- * @fileoverview HTTP client for sending API requests to i6 services.
+ * @fileoverview Authentication client using i6userz PKCE redirect flow.
+ *
+ * Flow Architecture:
+ * 1. Login Initiation: {@link Auth#login} generates an RFC 7636 PKCE code verifier and S256 code
+ *    challenge, persists `code_verifier` in sessionStorage, appends the target application URL (`callback`)
+ *    as a query parameter to `config.userExchangeCallbackUrl`, and redirects the browser to `GET /api/userz/auth`.
+ * 2. Identity Provider Authentication: The user signs in via Google or Email/Password on the i6userz UI.
+ * 3. Authorization Code Redirect: i6userz redirects the browser to the intermediate exchange URL
+ *    (`config.userExchangeCallbackUrl`) with a short-lived authorization `code` appended.
+ * 4. Token Exchange: The exchange callback page invokes {@link Auth#handleCallback}, which retrieves
+ *    the `code_verifier` from sessionStorage, calls the Tokens service to exchange them via `POST /api/userz/auth/exchange`
+ *    for active tokens (access token JWT, refresh token, user ID, expiration), persists them, and redirects the browser
+ *    to the original application URL.
+ * 5. Profile Retrieval: {@link Auth#user} fetches user identity metadata via `GET /api/userz/auth/me`
+ *    using Bearer token authentication.
  */
 export type Services = import("../services/services.js").Services;
-export type Fetcher = (url: string, opts: InvokeOptions) => Promise<Response>;
-export type PrepareRequest = (opts: InvokeOptions) => Promise<void> | void;
-export type ServiceOptions = {
+export type UserToken = import("../tokens/tokens.js").UserToken;
+export type AuthPayload = {
     /**
-     * - Custom fetcher function override.
+     * - Authenticated user unique identifier UUID.
      */
-    fetcher?: Fetcher;
+    user_id: string;
     /**
-     * - Pre-request hook (e.g. for URL signing).
+     * - Redacted email address for display (e.g. "u***@infinity6.ai").
      */
-    prepareRequest?: PrepareRequest;
+    email_redacted?: string;
     /**
-     * - Explicit user bearer token for this request.
+     * - List of linked identity providers (e.g. ["google", "password"]).
      */
-    bearerToken?: string;
+    providers?: string[];
     /**
-     * - Contextual metadata labels.
+     * - Account creation timestamp in epoch milliseconds.
      */
-    labels?: Record<string, string>;
-};
-export type InvokeOptions = {
+    created_at?: number;
     /**
-     * - Full target URL. Overrides baseUrl + path if set.
+     * - User ID (legacy alias for user_id).
      */
-    url?: string;
+    sub?: string;
     /**
-     * - Path appended to baseUrl (e.g. "api/item/create").
+     * - User display name (legacy alias).
      */
-    path?: string;
+    display?: string;
     /**
-     * - HTTP method ("GET", "POST", "PUT", etc.).
+     * - User email address (legacy alias).
      */
-    method?: string;
-    /**
-     * - Query parameters serialized into the URL.
-     */
-    query?: Record<string, any>;
-    /**
-     * - Body data serialized as JSON. Sets "Content-Type: application/json".
-     */
-    json?: any;
-    /**
-     * - Additional HTTP headers.
-     */
-    headers?: HeadersInit;
-    /**
-     * - Advanced service request hooks (fetcher, prepareRequest, etc.).
-     */
-    opts?: ServiceOptions;
-    /**
-     * - Fetch credentials mode.
-     */
-    credentials?: RequestCredentials;
+    email?: string;
 };
 /**
- * Response wrapper holding HTTP transport status and lazy parser.
- * @template T
+ * Authentication client for handling browser redirects, PKCE, and user profile retrieval with i6userz.
+ * Configuration (callbackUrl, userExchangeCallbackUrl, app) is read directly from `i6sdk.config()`.
  */
-declare class Resp<T> {
-    #private;
-    status: number;
-    headers: Headers;
-    ok: boolean;
-    /**
-     * @param {number} status - HTTP status code.
-     * @param {Headers} headers - HTTP response headers.
-     * @param {() => *} parser - Lazy parser function.
-     * @param {string} [text] - Raw response body text.
-     */
-    constructor(status: number, headers: Headers, parser: () => any, text?: string);
-    /**
-     * Raw body text of the response.
-     * @returns {string}
-     */
-    get text(): string;
-    /**
-     * Structured error information when response is not ok.
-     * @returns {{status: number, code: string, message: string, cause: *}|null}
-     */
-    get error(): {
-        status: number;
-        code: string;
-        message: string;
-        cause: any;
-    } | null;
-    /**
-     * Parses and returns the deserialized response value.
-     * Throws an error if deserialization fails or if the response status is not ok.
-     * @returns {T}
-     */
-    parse(): T;
-}
-/**
- * Invoker client for executing HTTP requests against the i6 API.
- */
-declare class Invoker {
+declare class Auth {
     /**
      * @private
      * @type {Services}
      */
     _services;
     /**
-     * Constructs an Invoker instance.
+     * Constructs an Auth client instance.
      * @param {Services} services - The services manager instance.
      */
     constructor(services: Services);
     /**
-     * @param {{tokenTypes: string, url: string}} opts
-     * @return {{token:string, required: boolean}}
+     * Retrieves the base URL for the i6userz authentication service from SDK configuration.
+     * Resolution precedence:
+     * 1. `config.servUrls["userz"]`
+     * 2. `config.userzUrl`
+     * 3. `config.baseUrl`
+     * 4. Empty string fallback
+     * @private
+     * @returns {string} The base URL for userz.
      */
-    resolveToken(opts: {
-        tokenTypes: string;
-        url: string;
-    }): {
-        token: string;
-        required: boolean;
-    };
+    private _getUserzUrl;
     /**
-     * Sends an HTTP request using the Fetch API.
+     * Resolves the session storage adapter for transient auth data (e.g. PKCE code verifier).
+     * Checks SDK configuration for a custom session storage adapter or factory function,
+     * falling back to the browser's global `sessionStorage`.
+     * @private
+     * @returns {import("../index.js").I6Storage|null} The active session storage adapter or null if unavailable.
+     */
+    private _getSessionStorage;
+    /**
+     * Navigates the browser window to a target URL.
+     * @private
+     * @param {string} url - Target URL.
+     * @returns {void}
+     */
+    private _navigate;
+    /**
+     * Redirects the browser location to a callback URL.
+     * @private
+     * @param {string} url - Target redirect URL.
+     * @returns {void}
+     */
+    private _redirect;
+    /**
+     * Validates whether a redirect URL is safe to prevent open redirect vulnerabilities.
+     * A URL is considered safe if:
+     * 1. It is a relative path starting with '/' (but not '//' or '/\\').
+     * 2. It is an absolute URL whose origin matches window.location.origin or configured callback URLs.
+     * @private
+     * @param {string} url - The URL to validate.
+     * @returns {boolean} True if the redirect target is safe, false otherwise.
+     */
+    private _isSafeRedirect;
+    /**
+     * Generates a cryptographically random standard PKCE code verifier (RFC 7636 §4.1).
+     * Uses unreserved URL characters (`[A-Z]`, `[a-z]`, `[0-9]`, `-`, `.`, `_`, `~`).
+     * @private
+     * @param {number} [length=64] - The length of the code verifier (between 43 and 128 characters).
+     * @returns {string} The generated code verifier string.
+     */
+    private _generateCodeVerifier;
+    /**
+     * Generates an RFC 7636 S256 PKCE code challenge from a code verifier.
+     * Computes SHA-256 over the ASCII code verifier and base64url-encodes the digest without padding.
+     * @private
+     * @param {string} verifier - The plaintext code verifier.
+     * @returns {Promise<string>} The base64url-encoded code challenge.
+     * @throws {Error} If Web Crypto API (`crypto.subtle.digest`) is unavailable.
+     */
+    private _generateCodeChallenge;
+    /**
+     * Encodes a byte array as an unpadded base64url string (RFC 4648 §5).
+     * Replaces '+' with '-', '/' with '_', and strips trailing '=' padding.
+     * @private
+     * @param {Uint8Array|ArrayBuffer} bytes - The bytes to encode.
+     * @returns {string} The base64url-encoded string.
+     * @throws {Error} If no base64 encoder (`btoa` or Node.js `Buffer`) is available.
+     */
+    private _base64UrlEncode;
+    /**
+     * Redirects the browser to the i6userz login page (`GET /api/userz/auth`) to initiate the PKCE login flow.
      *
-     * @param {InvokeOptions} opts - Request options including path/URL, query params, and fetch options.
-     * @returns {Promise<Response>} A promise that resolves to the fetch Response.
+     * Validates that `config.userExchangeCallbackUrl` is configured, clears any existing token,
+     * generates a random PKCE `code_verifier` and S256 `code_challenge`, persists the `code_verifier`
+     * in session storage only, and redirects the browser with `app`, `redirect`, and `code_challenge`
+     * query parameters.
+     *
+     * @param {string} [callbackUrl] - The final destination URL to return to after login and token exchange complete.
+     *   Defaults to `window.location.href`.
+     * @returns {Promise<string>} The generated login URL.
+     * @throws {string} If `config.userExchangeCallbackUrl` is not defined in the SDK configuration.
      */
-    invoke(opts: InvokeOptions): Promise<Response>;
+    login(callbackUrl?: string): Promise<string>;
     /**
-     * Resolves with a `Resp` instance holding the HTTP status, headers, and lazy `parse()`.
-     * Network errors bubble up directly as native exceptions.
-     * @template T
-     * @param {InvokeOptions} opts - Same as `invoke`.
-     * @returns {Promise<Resp<T>>}
+     * Processes the authorization code or checkout artifact ticket present in the URL query string,
+     * exchanging it for tokens via the Tokens service, and redirecting to the post-exchange `callback` URL.
+     *
+     * Validates the CSRF `state` parameter against session storage, and retrieves the PKCE `code_verifier`
+     * from session storage. Deletes both from session storage upon processing.
+     *
+     * Note: This method must be called explicitly by the exchange callback page
+     * (configured via `config.userExchangeCallbackUrl`). It is not called automatically by `user()`.
+     *
+     * @returns {Promise<string|null>} The dataset string if an exchange occurred, or null if it was a noop (no auth/checkout code in URL).
+     * @throws {Error} If state mismatch occurs, token exchange fails, or server returns an error.
      */
-    invokeResult<T>(opts: InvokeOptions): Promise<Resp<T>>;
-}
-export { Invoker, Resp };
-/**
- * @fileoverview Main entry point for the i6 Web Legacy SDK.
- */
-import { Apis, SdkFuncs } from "./services/services.js";
-import { Resp } from "./invoker/invoker.js";
-import { bitmapz } from "./internal/bitmapz/bitmapz.js";
-export type I6Storage = {
+    handleCallback(): Promise<string | null>;
     /**
-     * - Retrieves an item by key.
+     * Retrieves the stored user token credentials from the Tokens service.
+     *
+     * @param {boolean} [refreshed] - Optional flag indicating whether to return
+     *   a freshly refreshed token.
+     * @returns {UserToken|null} The stored user token object, or null if no valid session exists.
      */
-    getItem: (key: string) => string | null;
+    getUserToken(refreshed?: boolean): UserToken | null;
     /**
-     * - Stores an item by key and string value.
+     * Retrieves the active user access token JWT string for authorizing API requests.
+     *
+     * @returns {string|undefined} The signed EdDSA user access token JWT,
+     *   or undefined if no user is authenticated.
      */
-    setItem: (key: string, value: string) => void;
+    getAccessToken(): string | undefined;
     /**
-     * - Removes an item by key.
+     * Retrieves a guaranteed-valid user access token JWT string, silently refreshing if expired.
+     *
+     * @param {number} [skewSeconds=30] - Safety margin in seconds before expiration.
+     * @returns {Promise<string|null>} The valid user access token JWT, or null if unauthenticated.
      */
-    removeItem: (key: string) => void;
-};
-export type I6SdkConfig = {
+    getValidAccessToken(skewSeconds?: number): Promise<string | null>;
     /**
-     * - Base URL of the i6 server. Defaults to the sandbox environment.
+     * Refreshes the active user access token using the stored refresh token.
+     *
+     * @returns {Promise<UserToken|null>} The refreshed user token credentials, or null if failed.
      */
-    baseUrl?: string;
+    refresh(): Promise<UserToken | null>;
     /**
-     * - Base URL of the other services, by the `servname` label of the api (e.g. `tfinfer`). An api whose service is not listed uses `baseUrl`.
-     */
-    servUrls?: Record<string, string>;
-    /**
-     * - Direct base URL override for the i6userz authentication service.
-     */
-    userzUrl?: string;
-    /**
-     * - Absolute URL of the application's exchange callback page handling PKCE token exchange.
-     */
-    userExchangeCallbackUrl?: string;
-    /**
-     * - Default application redirect URL after logout.
-     */
-    callbackUrl?: string;
-    /**
-     * - Client application identifier registered in i6userz (e.g. 'default').
-     */
-    app?: string;
-    /**
-     * - Optional storage adapter for persistent token storage. Defaults to global `localStorage` when omitted.
-     */
-    storage?: I6Storage | (() => I6Storage);
-    /**
-     * - Optional alias for persistent storage adapter (defaults to global `localStorage`).
-     */
-    localStorage?: I6Storage | (() => I6Storage);
-    /**
-     * - Optional storage adapter for session-scoped data such as PKCE code verifier. Defaults to global `sessionStorage` when omitted.
-     */
-    sessionStorage?: I6Storage | (() => I6Storage);
-    /**
-     * - Optional alias for session storage adapter.
-     */
-    storageSession?: I6Storage | (() => I6Storage);
-};
-/**
- * Main SDK class providing access to i6 services.
- */
-declare class I6Sdk {
-    /**
-     * @private
-     * @type {Services}
-     */
-    _service;
-    /**
-     * Constructs an instance of the i6 SDK.
-     * @param {I6SdkConfig} [config] - Configuration options for the SDK.
-     */
-    constructor(config?: I6SdkConfig);
-    /**
-     * Returns a copy of the configuration the SDK is running with.
-     * @returns {I6SdkConfig} The current configuration.
-     */
-    config(): I6SdkConfig;
-    /**
-     * Overwrites the given keys of the configuration; the other keys are kept.
-     * Can be called at any time, the next call of the SDK uses the new values.
-     * @param {Partial<I6SdkConfig>} config - The keys to overwrite.
+     * Clears all stored authentication tokens and credentials via the Tokens service,
+     * and clears any pending PKCE code verifier and CSRF state in session storage.
      * @returns {void}
      */
-    setConfig(config: Partial<I6SdkConfig>): void;
+    clearTokens(): void;
     /**
-     * Returns an Ingest service instance.
-     * @returns {import("./ingest/ingest.js").Ingest} An instance of the Ingest client.
+     * Fetches the current authenticated user profile metadata (`GET /api/userz/auth/me`).
+     * Sends a valid user access token in the `Authorization: Bearer <user_access_token>` header,
+     * automatically performing a silent renewal if the access token has expired.
+     * Does not redirect; use {@link Auth#requireUser} to automatically force a login redirect.
+     *
+     * Note: Expects tokens to already be present in storage. Call {@link Auth#handleCallback}
+     * on the exchange page before attempting to fetch the user profile.
+     *
+     * @returns {Promise<AuthPayload|null>} The user profile data, or null if unauthenticated.
+     * @throws {Error} If the network request fails or the userz service returns an error status.
      */
-    ingest(): import("./ingest/ingest.js").Ingest;
+    user(): Promise<AuthPayload | null>;
     /**
-     * Returns an Infer service instance, which runs an i6 model in the browser and returns the result.
-     * @returns {import("./infer/infer.js").Infer} An instance of the Infer client.
+     * Fetches the current user profile, automatically redirecting the browser to the login page
+     * via {@link Auth#login} when the user is unauthenticated.
+     *
+     * @returns {Promise<AuthPayload|null>} The user profile data, or null when redirecting to login.
      */
-    infer(): import("./infer/infer.js").Infer;
+    requireUser(): Promise<AuthPayload | null>;
     /**
-     * Returns a Dash service instance, which queries an i6 dash in the browser and returns the result.
-     * @returns {import("./dash/dash.js").Dash} An instance of the Dash client.
+     * Logs out the current user by revoking the session family server-side via `POST /api/userz/auth/logout`,
+     * clearing stored credentials and session storage, and navigating to `backurl`.
+     *
+     * @param {string} [backurl] - The URL to return to after logging out.
+     *   Defaults to `config.callbackUrl` or the current window URL (`window.location.href`).
+     * @returns {Promise<void>}
      */
-    dash(): import("./dash/dash.js").Dash;
-    /**
-     * Returns an Auth service instance.
-     * @returns {import("./auth/auth.js").Auth} An instance of the Auth client.
-     */
-    auth(): import("./auth/auth.js").Auth;
-    /**
-     * Returns a Tokens service instance.
-     * @returns {import("./tokens/tokens.js").Tokens} An instance of the Tokens client.
-     */
-    tokens(): import("./tokens/tokens.js").Tokens;
-    /**
-     * Returns the Apis service instance, one typed method per i6 server API.
-     * Each call resolves with `{status, ok, payload?, error?}` and does not throw on an HTTP error.
-     * @returns {Apis} An instance of the generated Apis client.
-     */
-    apis(): Apis;
-    /**
-     * Returns the Funcs service instance.
-     * @returns {SdkFuncs} An instance of the SdkFuncs client.
-     */
-    funcs(): SdkFuncs;
-    /**
-     * Registers an event listener on the SDK's internal event dispatcher (an EventTarget).
-     * @param {string} evt - The event type or name to listen for.
-     * @param {EventListenerOrEventListenerObject|Function} fn - The callback function or event listener object invoked when the event occurs.
-     * @returns {void}
-     */
-    bind(evt: string, fn: EventListenerOrEventListenerObject | Function): void;
+    logout(backurl?: string): Promise<void>;
 }
-declare namespace I6Sdk {
-    export { Resp };
-    export { bitmapz };
-    export { Grants };
-}
+export { Auth };
 /**
- * Permissions catalog and bitmask constants matching Go's grants package.
- */
-declare const Grants: Readonly<{
-    System: 1;
-    Admin: 2;
-    Write: 4;
-    Read: 8;
-    All: 15;
-}>;
-export { I6Sdk, Resp, bitmapz, Grants };
-/**
- * @fileoverview Ingest client for uploading files to the ingestion service.
- */
-export type Services = import("../services/services.js").Services;
-export type ServiceOptions = import("../invoker/invoker.js").ServiceOptions;
-export type Partitions = Record<string, string>;
-export type GetUrlParams = {
-    /**
-     * - Dataset name.
-     */
-    dataset: string;
-    /**
-     * - Inbox table name.
-     */
-    table: string;
-    /**
-     * - Values for the table partitions, except the ingest id one.
-     */
-    partitions: Partitions;
-    /**
-     * - Given to the ingestz-get-url API call.
-     */
-    serviceOpts?: ServiceOptions;
-};
-export type UploadProgress = {
-    /**
-     * - Bytes sent so far.
-     */
-    loaded: number;
-    /**
-     * - Total bytes to send (the file size when the browser can't tell).
-     */
-    total: number;
-    /**
-     * - Progress from 0 to 100.
-     */
-    percent: number;
-};
-export type UploadParams = {
-    /**
-     * - Dataset the file is ingested into.
-     */
-    dataset: string;
-    /**
-     * - Inbox table name.
-     */
-    table: string;
-    /**
-     * - Values for the table partitions, except the ingest id one.
-     */
-    partitions: Partitions;
-    /**
-     * - The single file to upload.
-     */
-    file: File;
-    /**
-     * - Called as the file is sent.
-     */
-    onProgress?: (progress: UploadProgress) => void;
-    /**
-     * - Aborts the upload; the promise then rejects with the signal's reason (an AbortError by default).
-     */
-    signal?: AbortSignal;
-    /**
-     * - Content-Type of the PUT. Defaults to the file's own type.
-     */
-    contentType?: string;
-    /**
-     * - Given to the ingestz-get-url API call (the PUT to the signed URL needs none).
-     */
-    serviceOpts?: ServiceOptions;
-};
-export type UploadResult = {
-    /**
-     * - Id the server assigned to this ingest.
-     */
-    ingestId: string;
-};
-/**
- * @typedef {import("../services/services.js").Services} Services
- * @typedef {import("../invoker/invoker.js").ServiceOptions} ServiceOptions
+ * @fileoverview Base64 URL safe encoding utilities.
  */
 /**
- * Key-value mapping representing dataset table partition values, except the ingest ID.
- * @typedef {Record<string, string>} Partitions
+ * Encodes a string or Uint8Array to a Base64 URL safe string.
+ * @param {string|Uint8Array|ArrayBuffer} data
+ * @returns {string}
  */
+export declare function encodeUrlSafe(data: string | Uint8Array | ArrayBuffer): string;
 /**
- * Parameters for requesting a signed upload URL from the ingest service.
- * @typedef {Object} GetUrlParams
- * @property {string} dataset - Dataset name.
- * @property {string} table - Inbox table name.
- * @property {Partitions} partitions - Values for the table partitions, except the ingest id one.
- * @property {ServiceOptions} [serviceOpts] - Given to the ingestz-get-url API call.
+ * Decodes a Base64 URL safe string to a Uint8Array.
+ * @param {string} b64UrlSafe
+ * @returns {Uint8Array}
  */
+export declare function decodeUrlSafeToBytes(b64UrlSafe: string): Uint8Array;
 /**
- * Progress of an upload in flight.
- * @typedef {Object} UploadProgress
- * @property {number} loaded - Bytes sent so far.
- * @property {number} total - Total bytes to send (the file size when the browser can't tell).
- * @property {number} percent - Progress from 0 to 100.
+ * Decodes a Base64 URL safe string to a UTF-8 string.
+ * @param {string} b64UrlSafe
+ * @returns {string}
  */
+export declare function decodeUrlSafe(b64UrlSafe: string): string;
 /**
- * Parameters for uploading a single file to the ingest service.
- * @typedef {Object} UploadParams
- * @property {string} dataset - Dataset the file is ingested into.
- * @property {string} table - Inbox table name.
- * @property {Partitions} partitions - Values for the table partitions, except the ingest id one.
- * @property {File} file - The single file to upload.
- * @property {(progress: UploadProgress) => void} [onProgress] - Called as the file is sent.
- * @property {AbortSignal} [signal] - Aborts the upload; the promise then rejects with the signal's reason (an AbortError by default).
- * @property {string} [contentType] - Content-Type of the PUT. Defaults to the file's own type.
- * @property {ServiceOptions} [serviceOpts] - Given to the ingestz-get-url API call (the PUT to the signed URL needs none).
+ * @fileoverview Sqlite client for the SDK, running sqlite (sql.js, wasm) in the browser.
+ *
+ * Usage: get the file with the downloader, open it by its OPFS path and always close the
+ * connection when done:
+ *
+ *   const ref = await downloader.update({ name, url })
+ *   const conn = await sqlitez.open({ path: await fs.resolve(ref) })
+ *   try {
+ *     const rows = await conn.query({ query: 'SELECT * FROM t WHERE id = ?', params: [1] })
+ *   } finally {
+ *     await conn.close()
+ *   }
+ *
+ * The database lives in memory: `update` changes the memory copy, the file is never written back.
+ * Every method takes a single `opts` object with the real parameters inside it.
  */
+export type SqliteValue = number | string | null | Uint8Array;
+export type SqliteRow = Object<string, SqliteValue>;
 /**
- * Result of a successful upload.
- * @typedef {Object} UploadResult
- * @property {string} ingestId - Id the server assigned to this ingest.
+ * An open in-memory sqlite connection. Obtained from `sqlitez.open`.
  */
-/**
- * Client for handling file uploads to the ingest service.
- */
-declare class Ingest {
+declare class SqliteConn {
     #private;
     /**
      * @private
-     * @type {Services}
+     * @type {Object|null}
      */
-    _services;
+    db;
     /**
-     * Constructs an Ingest client instance.
-     * @param {Services} services - The services manager instance.
+     * @param {Object} db - The sql.js Database instance.
      */
-    constructor(services: Services);
+    constructor(db: Object);
     /**
-     * Asks ingestz for a signed upload URL (ingestz-get-url API) and uploads a single file to it.
-     * @param {UploadParams} params - Upload parameters.
-     * @returns {Promise<UploadResult>} Resolves with the ingest id on a successful upload.
+     * Closes the connection and frees its memory. Calling it more than once does nothing.
+     * After `close`, every other method throws.
+     * @returns {Promise<void>}
      */
-    upload({ dataset, table, partitions, file, onProgress, signal, contentType, serviceOpts }: UploadParams): Promise<UploadResult>;
+    close(): Promise<void>;
     /**
-     * Gets one signed PUT URL from the ingestz-get-url API.
-     * @private
-     * @param {GetUrlParams} params - Parameters for requesting the upload URL.
-     * @returns {Promise<{ingestId: string, url: string}>} The ingest id and the signed PUT URL.
+     * Runs a query and returns its rows.
+     * @param {Object} opts
+     * @param {string} opts.query - required, the SQL; use `?` for values.
+     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query (never concatenate them).
+     * @returns {Promise<SqliteRow[]>} The rows (empty array when none), each one an object by column name.
+     * @throws {TypeError} If opts.query is missing.
      */
-    private #getUrl;
+    query(opts: {
+        query: string;
+        params?: SqliteValue[];
+    }): Promise<SqliteRow[]>;
     /**
-     * Uploads a file to a signed PUT URL using XMLHttpRequest (fetch has no upload progress).
-     * @private
-     * @param {string} signedPutUrl - The signed URL to PUT the file to.
-     * @param {File} file - The file to upload.
-     * @param {Pick<UploadParams, "onProgress"|"signal"|"contentType">} opts
-     * @returns {Promise<void>} Resolves on a successful upload, rejects on network or HTTP error or abort.
+     * Runs a statement that returns no data (INSERT, UPDATE, CREATE, ...). Only the memory copy changes.
+     * @param {Object} opts
+     * @param {string} opts.query - required, the SQL; use `?` for values.
+     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query.
+     * @returns {Promise<void>}
+     * @throws {TypeError} If opts.query is missing.
      */
-    private #put;
+    update(opts: {
+        query: string;
+        params?: SqliteValue[];
+    }): Promise<void>;
+    /**
+     * Runs a query stored in the `namedqueries` table of the sqlite (columns `name` and `query`).
+     * @param {Object} opts
+     * @param {string} opts.name - required, the `name` of the stored query.
+     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the stored query.
+     * @returns {Promise<SqliteRow[]>} The rows of the stored query, like `query`.
+     * @throws {TypeError} If opts.name is missing.
+     */
+    namedQuery(opts: {
+        name: string;
+        params?: SqliteValue[];
+    }): Promise<SqliteRow[]>;
+    /**
+     * Like `namedQuery`, but with JSON in and JSON out: each value of `opts.params`
+     * is bound as a JSON string to the positional `?1`, `?2`, ... of the stored query, in order (read them in SQL with
+     * `json_extract(?1, '$.field')`, `json_each(?2)`, ...). The stored query must return a row with a column `ret`
+     * holding a JSON string. That JSON is parsed and returned.
+     * The stored query must have a placeholder for every value, otherwise sqlite rejects the bind ("column index out of range").
+     * @param {Object} opts
+     * @param {string} opts.name - required, the `name` of the stored query (see `namedQuery`).
+     * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
+     * @returns {Promise<*>} The parsed `ret` of the first row, or null if there is no row or `ret` is null.
+     * @throws {TypeError} If opts.name is missing or opts.params is not an array.
+     */
+    namedJsonQuery(opts: {
+        name: string;
+        params?: Array<any>;
+    }): Promise<any>;
+    /**
+     * Like `namedJsonQuery` (same JSON params bound as `?1`, `?2`, ...), but the `ret` column is returned as is,
+     * without JSON.parse. Use it when the stored query returns plain text (e.g. for models); use `namedJsonQuery` when it returns JSON (e.g. for dash).
+     * @param {Object} opts
+     * @param {string} opts.name - required, the `name` of the stored query (see `namedQuery`).
+     * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
+     * @returns {Promise<string|null>} The `ret` of the first row as a string, or null if there is no row or `ret` is null.
+     * @throws {TypeError} If opts.name is missing or opts.params is not an array.
+     */
+    namedStringQuery(opts: {
+        name: string;
+        params?: Array<any>;
+    }): Promise<string | null>;
 }
-export { Ingest };
+/**
+ * Sqlitez client. Use the `sqlitez` singleton.
+ */
+declare class Sqlitez {
+    /**
+     * Opens a sqlite file of the browser file system into memory.
+     * @param {Object} opts
+     * @param {string} opts.path - required, OPFS path of the file (what `fs.resolve` returns for a downloaded file).
+     * @returns {Promise<SqliteConn>} The connection. The caller must `close()` it.
+     * @throws {TypeError} If opts.path is missing.
+     */
+    open(opts: {
+        path: string;
+    }): Promise<SqliteConn>;
+}
+/** Shared Sqlitez instance. */
+declare const sqlitez: Sqlitez;
+export { sqlitez };
+/**
+ * @fileoverview Gzip compression utilities.
+ */
+/**
+ * Compresses data (string, Uint8Array, or ArrayBuffer) using gzip.
+ * @param {string|Uint8Array|ArrayBuffer} data - The data to compress.
+ * @returns {Promise<Uint8Array>} The gzipped bytes.
+ */
+export declare function gzip(data: string | Uint8Array | ArrayBuffer): Promise<Uint8Array>;
+/**
+ * Decompresses gzipped bytes to a UTF-8 string.
+ * @param {Uint8Array|ArrayBuffer} compressedBytes - The gzipped data.
+ * @returns {Promise<string>} The decompressed string.
+ */
+export declare function gunzipString(compressedBytes: Uint8Array | ArrayBuffer): Promise<string>;
+/**
+ * Decompresses gzipped bytes and returns raw Uint8Array.
+ * @param {Uint8Array|ArrayBuffer} compressedBytes - The gzipped data.
+ * @returns {Promise<Uint8Array>} The decompressed bytes.
+ */
+export declare function gunzip(compressedBytes: Uint8Array | ArrayBuffer): Promise<Uint8Array>;
+/**
+ * Gzips a string and encodes it as a Base64 URL safe string.
+ * @param {string} str - The string to compress and encode.
+ * @returns {Promise<string>} The Base64 URL safe string.
+ */
+export declare function gzipStringToBase64Url(str: string): Promise<string>;
+/**
+ * Decodes a Base64 URL safe string and decompresses it as a UTF-8 string.
+ * @param {string} b64Str - The Base64 URL safe string.
+ * @returns {Promise<string>} The decompressed string.
+ */
+export declare function gunzipStringFromBase64Url(b64Str: string): Promise<string>;
+/**
+ * Gzips a given JSON object or array.
+ * @param {any} obj - The JSON serializable object to compress.
+ * @returns {Promise<Uint8Array>} The gzipped bytes.
+ */
+export declare function gzipJson(obj: any): Promise<Uint8Array>;
+/**
+ * Decompresses a gzipped byte array into a JSON object.
+ * @param {Uint8Array|ArrayBuffer} compressedBytes - The gzipped data.
+ * @returns {Promise<any>} The parsed JSON object.
+ */
+export declare function gunzipJson(compressedBytes: Uint8Array | ArrayBuffer): Promise<any>;
+/**
+ * Gzips a JSON object and encodes it as a Base64 URL safe string.
+ * @param {any} obj - The JSON serializable object.
+ * @returns {Promise<string>} The Base64 URL safe encoded string of the gzipped JSON.
+ */
+export declare function gzipJsonToBase64Url(obj: any): Promise<string>;
+/**
+ * Decodes a Base64 URL safe string, gunzips it, and parses it as JSON.
+ * @param {string} b64Str - The Base64 URL safe string containing gzipped JSON.
+ * @returns {Promise<any>} The parsed JSON object.
+ */
+export declare function gunzipJsonFromBase64Url(b64Str: string): Promise<any>;
+/**
+ * @fileoverview Debug logging of the SDK. Set `window.I6_DEBUG = true` to see it in the console.
+ */
+/**
+ * @param {string} prefix - Printed first, followed by ":" (e.g. "infer").
+ * @returns {(...args: *) => void} A logger that prints only when `window.I6_DEBUG` is true.
+ */
+declare const debugLogger: (prefix: string) => (...args: any) => void;
+export { debugLogger };
+/**
+ * @fileoverview Keeps a remote file cached in the browser's file system (see fs.js),
+ * downloading it only when its etag changes.
+ */
+export type FileRef = import('../fs/fs.js').FileRef;
+/**
+ * Downloads remote files into the versioned file store. Use the `downloader` singleton.
+ */
+declare class Downloader {
+    /**
+     * Downloads the file by name if necessary (checking etag): sends a HEAD request, and
+     * if the etag differs from the released version, streams the body into a new version
+     * and releases it.
+     * @param {Object} opts
+     * @param {string} opts.name - required, name to store the file under (see fs.js)
+     * @param {string} opts.url - required, URL of the file; must answer HEAD with an etag
+     * @returns {Promise<FileRef>} the FileRef of the up-to-date file (basically to get the version)
+     * @throws {TypeError} If name or url is missing.
+     * @throws {Error} If the HEAD or GET request fails, or the HEAD response has no etag.
+     *   When the server answered, the error has `status` (the HTTP status code).
+    */
+    update(opts: {
+        name: string;
+        url: string;
+    }): Promise<FileRef>;
+}
+/** Shared Downloader instance. */
+declare const downloader: Downloader;
+export { downloader };
+/**
+ * @fileoverview Versioned file store on the browser's origin private file system (OPFS).
+ *
+ * Layout under `i6/fs`:
+ *   {name}/version.txt          the released (current) version, if any
+ *   {name}/v{version}/etag.txt  the etag the version was created for
+ *   {name}/v{version}/blob.bin  the content (written by the caller, see `resolve`)
+ *
+ * Versions are ISO timestamps, so they sort in creation order.
+ */
+export type FileRef = {
+    /**
+     * - File name, a single OPFS directory name (e.g. "model").
+     */
+    name: string;
+    /**
+     * - Version id, an ISO timestamp (e.g. "2026-09-29T12:00:00.000Z").
+     */
+    version: string;
+    /**
+     * - Etag of the remote content this version was created for.
+     */
+    etag: string;
+};
+/**
+ * Versioned file store. Use the `fs` singleton.
+ *
+ * A file is created as a new unreleased version, filled, then released to become the
+ * current one; releasing removes the older versions.
+ */
+declare class FS {
+    /**
+     * Removes the versions older than version.txt, and the whole file if it is left empty.
+     * Without version.txt no version is removed.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @returns {Promise<void>}
+     */
+    cleanFile(opts: {
+        name: string;
+    }): Promise<void>;
+    /**
+     * Cleans all files, see cleanFile.
+     * @returns {Promise<void>}
+     */
+    clean(): Promise<void>;
+    /**
+     * Resolves a version of a file.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} [opts.version] - defaults to the content of version.txt
+     * @returns {Promise<FileRef|null>} a new full FileRef, or null if it does not exist.
+     */
+    get(opts: {
+        name: string;
+        version?: string;
+    }): Promise<FileRef | null>;
+    /**
+     * Creates a new version, unless the latest version already has this etag.
+     * The new version is not released.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.etag - required
+     * @param {Blob|BufferSource|string} [opts.data] - content, required when a new version is created
+     * @returns {Promise<FileRef>} a new full FileRef.
+     */
+    create(opts: {
+        name: string;
+        etag: string;
+        data?: Blob | BufferSource | string;
+    }): Promise<FileRef>;
+    /**
+     * Returns the bin file path, full (with base). Does not check that it exists, see get.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.version - required
+     * @returns {Promise<string>} e.g. "i6/fs/{name}/v{version}/blob.bin"
+     */
+    resolve(opts: {
+        name: string;
+        version: string;
+    }): Promise<string>;
+    /**
+     * Reads the content (blob.bin) of a version.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.version - required
+     * @returns {Promise<Uint8Array>} the bytes of the file.
+     * @throws {DOMException} NotFoundError if the version or its blob does not exist.
+     */
+    read(opts: {
+        name: string;
+        version: string;
+    }): Promise<Uint8Array>;
+    /**
+     * Makes a version the current one (version.txt), then cleans the older versions.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.version - required, must exist
+     * @returns {Promise<FileRef>} a new full FileRef of the released version.
+     */
+    release(opts: {
+        name: string;
+        version: string;
+    }): Promise<FileRef>;
+    /**
+     * Removes a version that was never released (e.g. its download failed). Does nothing if it does not exist.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} opts.version - required, must not be the released one
+     * @returns {Promise<void>}
+     */
+    discard(opts: {
+        name: string;
+        version: string;
+    }): Promise<void>;
+}
+/** Shared FS instance. */
+declare const fs: FS;
+export { fs };
+/**
+ * @fileoverview Helpers shared by the services that run on files downloaded from i6 (infer, dash).
+ */
+export type FileRef = import("../fs/fs.js").FileRef;
+/**
+ * @typedef {import("../fs/fs.js").FileRef} FileRef
+ */
+/**
+ * @param {Object<string, string>} partitions - Partitions, name -> value.
+ * @returns {string} A stable key of the partitions, safe as part of a cache file name (e.g. "store_id%3Ds1-version%3Dv1").
+ */
+declare function partitionsKey(partitions: Record<string, string>): string;
+/**
+ * @param {*} partitions - Value to check.
+ * @returns {boolean} True if it is an object (not an array) whose values are all strings.
+ */
+declare function isPartitions(partitions: any): boolean;
+/**
+ * Brings one remote file to the browser cache, downloading it only if its etag changed.
+ * @param {string} name - Name of the cached file.
+ * @param {string} url - URL of the file.
+ * @returns {Promise<FileRef>} The cached file.
+ */
+declare function downloadFile(name: string, url: string): Promise<FileRef>;
+export { partitionsKey, isPartitions, downloadFile };
+/**
+ * @fileoverview Compact variable-length bitmask operations, serialization, and deserialization.
+ * Direct JavaScript port of commonz/bitmapz.
+ */
+/**
+ * Combines all given values into a single bitmask using bitwise OR.
+ * @param {...(number|bigint)} values - Bitmask values to combine.
+ * @returns {number} The combined bitmask.
+ */
+declare function join(...values: (number | bigint)[]): number;
+/**
+ * Reports whether current contains all bits in expected.
+ * If expected is empty, returns true.
+ * @param {number|bigint} current - Bitmask to inspect.
+ * @param {...(number|bigint)} expected - Required bits.
+ * @returns {boolean} True if current contains all expected bits.
+ */
+declare function containsAll(current: number | bigint, ...expected: (number | bigint)[]): boolean;
+/**
+ * Reports whether current contains at least one of the bits in expected.
+ * If expected is empty or current is 0, returns false.
+ * @param {number|bigint} current - Bitmask to inspect.
+ * @param {...(number|bigint)} expected - Expected bits.
+ * @returns {boolean} True if current contains any expected bit.
+ */
+declare function containsAny(current: number | bigint, ...expected: (number | bigint)[]): boolean;
+/**
+ * Decomposes current into an array of individual set bits in ascending order.
+ * If current is 0, returns an empty array.
+ * @param {number|bigint} current - Bitmask to split.
+ * @returns {number[]} Array of individual set bits.
+ */
+declare function split(current: number | bigint): number[];
+/**
+ * Adds or removes the given values from current based on enable.
+ * @param {number|bigint} current - Starting bitmask.
+ * @param {boolean} enable - True to set bits, false to clear them.
+ * @param {...(number|bigint)} values - Bitmask flags to add or remove.
+ * @returns {number} The updated bitmask.
+ */
+declare function set(current: number | bigint, enable: boolean, ...values: (number | bigint)[]): number;
+/**
+ * Encodes the bitmask v into a compact variable-length byte array (Uint8Array).
+ * If v fits in 4 bits (0..15), it is serialized in 1 byte:
+ * upper 4 bits are 0000, lower 4 bits store the value.
+ * Otherwise, upper 4 bits specify the number of payload bytes (1..8),
+ * lower 4 bits are 0000, followed by payload bytes in little-endian order.
+ * @param {number|bigint} v - Bitmask value to serialize.
+ * @returns {Uint8Array} The serialized bytes.
+ */
+declare function serialize(v: number | bigint): Uint8Array;
+/**
+ * Decodes a bitmask from data according to the variable-length encoding.
+ * Throws an Error if data is empty, has an invalid length, invalid size,
+ * or non-zero lower nibble when size > 0.
+ * @param {Uint8Array} data - Binary encoded bitmask.
+ * @returns {number|bigint} The decoded bitmask.
+ */
+declare function deserialize(data: Uint8Array): number | bigint;
+declare const bitmapz: Readonly<{
+    join: typeof join;
+    containsAll: typeof containsAll;
+    containsAny: typeof containsAny;
+    split: typeof split;
+    set: typeof set;
+    serialize: typeof serialize;
+    deserialize: typeof deserialize;
+}>;
+export { bitmapz, join, containsAll, containsAny, split, set, serialize, deserialize };
 /**
  * @typedef {import("../services/services.js").Services} Services
  */
@@ -981,6 +1217,10 @@ export type apiDszListPlansRespPayloadPlansElement = {
      */
     frequency: string;
     /**
+     * - [Go: int64] Requests included per period of the plan. null means unlimited; absent means not informed
+     */
+    included_requests: number;
+    /**
      * - [Go: string] Plan key (base of the Stripe lookup keys {key}_lic and {key}_req), used to switch to the plan
      */
     key: string;
@@ -996,6 +1236,10 @@ export type apiDszListPlansRespPayloadPlansElement = {
      * - [Go: int64] Request count price in the minor unit of the currency (cents)
      */
     req_amount: number;
+    /**
+     * - [Go: string] Price of each request above included_requests, in cents with decimal places, as Stripe unit_amount_decimal (like 0.0294). "0" means no extra charge; absent means not configured
+     */
+    req_amount_decimal: string;
     /**
      * - [Go: string] Tier of the plan, like growth
      */
@@ -3763,10 +4007,12 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {string} currency - [Go: string] Three-letter currency code, like brl
  * @property {string} description - [Go: string] Price description set in Stripe (the price nickname), to show to the user
  * @property {string} frequency - [Go: string] Billing frequency of the plan, like monthly
+ * @property {number} included_requests - [Go: int64] Requests included per period of the plan. null means unlimited; absent means not informed
  * @property {string} key - [Go: string] Plan key (base of the Stripe lookup keys {key}_lic and {key}_req), used to switch to the plan
  * @property {number} lic_amount - [Go: int64] License price in the minor unit of the currency (cents)
  * @property {string} name - [Go: string] Name of the plan, like 2027
  * @property {number} req_amount - [Go: int64] Request count price in the minor unit of the currency (cents)
+ * @property {string} req_amount_decimal - [Go: string] Price of each request above included_requests, in cents with decimal places, as Stripe unit_amount_decimal (like 0.0294). "0" means no extra charge; absent means not configured
  * @property {string} tier - [Go: string] Tier of the plan, like growth
  */
 /**
@@ -5532,36 +5778,6 @@ declare class Apis {
      */
     constructor(services: Services);
     /**
-     * Start Pipeline
-     *
-     * Starts a pipeline on a dataset with the given params and returns its id.
-     *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
-     */
-    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
-    /**
-     * Create Store
-     *
-     * Creates a store configuration under a specific dataset.
-     *
-     * @param {apiDszCreateStoreReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateStoreResp>>}
-     */
-    dszCreateStore(req: apiDszCreateStoreReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszCreateStoreResp>>;
-    /**
-     * List Stores
-     *
-     * Lists all stores configured under a specific dataset.
-     *
-     * @param {apiDszListStoresReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListStoresResp>>}
-     */
-    dszListStores(req: apiDszListStoresReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListStoresResp>>;
-    /**
      * Create Ingestion Token
      *
      * Creates a write token for data ingestion into a specific dataset.
@@ -5571,6 +5787,56 @@ declare class Apis {
      * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateIngestionTokenResp>>}
      */
     dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszCreateIngestionTokenResp>>;
+    /**
+     * Create Recsys Token
+     *
+     * Creates a read/recommendation token for the recommendation system associated with a specific dataset.
+     *
+     * @param {apiDszCreateRecsysTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateRecsysTokenResp>>}
+     */
+    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszCreateRecsysTokenResp>>;
+    /**
+     * Delete Token
+     *
+     * Deletes (revokes) a specific token (e.g. ingestion or recsys token) associated with a dataset.
+     *
+     * @param {apiDszDeleteTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDeleteTokenResp>>}
+     */
+    dszDeleteToken(req: apiDszDeleteTokenReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszDeleteTokenResp>>;
+    /**
+     * List Plans
+     *
+     * Lists the plans a subscription of a solution can be switched to, with the price data from Stripe.
+     *
+     * @param {apiDszListPlansReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListPlansResp>>}
+     */
+    dszListPlans(req: apiDszListPlansReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListPlansResp>>;
+    /**
+     * PKCE Authorization Code Exchange
+     *
+     * Exchanges a PKCE authorization code and verifier for user access and refresh tokens.
+     *
+     * @param {apiUserAuthExchangeReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthExchangeResp>>}
+     */
+    userAuthExchange(req: apiUserAuthExchangeReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthExchangeResp>>;
+    /**
+     * Get Dataset Table File
+     *
+     * Get table file by redirecting to its signed URL.
+     *
+     * @param {apiDszTableGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszTableGetResp>>}
+     */
+    dszTableGet(req: apiDszTableGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszTableGetResp>>;
     /**
      * Get Model Metadata
      *
@@ -5582,6 +5848,16 @@ declare class Apis {
      */
     tfzModelMetadata(req: apiTfzModelMetadataReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiTfzModelMetadataResp>>;
     /**
+     * List Payments
+     *
+     * Lists the Stripe payments (invoices) of a dataset. The list is empty for datasets without a Stripe customer.
+     *
+     * @param {apiDszListPaymentsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListPaymentsResp>>}
+     */
+    dszListPayments(req: apiDszListPaymentsReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListPaymentsResp>>;
+    /**
      * Device Token Polling & Exchange
      *
      * Polled by CLI clients to check status and exchange an authorized device code for active user tokens.
@@ -5591,6 +5867,16 @@ declare class Apis {
      * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthDeviceTokenResp>>}
      */
     userAuthDeviceToken(req: apiUserAuthDeviceTokenReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthDeviceTokenResp>>;
+    /**
+     * Human User Session Logout
+     *
+     * Revokes an active human user session by marking the refresh token and its token family as revoked in userzsession.
+     *
+     * @param {apiUserAuthLogoutReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthLogoutResp>>}
+     */
+    userAuthLogout(req: apiUserAuthLogoutReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthLogoutResp>>;
     /**
      * Refresh Dataset Access Token
      *
@@ -5612,16 +5898,6 @@ declare class Apis {
      */
     userDatasetTokenRefreshDelete(req: apiUserDatasetTokenRefreshDeleteReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshDeleteResp>>;
     /**
-     * List Dataset Tables
-     *
-     * Lists files and tables in the specified dataset.
-     *
-     * @param {apiDszTableListReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszTableListResp>>}
-     */
-    dszTableList(req: apiDszTableListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszTableListResp>>;
-    /**
      * Load Table File as JSON
      *
      * Load a table file from the datalake as JSON and return it.
@@ -5631,6 +5907,56 @@ declare class Apis {
      * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszResultRelevanceFashionCatalogResp>>}
      */
     dszResultRelevanceFashionCatalog(req: apiDszResultRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszResultRelevanceFashionCatalogResp>>;
+    /**
+     * Get Pipeline
+     *
+     * Gets a pipeline of a dataset by its id.
+     *
+     * @param {apiPipezGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezGetResp>>}
+     */
+    pipezGet(req: apiPipezGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezGetResp>>;
+    /**
+     * Model Predict
+     *
+     * Runs a prediction of a dataset model version on the inference service (tfinfer), sending the model inputs and the model partitions and returning the model outputs.
+     *
+     * @param {apiTfzModelPredictReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiTfzModelPredictResp>>}
+     */
+    tfzModelPredict(req: apiTfzModelPredictReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiTfzModelPredictResp>>;
+    /**
+     * Create Customer Portal
+     *
+     * Creates a Stripe billing portal session URL where the user can manage cards, auto-renew, and plans.
+     *
+     * @param {apiDszCreateCustomerPortalReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateCustomerPortalResp>>}
+     */
+    dszCreateCustomerPortal(req: apiDszCreateCustomerPortalReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszCreateCustomerPortalResp>>;
+    /**
+     * Event Ingestion
+     *
+     * Ingests events data into a target dataset table.
+     *
+     * @param {apiIngestzEventRelevanceFashionEventReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionEventResp>>}
+     */
+    ingestzEventRelevanceFashionEvent(req: apiIngestzEventRelevanceFashionEventReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionEventResp>>;
+    /**
+     * Get Dataset Signed URLs
+     *
+     * Generates presigned URLs for accessing or mutating files in the specified dataset.
+     *
+     * @param {apiDszSignedUrlReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszSignedUrlResp>>}
+     */
+    dszSignedUrl(req: apiDszSignedUrlReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszSignedUrlResp>>;
     /**
      * Load Table File as JSON
      *
@@ -5642,85 +5968,35 @@ declare class Apis {
      */
     dszResultLastBatchSummary(req: apiDszResultLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszResultLastBatchSummaryResp>>;
     /**
-     * List Store Displays
+     * Activate Pipeline Scheduler
      *
-     * Lists all active store displays configured for a store under a specific dataset.
+     * Activates a scheduler for a pipeline on a dataset.
      *
-     * @param {apiDszStoreDisplayListReq} req
+     * @param {apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayListResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainResp>>}
      */
-    dszStoreDisplayList(req: apiDszStoreDisplayListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayListResp>>;
+    pipezSchedulerActivateRelevanceFashionRelevanceFashionMain(req: apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainResp>>;
     /**
-     * List Recsys Tokens
+     * List Ingestion Tokens
      *
-     * Lists all active recommendation system tokens for a specific dataset.
+     * Lists all active data ingestion tokens for a specific dataset.
      *
-     * @param {apiDszListRecsysTokensReq} req
+     * @param {apiDszListIngestionTokensReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListRecsysTokensResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListIngestionTokensResp>>}
      */
-    dszListRecsysTokens(req: apiDszListRecsysTokensReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListRecsysTokensResp>>;
+    dszListIngestionTokens(req: apiDszListIngestionTokensReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListIngestionTokensResp>>;
     /**
-     * Email and Password Sign-Up
+     * Update Subscription Plan
      *
-     * Registers a new user with Identity Platform and dispatches a verification email.
+     * Updates the plan (price) of the Stripe subscription for a dataset product/solution.
      *
-     * @param {apiUserAuthPasswordSignupReq} req
+     * @param {apiDszUpdateSubscriptionPlanReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSignupResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszUpdateSubscriptionPlanResp>>}
      */
-    userAuthPasswordSignup(req: apiUserAuthPasswordSignupReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSignupResp>>;
-    /**
-     * Create Store Display
-     *
-     * Creates a store display configuration mapping for a store under a specific dataset.
-     *
-     * @param {apiDszStoreDisplayCreateReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayCreateResp>>}
-     */
-    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayCreateResp>>;
-    /**
-     * Get Solution Domain
-     *
-     * Retrieves the active solutions and their corresponding domains for a given store in a dataset.
-     *
-     * @param {apiDszDomainGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDomainGetResp>>}
-     */
-    dszDomainGet(req: apiDszDomainGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszDomainGetResp>>;
-    /**
-     * Create Recsys Token
-     *
-     * Creates a read/recommendation token for the recommendation system associated with a specific dataset.
-     *
-     * @param {apiDszCreateRecsysTokenReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateRecsysTokenResp>>}
-     */
-    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszCreateRecsysTokenResp>>;
-    /**
-     * List Payments
-     *
-     * Lists the Stripe payments (invoices) of a dataset. The list is empty for datasets without a Stripe customer.
-     *
-     * @param {apiDszListPaymentsReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListPaymentsResp>>}
-     */
-    dszListPayments(req: apiDszListPaymentsReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListPaymentsResp>>;
-    /**
-     * List Plans
-     *
-     * Lists the plans a subscription of a solution can be switched to, with the price data from Stripe.
-     *
-     * @param {apiDszListPlansReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListPlansResp>>}
-     */
-    dszListPlans(req: apiDszListPlansReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListPlansResp>>;
+    dszUpdateSubscriptionPlan(req: apiDszUpdateSubscriptionPlanReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszUpdateSubscriptionPlanResp>>;
     /**
      * Current User Profile
      *
@@ -5742,6 +6018,186 @@ declare class Apis {
      */
     userDatasetTokenAccessCreate(req: apiUserDatasetTokenAccessCreateReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessCreateResp>>;
     /**
+     * List Pipelines
+     *
+     * Lists the pipelines of a dataset, optionally filtered, with cursor pagination.
+     *
+     * @param {apiPipezListReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezListResp>>}
+     */
+    pipezList(req: apiPipezListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezListResp>>;
+    /**
+     * List Store Displays
+     *
+     * Lists all active store displays configured for a store under a specific dataset.
+     *
+     * @param {apiDszStoreDisplayListReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayListResp>>}
+     */
+    dszStoreDisplayList(req: apiDszStoreDisplayListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayListResp>>;
+    /**
+     * Get Solution Domain
+     *
+     * Retrieves the active solutions and their corresponding domains for a given store in a dataset.
+     *
+     * @param {apiDszDomainGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDomainGetResp>>}
+     */
+    dszDomainGet(req: apiDszDomainGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszDomainGetResp>>;
+    /**
+     * List Recsys Tokens
+     *
+     * Lists all active recommendation system tokens for a specific dataset.
+     *
+     * @param {apiDszListRecsysTokensReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListRecsysTokensResp>>}
+     */
+    dszListRecsysTokens(req: apiDszListRecsysTokensReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListRecsysTokensResp>>;
+    /**
+     * Get Model Signed URLs
+     *
+     * Generates presigned URLs for accessing model files in the specified dataset.
+     *
+     * @param {apiDszModelGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszModelGetResp>>}
+     */
+    dszModelGet(req: apiDszModelGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszModelGetResp>>;
+    /**
+     * Create Stripe Checkout
+     *
+     * Creates a Stripe checkout session for a subscription and returns its id and url.
+     *
+     * @param {apiDszStripeCheckoutReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStripeCheckoutResp>>}
+     */
+    dszStripeCheckout(req: apiDszStripeCheckoutReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszStripeCheckoutResp>>;
+    /**
+     * Update Payment Auto Renew
+     *
+     * Turns auto renew on or off for the Stripe subscription of a dataset product/solution.
+     *
+     * @param {apiDszUpdatePaymentAutoRenewReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszUpdatePaymentAutoRenewResp>>}
+     */
+    dszUpdatePaymentAutoRenew(req: apiDszUpdatePaymentAutoRenewReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszUpdatePaymentAutoRenewResp>>;
+    /**
+     * Google Sign-In Credential Exchange
+     *
+     * Verifies a Google OAuth ID token via Identity Platform and mints a single-use PKCE code.
+     *
+     * @param {apiUserAuthGoogleReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthGoogleResp>>}
+     */
+    userAuthGoogle(req: apiUserAuthGoogleReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthGoogleResp>>;
+    /**
+     * List Dataset Tables
+     *
+     * Lists files and tables in the specified dataset.
+     *
+     * @param {apiDszTableListReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszTableListResp>>}
+     */
+    dszTableList(req: apiDszTableListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszTableListResp>>;
+    /**
+     * Human User Session Refresh
+     *
+     * Exchanges a human user refresh token for fresh access and rotated refresh tokens.
+     *
+     * @param {apiUserAuthRefreshReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthRefreshResp>>}
+     */
+    userAuthRefresh(req: apiUserAuthRefreshReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthRefreshResp>>;
+    /**
+     * Attenuate Dataset Access Token
+     *
+     * Derives an in-flight attenuated child access token with dropped privileges from an active access token.
+     *
+     * @param {apiUserDatasetTokenAccessAttenuateReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessAttenuateResp>>}
+     */
+    userDatasetTokenAccessAttenuate(req: apiUserDatasetTokenAccessAttenuateReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessAttenuateResp>>;
+    /**
+     * Start Pipeline
+     *
+     * Starts a pipeline on a dataset with the given params and returns its id.
+     *
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
+     */
+    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
+    /**
+     * Start Pipeline
+     *
+     * Starts a pipeline on a dataset with the given params and returns its id.
+     *
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
+     */
+    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
+    /**
+     * Deactivate Pipeline Scheduler
+     *
+     * Deactivates a scheduler for a pipeline on a dataset.
+     *
+     * @param {apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainResp>>}
+     */
+    pipezSchedulerDeactivateRelevanceFashionRelevanceFashionMain(req: apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainResp>>;
+    /**
+     * Create Store
+     *
+     * Creates a store configuration under a specific dataset.
+     *
+     * @param {apiDszCreateStoreReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateStoreResp>>}
+     */
+    dszCreateStore(req: apiDszCreateStoreReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszCreateStoreResp>>;
+    /**
+     * List Stores
+     *
+     * Lists all stores configured under a specific dataset.
+     *
+     * @param {apiDszListStoresReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListStoresResp>>}
+     */
+    dszListStores(req: apiDszListStoresReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListStoresResp>>;
+    /**
+     * Get Subscription
+     *
+     * Gets the plan and the status of the Stripe subscription of a dataset product/solution. The payload is empty for contracts without Stripe.
+     *
+     * @param {apiDszGetSubscriptionReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszGetSubscriptionResp>>}
+     */
+    dszGetSubscription(req: apiDszGetSubscriptionReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszGetSubscriptionResp>>;
+    /**
+     * Password Reset Email Dispatch
+     *
+     * Dispatches an out-of-band password reset email via Identity Platform.
+     *
+     * @param {apiUserAuthPasswordResetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordResetResp>>}
+     */
+    userAuthPasswordReset(req: apiUserAuthPasswordResetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordResetResp>>;
+    /**
      * Create Dataset Refresh Token
      *
      * Provisions a long-lived machine dataset refresh token with an Ed25519 keypair.
@@ -5751,6 +6207,76 @@ declare class Apis {
      * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshCreateResp>>}
      */
     userDatasetTokenRefreshCreate(req: apiUserDatasetTokenRefreshCreateReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshCreateResp>>;
+    /**
+     * Event Ingestion
+     *
+     * Ingests events data into a target dataset table.
+     *
+     * @param {apiIngestzEventRelevanceFashionCatalogReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionCatalogResp>>}
+     */
+    ingestzEventRelevanceFashionCatalog(req: apiIngestzEventRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionCatalogResp>>;
+    /**
+     * List Datasets
+     *
+     * Lists all datasets available to the user.
+     *
+     * @param {apiDszListDatasetsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListDatasetsResp>>}
+     */
+    dszListDatasets(req: apiDszListDatasetsReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListDatasetsResp>>;
+    /**
+     * List Active Dataset Solutions
+     *
+     * Lists all active solutions configured for a specific dataset.
+     *
+     * @param {apiDszDatasetSolutionsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDatasetSolutionsResp>>}
+     */
+    dszDatasetSolutions(req: apiDszDatasetSolutionsReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszDatasetSolutionsResp>>;
+    /**
+     * Device Authorization Code Initiation
+     *
+     * Initiates an RFC 8628 device authorization flow for CLI and remote headless SSH sessions.
+     *
+     * @param {apiUserAuthDeviceCodeReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthDeviceCodeResp>>}
+     */
+    userAuthDeviceCode(req: apiUserAuthDeviceCodeReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthDeviceCodeResp>>;
+    /**
+     * Email and Password Sign-In
+     *
+     * Authenticates an email and password against Identity Platform, enforcing confirmed emails and minting a PKCE code.
+     *
+     * @param {apiUserAuthPasswordSigninReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSigninResp>>}
+     */
+    userAuthPasswordSignin(req: apiUserAuthPasswordSigninReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSigninResp>>;
+    /**
+     * Email and Password Sign-Up
+     *
+     * Registers a new user with Identity Platform and dispatches a verification email.
+     *
+     * @param {apiUserAuthPasswordSignupReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSignupResp>>}
+     */
+    userAuthPasswordSignup(req: apiUserAuthPasswordSignupReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSignupResp>>;
+    /**
+     * List Dataset Refresh Tokens
+     *
+     * Lists all active machine refresh tokens provisioned for a dataset.
+     *
+     * @param {apiUserDatasetTokenRefreshListReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshListResp>>}
+     */
+    userDatasetTokenRefreshList(req: apiUserDatasetTokenRefreshListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshListResp>>;
     /**
      * Sample Fraction
      *
@@ -5772,295 +6298,15 @@ declare class Apis {
      */
     ingestzGetUrl(req: apiIngestzGetUrlReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiIngestzGetUrlResp>>;
     /**
-     * Event Ingestion
+     * Create Store Display
      *
-     * Ingests events data into a target dataset table.
+     * Creates a store display configuration mapping for a store under a specific dataset.
      *
-     * @param {apiIngestzEventRelevanceFashionCatalogReq} req
+     * @param {apiDszStoreDisplayCreateReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionCatalogResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayCreateResp>>}
      */
-    ingestzEventRelevanceFashionCatalog(req: apiIngestzEventRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionCatalogResp>>;
-    /**
-     * List Active Dataset Solutions
-     *
-     * Lists all active solutions configured for a specific dataset.
-     *
-     * @param {apiDszDatasetSolutionsReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDatasetSolutionsResp>>}
-     */
-    dszDatasetSolutions(req: apiDszDatasetSolutionsReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszDatasetSolutionsResp>>;
-    /**
-     * Get Model Signed URLs
-     *
-     * Generates presigned URLs for accessing model files in the specified dataset.
-     *
-     * @param {apiDszModelGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszModelGetResp>>}
-     */
-    dszModelGet(req: apiDszModelGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszModelGetResp>>;
-    /**
-     * Update Payment Auto Renew
-     *
-     * Turns auto renew on or off for the Stripe subscription of a dataset product/solution.
-     *
-     * @param {apiDszUpdatePaymentAutoRenewReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszUpdatePaymentAutoRenewResp>>}
-     */
-    dszUpdatePaymentAutoRenew(req: apiDszUpdatePaymentAutoRenewReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszUpdatePaymentAutoRenewResp>>;
-    /**
-     * Password Reset Email Dispatch
-     *
-     * Dispatches an out-of-band password reset email via Identity Platform.
-     *
-     * @param {apiUserAuthPasswordResetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordResetResp>>}
-     */
-    userAuthPasswordReset(req: apiUserAuthPasswordResetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordResetResp>>;
-    /**
-     * Email and Password Sign-In
-     *
-     * Authenticates an email and password against Identity Platform, enforcing confirmed emails and minting a PKCE code.
-     *
-     * @param {apiUserAuthPasswordSigninReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSigninResp>>}
-     */
-    userAuthPasswordSignin(req: apiUserAuthPasswordSigninReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSigninResp>>;
-    /**
-     * Event Ingestion
-     *
-     * Ingests events data into a target dataset table.
-     *
-     * @param {apiIngestzEventRelevanceFashionEventReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionEventResp>>}
-     */
-    ingestzEventRelevanceFashionEvent(req: apiIngestzEventRelevanceFashionEventReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionEventResp>>;
-    /**
-     * Get Dataset Table File
-     *
-     * Get table file by redirecting to its signed URL.
-     *
-     * @param {apiDszTableGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszTableGetResp>>}
-     */
-    dszTableGet(req: apiDszTableGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszTableGetResp>>;
-    /**
-     * Start Pipeline
-     *
-     * Starts a pipeline on a dataset with the given params and returns its id.
-     *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionMainReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>}
-     */
-    pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
-    /**
-     * Human User Session Logout
-     *
-     * Revokes an active human user session by marking the refresh token and its token family as revoked in userzsession.
-     *
-     * @param {apiUserAuthLogoutReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthLogoutResp>>}
-     */
-    userAuthLogout(req: apiUserAuthLogoutReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthLogoutResp>>;
-    /**
-     * Attenuate Dataset Access Token
-     *
-     * Derives an in-flight attenuated child access token with dropped privileges from an active access token.
-     *
-     * @param {apiUserDatasetTokenAccessAttenuateReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessAttenuateResp>>}
-     */
-    userDatasetTokenAccessAttenuate(req: apiUserDatasetTokenAccessAttenuateReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessAttenuateResp>>;
-    /**
-     * List Pipelines
-     *
-     * Lists the pipelines of a dataset, optionally filtered, with cursor pagination.
-     *
-     * @param {apiPipezListReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezListResp>>}
-     */
-    pipezList(req: apiPipezListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezListResp>>;
-    /**
-     * Activate Pipeline Scheduler
-     *
-     * Activates a scheduler for a pipeline on a dataset.
-     *
-     * @param {apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainResp>>}
-     */
-    pipezSchedulerActivateRelevanceFashionRelevanceFashionMain(req: apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainResp>>;
-    /**
-     * Delete Token
-     *
-     * Deletes (revokes) a specific token (e.g. ingestion or recsys token) associated with a dataset.
-     *
-     * @param {apiDszDeleteTokenReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDeleteTokenResp>>}
-     */
-    dszDeleteToken(req: apiDszDeleteTokenReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszDeleteTokenResp>>;
-    /**
-     * Model Predict
-     *
-     * Runs a prediction of a dataset model version on the inference service (tfinfer), sending the model inputs and the model partitions and returning the model outputs.
-     *
-     * @param {apiTfzModelPredictReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiTfzModelPredictResp>>}
-     */
-    tfzModelPredict(req: apiTfzModelPredictReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiTfzModelPredictResp>>;
-    /**
-     * Create Stripe Checkout
-     *
-     * Creates a Stripe checkout session for a subscription and returns its id and url.
-     *
-     * @param {apiDszStripeCheckoutReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStripeCheckoutResp>>}
-     */
-    dszStripeCheckout(req: apiDszStripeCheckoutReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszStripeCheckoutResp>>;
-    /**
-     * Update Subscription Plan
-     *
-     * Updates the plan (price) of the Stripe subscription for a dataset product/solution.
-     *
-     * @param {apiDszUpdateSubscriptionPlanReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszUpdateSubscriptionPlanResp>>}
-     */
-    dszUpdateSubscriptionPlan(req: apiDszUpdateSubscriptionPlanReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszUpdateSubscriptionPlanResp>>;
-    /**
-     * Device Authorization Code Initiation
-     *
-     * Initiates an RFC 8628 device authorization flow for CLI and remote headless SSH sessions.
-     *
-     * @param {apiUserAuthDeviceCodeReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthDeviceCodeResp>>}
-     */
-    userAuthDeviceCode(req: apiUserAuthDeviceCodeReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthDeviceCodeResp>>;
-    /**
-     * Human User Session Refresh
-     *
-     * Exchanges a human user refresh token for fresh access and rotated refresh tokens.
-     *
-     * @param {apiUserAuthRefreshReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthRefreshResp>>}
-     */
-    userAuthRefresh(req: apiUserAuthRefreshReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthRefreshResp>>;
-    /**
-     * Deactivate Pipeline Scheduler
-     *
-     * Deactivates a scheduler for a pipeline on a dataset.
-     *
-     * @param {apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainResp>>}
-     */
-    pipezSchedulerDeactivateRelevanceFashionRelevanceFashionMain(req: apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainResp>>;
-    /**
-     * Get Pipeline
-     *
-     * Gets a pipeline of a dataset by its id.
-     *
-     * @param {apiPipezGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezGetResp>>}
-     */
-    pipezGet(req: apiPipezGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezGetResp>>;
-    /**
-     * List Datasets
-     *
-     * Lists all datasets available to the user.
-     *
-     * @param {apiDszListDatasetsReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListDatasetsResp>>}
-     */
-    dszListDatasets(req: apiDszListDatasetsReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListDatasetsResp>>;
-    /**
-     * Create Customer Portal
-     *
-     * Creates a Stripe billing portal session URL where the user can manage cards, auto-renew, and plans.
-     *
-     * @param {apiDszCreateCustomerPortalReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateCustomerPortalResp>>}
-     */
-    dszCreateCustomerPortal(req: apiDszCreateCustomerPortalReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszCreateCustomerPortalResp>>;
-    /**
-     * Get Subscription
-     *
-     * Gets the plan and the status of the Stripe subscription of a dataset product/solution. The payload is empty for contracts without Stripe.
-     *
-     * @param {apiDszGetSubscriptionReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszGetSubscriptionResp>>}
-     */
-    dszGetSubscription(req: apiDszGetSubscriptionReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszGetSubscriptionResp>>;
-    /**
-     * PKCE Authorization Code Exchange
-     *
-     * Exchanges a PKCE authorization code and verifier for user access and refresh tokens.
-     *
-     * @param {apiUserAuthExchangeReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthExchangeResp>>}
-     */
-    userAuthExchange(req: apiUserAuthExchangeReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthExchangeResp>>;
-    /**
-     * Google Sign-In Credential Exchange
-     *
-     * Verifies a Google OAuth ID token via Identity Platform and mints a single-use PKCE code.
-     *
-     * @param {apiUserAuthGoogleReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthGoogleResp>>}
-     */
-    userAuthGoogle(req: apiUserAuthGoogleReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthGoogleResp>>;
-    /**
-     * List Dataset Refresh Tokens
-     *
-     * Lists all active machine refresh tokens provisioned for a dataset.
-     *
-     * @param {apiUserDatasetTokenRefreshListReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshListResp>>}
-     */
-    userDatasetTokenRefreshList(req: apiUserDatasetTokenRefreshListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshListResp>>;
-    /**
-     * Get Dataset Signed URLs
-     *
-     * Generates presigned URLs for accessing or mutating files in the specified dataset.
-     *
-     * @param {apiDszSignedUrlReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszSignedUrlResp>>}
-     */
-    dszSignedUrl(req: apiDszSignedUrlReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszSignedUrlResp>>;
-    /**
-     * List Ingestion Tokens
-     *
-     * Lists all active data ingestion tokens for a specific dataset.
-     *
-     * @param {apiDszListIngestionTokensReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListIngestionTokensResp>>}
-     */
-    dszListIngestionTokens(req: apiDszListIngestionTokensReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListIngestionTokensResp>>;
+    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayCreateResp>>;
 }
 export { Apis };
 declare class SdkFuncs {
@@ -6074,6 +6320,26 @@ declare class SdkFuncs {
      * @param {Services} services - The services manager instance.
      */
     constructor(services: Services);
+    /**
+     * Get Metrics by SKU
+     *
+     * Gets the metrics impacted by recommendations by SKU for a store and period.
+     *
+     * @param {sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutput>}
+     */
+    productRelevanceFashionDashImpactedMetricsBySkuV1(req: sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutput>;
+    /**
+     * Get Coverage
+     *
+     * Gets the recommendation coverage of the catalog for a store and period.
+     *
+     * @param {sdkFuncProductRelevanceFashionDashCoverageReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashCoverageOutput>}
+     */
+    productRelevanceFashionDashCoverageV1(req: sdkFuncProductRelevanceFashionDashCoverageReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashCoverageOutput>;
     /**
      * Get Bought Together
      *
@@ -6125,620 +6391,8 @@ declare class SdkFuncs {
      * @returns {Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryOutput>}
      */
     productRelevanceFashionDashImpactedMetricsByShowcaseCategoryV1(req: sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryOutput>;
-    /**
-     * Get Metrics by SKU
-     *
-     * Gets the metrics impacted by recommendations by SKU for a store and period.
-     *
-     * @param {sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutput>}
-     */
-    productRelevanceFashionDashImpactedMetricsBySkuV1(req: sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutput>;
-    /**
-     * Get Coverage
-     *
-     * Gets the recommendation coverage of the catalog for a store and period.
-     *
-     * @param {sdkFuncProductRelevanceFashionDashCoverageReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<sdkFuncProductRelevanceFashionDashCoverageOutput>}
-     */
-    productRelevanceFashionDashCoverageV1(req: sdkFuncProductRelevanceFashionDashCoverageReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashCoverageOutput>;
 }
 export { SdkFuncs };
-/**
- * @fileoverview Service container managing SDK service instances and configuration.
- */
-import { Invoker } from "../invoker/invoker.js";
-import { Auth } from "../auth/auth.js";
-import { Tokens } from "../tokens/tokens.js";
-import { Ingest } from "../ingest/ingest.js";
-import { Apis, SdkFuncs } from "../sdkapis/sdkapis.js";
-import { Infer } from "../infer/infer.js";
-import { Dash } from "../dash/dash.js";
-export type I6SdkConfig = import("../index.js").I6SdkConfig;
-/**
- * @typedef {import("../index.js").I6SdkConfig} I6SdkConfig
- */
-/**
- * Service container that instantiates and provides access to SDK service clients.
- * `auth` and `tokens` return cached singleton instances; other accessors instantiate a new client
- * sharing this container's config and dispatcher.
- */
-declare class Services {
-    _dispatcher: EventTarget;
-    /**
-     * @private
-     * @type {I6SdkConfig}
-     */
-    _config;
-    _auth: Auth | undefined;
-    _tokens: Tokens | undefined;
-    /**
-     * Constructs a Services instance.
-     * @param {I6SdkConfig} config - Configuration object for the SDK services.
-     */
-    constructor(config: I6SdkConfig);
-    /**
-     * Returns the SDK configuration.
-     * @returns {I6SdkConfig} The configuration object.
-     */
-    config(): I6SdkConfig;
-    /**
-     * Overwrites the given keys of the SDK configuration; the other keys are kept.
-     * Clients read the config on every call, so the change is seen by every client of this container at once.
-     * @param {Partial<I6SdkConfig>} config - The keys to overwrite.
-     * @returns {void}
-     */
-    setConfig(config: Partial<I6SdkConfig>): void;
-    /**
-     * Registers an event listener on the internal event dispatcher.
-     * @param {string} evt - The event type or name to listen for.
-     * @param {EventListenerOrEventListenerObject|Function} fn - The callback function or event listener object invoked when the event occurs.
-     * @returns {void}
-     */
-    bind(evt: string, fn: EventListenerOrEventListenerObject | Function): void;
-    /**
-     * Creates and returns an Invoker service instance.
-     * @returns {Invoker} An instance of the Invoker client.
-     */
-    invoker(): Invoker;
-    /**
-     * Creates and returns an Auth service instance.
-     * @returns {Auth} An instance of the Auth client.
-     */
-    auth(): Auth;
-    /**
-     * Creates and returns a Tokens service instance.
-     * @returns {Tokens} An instance of the Tokens client.
-     */
-    tokens(): Tokens;
-    /**
-     * Creates and returns an Ingest service instance.
-     * @returns {Ingest} An instance of the Ingest client.
-     */
-    ingest(): Ingest;
-    /**
-     * Creates and returns an Infer service instance.
-     * @returns {Infer} An instance of the Infer client.
-     */
-    infer(): Infer;
-    /**
-     * Creates and returns a Dash service instance.
-     * @returns {Dash} An instance of the Dash client.
-     */
-    dash(): Dash;
-    /**
-     * Creates and returns an Apis service instance.
-     * @returns {Apis} An instance of the generated Apis client.
-     */
-    apis(): Apis;
-    /**
-    * Creates and returns a Funcs service instance.
-    * @returns {SdkFuncs} An instance of the generated SdkFuncs client.
-    */
-    funcs(): SdkFuncs;
-}
-export { Services, Apis, SdkFuncs };
-/**
- * @fileoverview Authentication client using i6userz PKCE redirect flow.
- *
- * Flow Architecture:
- * 1. Login Initiation: {@link Auth#login} generates an RFC 7636 PKCE code verifier and S256 code
- *    challenge, persists `code_verifier` in sessionStorage, appends the target application URL (`callback`)
- *    as a query parameter to `config.userExchangeCallbackUrl`, and redirects the browser to `GET /api/userz/auth`.
- * 2. Identity Provider Authentication: The user signs in via Google or Email/Password on the i6userz UI.
- * 3. Authorization Code Redirect: i6userz redirects the browser to the intermediate exchange URL
- *    (`config.userExchangeCallbackUrl`) with a short-lived authorization `code` appended.
- * 4. Token Exchange: The exchange callback page invokes {@link Auth#handleCallback}, which retrieves
- *    the `code_verifier` from sessionStorage, calls the Tokens service to exchange them via `POST /api/userz/auth/exchange`
- *    for active tokens (access token JWT, refresh token, user ID, expiration), persists them, and redirects the browser
- *    to the original application URL.
- * 5. Profile Retrieval: {@link Auth#user} fetches user identity metadata via `GET /api/userz/auth/me`
- *    using Bearer token authentication.
- */
-export type Services = import("../services/services.js").Services;
-export type UserToken = import("../tokens/tokens.js").UserToken;
-export type AuthPayload = {
-    /**
-     * - Authenticated user unique identifier UUID.
-     */
-    user_id: string;
-    /**
-     * - Redacted email address for display (e.g. "u***@infinity6.ai").
-     */
-    email_redacted?: string;
-    /**
-     * - List of linked identity providers (e.g. ["google", "password"]).
-     */
-    providers?: string[];
-    /**
-     * - Account creation timestamp in epoch milliseconds.
-     */
-    created_at?: number;
-    /**
-     * - User ID (legacy alias for user_id).
-     */
-    sub?: string;
-    /**
-     * - User display name (legacy alias).
-     */
-    display?: string;
-    /**
-     * - User email address (legacy alias).
-     */
-    email?: string;
-};
-/**
- * Authentication client for handling browser redirects, PKCE, and user profile retrieval with i6userz.
- * Configuration (callbackUrl, userExchangeCallbackUrl, app) is read directly from `i6sdk.config()`.
- */
-declare class Auth {
-    /**
-     * @private
-     * @type {Services}
-     */
-    _services;
-    /**
-     * Constructs an Auth client instance.
-     * @param {Services} services - The services manager instance.
-     */
-    constructor(services: Services);
-    /**
-     * Retrieves the base URL for the i6userz authentication service from SDK configuration.
-     * Resolution precedence:
-     * 1. `config.servUrls["userz"]`
-     * 2. `config.userzUrl`
-     * 3. `config.baseUrl`
-     * 4. Empty string fallback
-     * @private
-     * @returns {string} The base URL for userz.
-     */
-    private _getUserzUrl;
-    /**
-     * Resolves the session storage adapter for transient auth data (e.g. PKCE code verifier).
-     * Checks SDK configuration for a custom session storage adapter or factory function,
-     * falling back to the browser's global `sessionStorage`.
-     * @private
-     * @returns {import("../index.js").I6Storage|null} The active session storage adapter or null if unavailable.
-     */
-    private _getSessionStorage;
-    /**
-     * Navigates the browser window to a target URL.
-     * @private
-     * @param {string} url - Target URL.
-     * @returns {void}
-     */
-    private _navigate;
-    /**
-     * Redirects the browser location to a callback URL.
-     * @private
-     * @param {string} url - Target redirect URL.
-     * @returns {void}
-     */
-    private _redirect;
-    /**
-     * Validates whether a redirect URL is safe to prevent open redirect vulnerabilities.
-     * A URL is considered safe if:
-     * 1. It is a relative path starting with '/' (but not '//' or '/\\').
-     * 2. It is an absolute URL whose origin matches window.location.origin or configured callback URLs.
-     * @private
-     * @param {string} url - The URL to validate.
-     * @returns {boolean} True if the redirect target is safe, false otherwise.
-     */
-    private _isSafeRedirect;
-    /**
-     * Generates a cryptographically random standard PKCE code verifier (RFC 7636 §4.1).
-     * Uses unreserved URL characters (`[A-Z]`, `[a-z]`, `[0-9]`, `-`, `.`, `_`, `~`).
-     * @private
-     * @param {number} [length=64] - The length of the code verifier (between 43 and 128 characters).
-     * @returns {string} The generated code verifier string.
-     */
-    private _generateCodeVerifier;
-    /**
-     * Generates an RFC 7636 S256 PKCE code challenge from a code verifier.
-     * Computes SHA-256 over the ASCII code verifier and base64url-encodes the digest without padding.
-     * @private
-     * @param {string} verifier - The plaintext code verifier.
-     * @returns {Promise<string>} The base64url-encoded code challenge.
-     * @throws {Error} If Web Crypto API (`crypto.subtle.digest`) is unavailable.
-     */
-    private _generateCodeChallenge;
-    /**
-     * Encodes a byte array as an unpadded base64url string (RFC 4648 §5).
-     * Replaces '+' with '-', '/' with '_', and strips trailing '=' padding.
-     * @private
-     * @param {Uint8Array|ArrayBuffer} bytes - The bytes to encode.
-     * @returns {string} The base64url-encoded string.
-     * @throws {Error} If no base64 encoder (`btoa` or Node.js `Buffer`) is available.
-     */
-    private _base64UrlEncode;
-    /**
-     * Redirects the browser to the i6userz login page (`GET /api/userz/auth`) to initiate the PKCE login flow.
-     *
-     * Validates that `config.userExchangeCallbackUrl` is configured, clears any existing token,
-     * generates a random PKCE `code_verifier` and S256 `code_challenge`, persists the `code_verifier`
-     * in session storage only, and redirects the browser with `app`, `redirect`, and `code_challenge`
-     * query parameters.
-     *
-     * @param {string} [callbackUrl] - The final destination URL to return to after login and token exchange complete.
-     *   Defaults to `window.location.href`.
-     * @returns {Promise<string>} The generated login URL.
-     * @throws {string} If `config.userExchangeCallbackUrl` is not defined in the SDK configuration.
-     */
-    login(callbackUrl?: string): Promise<string>;
-    /**
-     * Processes the authorization code or checkout artifact ticket present in the URL query string,
-     * exchanging it for tokens via the Tokens service, and redirecting to the post-exchange `callback` URL.
-     *
-     * Validates the CSRF `state` parameter against session storage, and retrieves the PKCE `code_verifier`
-     * from session storage. Deletes both from session storage upon processing.
-     *
-     * Note: This method must be called explicitly by the exchange callback page
-     * (configured via `config.userExchangeCallbackUrl`). It is not called automatically by `user()`.
-     *
-     * @returns {Promise<string|null>} The dataset string if an exchange occurred, or null if it was a noop (no auth/checkout code in URL).
-     * @throws {Error} If state mismatch occurs, token exchange fails, or server returns an error.
-     */
-    handleCallback(): Promise<string | null>;
-    /**
-     * Retrieves the stored user token credentials from the Tokens service.
-     *
-     * @param {boolean} [refreshed] - Optional flag indicating whether to return
-     *   a freshly refreshed token.
-     * @returns {UserToken|null} The stored user token object, or null if no valid session exists.
-     */
-    getUserToken(refreshed?: boolean): UserToken | null;
-    /**
-     * Retrieves the active user access token JWT string for authorizing API requests.
-     *
-     * @returns {string|undefined} The signed EdDSA user access token JWT,
-     *   or undefined if no user is authenticated.
-     */
-    getAccessToken(): string | undefined;
-    /**
-     * Retrieves a guaranteed-valid user access token JWT string, silently refreshing if expired.
-     *
-     * @param {number} [skewSeconds=30] - Safety margin in seconds before expiration.
-     * @returns {Promise<string|null>} The valid user access token JWT, or null if unauthenticated.
-     */
-    getValidAccessToken(skewSeconds?: number): Promise<string | null>;
-    /**
-     * Refreshes the active user access token using the stored refresh token.
-     *
-     * @returns {Promise<UserToken|null>} The refreshed user token credentials, or null if failed.
-     */
-    refresh(): Promise<UserToken | null>;
-    /**
-     * Clears all stored authentication tokens and credentials via the Tokens service,
-     * and clears any pending PKCE code verifier and CSRF state in session storage.
-     * @returns {void}
-     */
-    clearTokens(): void;
-    /**
-     * Fetches the current authenticated user profile metadata (`GET /api/userz/auth/me`).
-     * Sends a valid user access token in the `Authorization: Bearer <user_access_token>` header,
-     * automatically performing a silent renewal if the access token has expired.
-     * Does not redirect; use {@link Auth#requireUser} to automatically force a login redirect.
-     *
-     * Note: Expects tokens to already be present in storage. Call {@link Auth#handleCallback}
-     * on the exchange page before attempting to fetch the user profile.
-     *
-     * @returns {Promise<AuthPayload|null>} The user profile data, or null if unauthenticated.
-     * @throws {Error} If the network request fails or the userz service returns an error status.
-     */
-    user(): Promise<AuthPayload | null>;
-    /**
-     * Fetches the current user profile, automatically redirecting the browser to the login page
-     * via {@link Auth#login} when the user is unauthenticated.
-     *
-     * @returns {Promise<AuthPayload|null>} The user profile data, or null when redirecting to login.
-     */
-    requireUser(): Promise<AuthPayload | null>;
-    /**
-     * Logs out the current user by revoking the session family server-side via `POST /api/userz/auth/logout`,
-     * clearing stored credentials and session storage, and navigating to `backurl`.
-     *
-     * @param {string} [backurl] - The URL to return to after logging out.
-     *   Defaults to `config.callbackUrl` or the current window URL (`window.location.href`).
-     * @returns {Promise<void>}
-     */
-    logout(backurl?: string): Promise<void>;
-}
-export { Auth };
-/**
- * @fileoverview Queries an i6 dash in the browser: downloads the dash's sqlite, runs the named query
- * `dash-${dashName}` on it and returns its result as is. Nothing here is dash specific.
- *
- * Set `window.I6_DEBUG = true` to see what happens in the console.
- */
-export type Services = import("../services/services.js").Services;
-export type ServiceOptions = import("../invoker/invoker.js").ServiceOptions;
-export type DashOptions = {
-    /**
-     * - Dash name (e.g. "product-relevance-fashion-dash-funnel"); names the cached sqlite and the named query.
-     */
-    dashName: string;
-    /**
-     * - Partitions of the dash, name -> value (e.g. `{ store_id: "s1", version: "v1" }`).
-     */
-    partitions: Record<string, string>;
-    /**
-     * - Dataset that holds the dash file.
-     */
-    dataset: string;
-    /**
-     * - Query input, any JSON. Bound as `?1` of the named query. Omit it for a query that takes none.
-     */
-    params?: any;
-    /**
-     * - Tests only: URL of the sqlite (must answer HEAD with an etag). Default: the model API.
-     */
-    sqliteUrl?: string;
-    /**
-     * - Given to the API call that signs the sqlite URL.
-     */
-    serviceOpts?: ServiceOptions;
-};
-/**
- * Dash client.
- */
-declare class Dash {
-    /**
-     * @private
-     * @type {Services}
-     */
-    _services;
-    /**
-     * Constructs a Dash client instance.
-     * @param {Services} services - The services manager instance.
-     */
-    constructor(services: Services);
-    /**
-     * Downloads the dash sqlite (cached by etag), runs the named query `dash-${dashName}` with `params` and returns its result.
-     * @param {DashOptions} opts - Dash options.
-     * @returns {Promise<*>} The `ret` of the named query.
-     */
-    query(opts: DashOptions): Promise<any>;
-    /**
-     * Finds where the dash sqlite is: the signed URL of the model API (like Infer), unless opts has `sqliteUrl` (tests).
-     * @private
-     * @param {DashOptions} opts - Dash options.
-     * @returns {Promise<string>} Download URL of the sqlite.
-     */
-    private _sqliteUrl;
-}
-export { Dash };
-/**
- * @fileoverview The LiteRT side of infer: loads the tflite model and runs it. Everything that touches the
- * LiteRT library (runtime, model, tensors) is in this file. The caller only gives data and gets values back.
- */
-export type FileRef = import("../internal/fs/fs.js").FileRef;
-export type ModelInput = {
-    /**
-     * - Flat values; their count must be the product of `shape`.
-     */
-    data: number[];
-    /**
-     * - Shape of `data`.
-     */
-    shape: number[];
-};
-/**
- * Loads the LiteRT runtime (once) and the tflite model. Everything LiteRT stays inside this file. The file is only
- * read and compiled when its version changed since the last call.
- * @param {Object} opts
- * @param {FileRef} opts.ref - The downloaded .tflite file.
- * @param {string} [opts.wasmUrl] - URL of the folder with the LiteRT wasm files. Defaults to the jsdelivr copy.
- * @returns {Promise<Object>} The compiled model, to give to `runModel` and `describeModel`.
- */
-declare function loadModel(opts: {
-    ref: FileRef;
-    wasmUrl?: string;
-}): Promise<Object>;
-/**
- * Names, dtypes and shapes of what the model takes and returns.
- * @param {Object} model - The compiled model, from `loadModel`.
- * @returns {{inputs: Object[], outputs: Object[]}}
- */
-declare function describeModel(model: Object): {
-    inputs: Object[];
-    outputs: Object[];
-};
-/**
- * Checks one input against the model's shape.
- * @param {string} name - Input name, for error messages.
- * @param {ModelInput} input - What the caller gave.
- * @param {number[]} modelShape - Shape of the model input (-1 is free).
- * @returns {{flat: number[], shape: number[]}}
- */
-declare function toTensorData(name: string, input: ModelInput, modelShape: number[]): {
-    flat: number[];
-    shape: number[];
-};
-/**
- * Runs the model. The caller only gives data: every LiteRT tensor is created and freed here.
- * Every model input must be in `inputs` under its exact name.
- * @param {Object} model - The compiled model, from loadModel.
- * @param {Record<string, ModelInput>} inputs - Input name -> data.
- * @returns {Promise<Record<string, ArrayLike<number>>>} Output name -> values, for every output of the model.
- */
-declare function runModel(model: Object, inputs: Record<string, ModelInput>): Promise<Record<string, ArrayLike<number>>>;
-export { loadModel, describeModel, runModel, toTensorData };
-/**
- * @fileoverview Runs an i6 model (e.g. "relevance-fashion-fbt") in the browser and returns the result.
- *
- * Flow: get the model's sqlite + tflite (URLs from the model signed-get API, or from the caller in tests),
- * run the named query `model-${modelName}-input` (its result is the model inputs, `{name: {data, shape}}`),
- * run the tflite model, and run the named query `model-${modelName}-output` with the model outputs.
- * Its result is returned as is. Nothing here is model specific.
- *
- * Set `window.I6_DEBUG = true` to see what happens in the console, and to get the model tensors in the "i6:infer-tensors" event.
- */
-export type Services = import("../services/services.js").Services;
-export type FileRef = import("../internal/fs/fs.js").FileRef;
-export type ServiceOptions = import("../invoker/invoker.js").ServiceOptions;
-export type InferOptions = {
-    /**
-     * - Model name (e.g. "relevance-fashion-fbt"); names the cached assets and the named queries.
-     */
-    modelName: string;
-    /**
-     * - Partitions of the model, name -> value (e.g. `{ version: "v1", store_id: "s1" }`). Any partitions.
-     */
-    partitions: Record<string, string>;
-    /**
-     * - Dataset that holds the model files.
-     */
-    dataset: string;
-    /**
-     * - Model input, any JSON (e.g. `{ skus: [...] }`). Bound as `?1` of the input query.
-     */
-    params: any;
-    /**
-     * - Id of the user session; sent in the recommendation events.
-     */
-    sessionId: string;
-    /**
-     * - Id of the user; sent in the recommendation events.
-     */
-    userId: string;
-    /**
-     * - Max number of results asked from the output query (its `?2`). Default 20.
-     */
-    limit?: number;
-    /**
-     * - Tests only, together with `tfliteUrl`: URL of the sqlite (must answer HEAD with an etag). Default: the model API.
-     */
-    sqliteUrl?: string;
-    /**
-     * - Tests only, together with `sqliteUrl`: URL of the tflite.
-     */
-    tfliteUrl?: string;
-    /**
-     * - URL of the folder with the LiteRT wasm files (ending in "/"). Defaults to the jsdelivr copy.
-     */
-    litertWasm?: string;
-    /**
-     * - Given to the API calls (the model API and the `recraw` event).
-     */
-    serviceOpts?: ServiceOptions;
-};
-export type SelectResultsOptions = {
-    /**
-     * - What the caller asked for (the cart).
-     */
-    req: any;
-    /**
-     * - What `run` returned.
-     */
-    results: any;
-    /**
-     * - Id of the recommendation run, returned by `run`.
-     */
-    recId: string;
-    /**
-     * - Id of the user session.
-     */
-    sessionId: string;
-    /**
-     * - Id of the user.
-     */
-    userId: string;
-    /**
-     * - Dataset of the model.
-     */
-    dataset: string;
-    /**
-     * - Model name.
-     */
-    modelName: string;
-    /**
-     * - Model version.
-     */
-    modelVersion: string;
-    /**
-     * - Store partition.
-     */
-    storeId?: string;
-    /**
-     * - Given to the `recshow` event call.
-     */
-    serviceOpts?: ServiceOptions;
-    /**
-     * - Custom selection function.
-     */
-    selectResults?: (req: any, results: any) => Promise<any>;
-};
-/**
- * Infer client.
- */
-declare class Infer {
-    #private;
-    /**
-     * @private
-     * @type {Services}
-     */
-    _services;
-    /**
-     * Constructs an Infer client instance.
-     * @param {Services} services - The services manager instance.
-     */
-    constructor(services: Services);
-    /**
-     * Runs the model in the browser and returns its recommendation result.
-     * @param {InferOptions} opts - Inference options.
-     * @returns {Promise<*>} The results of the model.
-     */
-    run(opts: InferOptions): Promise<any>;
-    callModel(inputs: any, opts: any): Promise<import("../index.js").Resp<import("../sdkapis/sdkapis.js").apiTfzModelPredictResp>>;
-    /**
-     * Asks `selectResults` which of the recommended skus are shown and sends their sku ids as the `recshow` event.
-     * @param {SelectResultsOptions} opts - Select options.
-     * @returns {Promise<*>} What `selectResults` returned, as is (the default sets the `rating` of each sku; see `defaultSelectResults`).
-     */
-    selectResults(opts: SelectResultsOptions): Promise<any>;
-    /**
-     * Sends one recommendation event.
-     * @private
-     * @param {{dataset: string, modelName: string, modelVersion: string, storeId: string, serviceOpts?: ServiceOptions}} opts - Event options.
-     * @param {{sessionId: string, userId: string}} ids - Session and user of the sdk.
-     * @param {string} recId - Id of the recommendation, the same in the recraw and recshow events.
-     * @param {"recraw"|"recshow"} kind - Which event.
-     * @param {*} payload - What the event carries, any JSON.
-     * @returns {Promise<void>}
-     */
-    private #sendRecEvent;
-    /**
-     * Finds where the two model files are: the signed URLs of the model API, unless opts has them (tests).
-     * @private
-     * @param {InferOptions} opts - Inference options.
-     * @returns {Promise<{sqlite: string, tflite: string}>} Download URLs of the files.
-     */
-    private _assetUrls;
-}
-export { Infer };
 /**
  * @fileoverview Token management client for i6 SDK.
  * Manages storage, retrieval, exchange, and silent renewal of authentication (user) and authorization (dataset) tokens.
@@ -6997,455 +6651,811 @@ declare class Tokens {
 }
 export { Tokens };
 /**
- * @fileoverview Base64 URL safe encoding utilities.
+ * @fileoverview Service container managing SDK service instances and configuration.
+ */
+import { Invoker } from "../invoker/invoker.js";
+import { Auth } from "../auth/auth.js";
+import { Tokens } from "../tokens/tokens.js";
+import { Ingest } from "../ingest/ingest.js";
+import { Apis, SdkFuncs } from "../sdkapis/sdkapis.js";
+import { Infer } from "../infer/infer.js";
+import { Dash } from "../dash/dash.js";
+export type I6SdkConfig = import("../index.js").I6SdkConfig;
+/**
+ * @typedef {import("../index.js").I6SdkConfig} I6SdkConfig
  */
 /**
- * Encodes a string or Uint8Array to a Base64 URL safe string.
- * @param {string|Uint8Array|ArrayBuffer} data
- * @returns {string}
+ * Service container that instantiates and provides access to SDK service clients.
+ * `auth` and `tokens` return cached singleton instances; other accessors instantiate a new client
+ * sharing this container's config and dispatcher.
  */
-export declare function encodeUrlSafe(data: string | Uint8Array | ArrayBuffer): string;
-/**
- * Decodes a Base64 URL safe string to a Uint8Array.
- * @param {string} b64UrlSafe
- * @returns {Uint8Array}
- */
-export declare function decodeUrlSafeToBytes(b64UrlSafe: string): Uint8Array;
-/**
- * Decodes a Base64 URL safe string to a UTF-8 string.
- * @param {string} b64UrlSafe
- * @returns {string}
- */
-export declare function decodeUrlSafe(b64UrlSafe: string): string;
-/**
- * @fileoverview Gzip compression utilities.
- */
-/**
- * Compresses data (string, Uint8Array, or ArrayBuffer) using gzip.
- * @param {string|Uint8Array|ArrayBuffer} data - The data to compress.
- * @returns {Promise<Uint8Array>} The gzipped bytes.
- */
-export declare function gzip(data: string | Uint8Array | ArrayBuffer): Promise<Uint8Array>;
-/**
- * Decompresses gzipped bytes to a UTF-8 string.
- * @param {Uint8Array|ArrayBuffer} compressedBytes - The gzipped data.
- * @returns {Promise<string>} The decompressed string.
- */
-export declare function gunzipString(compressedBytes: Uint8Array | ArrayBuffer): Promise<string>;
-/**
- * Decompresses gzipped bytes and returns raw Uint8Array.
- * @param {Uint8Array|ArrayBuffer} compressedBytes - The gzipped data.
- * @returns {Promise<Uint8Array>} The decompressed bytes.
- */
-export declare function gunzip(compressedBytes: Uint8Array | ArrayBuffer): Promise<Uint8Array>;
-/**
- * Gzips a string and encodes it as a Base64 URL safe string.
- * @param {string} str - The string to compress and encode.
- * @returns {Promise<string>} The Base64 URL safe string.
- */
-export declare function gzipStringToBase64Url(str: string): Promise<string>;
-/**
- * Decodes a Base64 URL safe string and decompresses it as a UTF-8 string.
- * @param {string} b64Str - The Base64 URL safe string.
- * @returns {Promise<string>} The decompressed string.
- */
-export declare function gunzipStringFromBase64Url(b64Str: string): Promise<string>;
-/**
- * Gzips a given JSON object or array.
- * @param {any} obj - The JSON serializable object to compress.
- * @returns {Promise<Uint8Array>} The gzipped bytes.
- */
-export declare function gzipJson(obj: any): Promise<Uint8Array>;
-/**
- * Decompresses a gzipped byte array into a JSON object.
- * @param {Uint8Array|ArrayBuffer} compressedBytes - The gzipped data.
- * @returns {Promise<any>} The parsed JSON object.
- */
-export declare function gunzipJson(compressedBytes: Uint8Array | ArrayBuffer): Promise<any>;
-/**
- * Gzips a JSON object and encodes it as a Base64 URL safe string.
- * @param {any} obj - The JSON serializable object.
- * @returns {Promise<string>} The Base64 URL safe encoded string of the gzipped JSON.
- */
-export declare function gzipJsonToBase64Url(obj: any): Promise<string>;
-/**
- * Decodes a Base64 URL safe string, gunzips it, and parses it as JSON.
- * @param {string} b64Str - The Base64 URL safe string containing gzipped JSON.
- * @returns {Promise<any>} The parsed JSON object.
- */
-export declare function gunzipJsonFromBase64Url(b64Str: string): Promise<any>;
-/**
- * @fileoverview Versioned file store on the browser's origin private file system (OPFS).
- *
- * Layout under `i6/fs`:
- *   {name}/version.txt          the released (current) version, if any
- *   {name}/v{version}/etag.txt  the etag the version was created for
- *   {name}/v{version}/blob.bin  the content (written by the caller, see `resolve`)
- *
- * Versions are ISO timestamps, so they sort in creation order.
- */
-export type FileRef = {
+declare class Services {
+    _dispatcher: EventTarget;
     /**
-     * - File name, a single OPFS directory name (e.g. "model").
+     * @private
+     * @type {I6SdkConfig}
      */
-    name: string;
+    _config;
+    _auth: Auth | undefined;
+    _tokens: Tokens | undefined;
     /**
-     * - Version id, an ISO timestamp (e.g. "2026-09-29T12:00:00.000Z").
+     * Constructs a Services instance.
+     * @param {I6SdkConfig} config - Configuration object for the SDK services.
      */
-    version: string;
+    constructor(config: I6SdkConfig);
     /**
-     * - Etag of the remote content this version was created for.
+     * Returns the SDK configuration.
+     * @returns {I6SdkConfig} The configuration object.
      */
-    etag: string;
+    config(): I6SdkConfig;
+    /**
+     * Overwrites the given keys of the SDK configuration; the other keys are kept.
+     * Clients read the config on every call, so the change is seen by every client of this container at once.
+     * @param {Partial<I6SdkConfig>} config - The keys to overwrite.
+     * @returns {void}
+     */
+    setConfig(config: Partial<I6SdkConfig>): void;
+    /**
+     * Registers an event listener on the internal event dispatcher.
+     * @param {string} evt - The event type or name to listen for.
+     * @param {EventListenerOrEventListenerObject|Function} fn - The callback function or event listener object invoked when the event occurs.
+     * @returns {void}
+     */
+    bind(evt: string, fn: EventListenerOrEventListenerObject | Function): void;
+    /**
+     * Creates and returns an Invoker service instance.
+     * @returns {Invoker} An instance of the Invoker client.
+     */
+    invoker(): Invoker;
+    /**
+     * Creates and returns an Auth service instance.
+     * @returns {Auth} An instance of the Auth client.
+     */
+    auth(): Auth;
+    /**
+     * Creates and returns a Tokens service instance.
+     * @returns {Tokens} An instance of the Tokens client.
+     */
+    tokens(): Tokens;
+    /**
+     * Creates and returns an Ingest service instance.
+     * @returns {Ingest} An instance of the Ingest client.
+     */
+    ingest(): Ingest;
+    /**
+     * Creates and returns an Infer service instance.
+     * @returns {Infer} An instance of the Infer client.
+     */
+    infer(): Infer;
+    /**
+     * Creates and returns a Dash service instance.
+     * @returns {Dash} An instance of the Dash client.
+     */
+    dash(): Dash;
+    /**
+     * Creates and returns an Apis service instance.
+     * @returns {Apis} An instance of the generated Apis client.
+     */
+    apis(): Apis;
+    /**
+    * Creates and returns a Funcs service instance.
+    * @returns {SdkFuncs} An instance of the generated SdkFuncs client.
+    */
+    funcs(): SdkFuncs;
+}
+export { Services, Apis, SdkFuncs };
+/**
+ * @fileoverview The LiteRT side of infer: loads the tflite model and runs it. Everything that touches the
+ * LiteRT library (runtime, model, tensors) is in this file. The caller only gives data and gets values back.
+ */
+export type FileRef = import("../internal/fs/fs.js").FileRef;
+export type ModelInput = {
+    /**
+     * - Flat values; their count must be the product of `shape`.
+     */
+    data: number[];
+    /**
+     * - Shape of `data`.
+     */
+    shape: number[];
 };
 /**
- * Versioned file store. Use the `fs` singleton.
+ * Loads the LiteRT runtime (once) and the tflite model. Everything LiteRT stays inside this file. The file is only
+ * read and compiled when its version changed since the last call.
+ * @param {Object} opts
+ * @param {FileRef} opts.ref - The downloaded .tflite file.
+ * @param {string} [opts.wasmUrl] - URL of the folder with the LiteRT wasm files. Defaults to the jsdelivr copy.
+ * @returns {Promise<Object>} The compiled model, to give to `runModel` and `describeModel`.
+ */
+declare function loadModel(opts: {
+    ref: FileRef;
+    wasmUrl?: string;
+}): Promise<Object>;
+/**
+ * Names, dtypes and shapes of what the model takes and returns.
+ * @param {Object} model - The compiled model, from `loadModel`.
+ * @returns {{inputs: Object[], outputs: Object[]}}
+ */
+declare function describeModel(model: Object): {
+    inputs: Object[];
+    outputs: Object[];
+};
+/**
+ * Checks one input against the model's shape.
+ * @param {string} name - Input name, for error messages.
+ * @param {ModelInput} input - What the caller gave.
+ * @param {number[]} modelShape - Shape of the model input (-1 is free).
+ * @returns {{flat: number[], shape: number[]}}
+ */
+declare function toTensorData(name: string, input: ModelInput, modelShape: number[]): {
+    flat: number[];
+    shape: number[];
+};
+/**
+ * Runs the model. The caller only gives data: every LiteRT tensor is created and freed here.
+ * Every model input must be in `inputs` under its exact name.
+ * @param {Object} model - The compiled model, from loadModel.
+ * @param {Record<string, ModelInput>} inputs - Input name -> data.
+ * @returns {Promise<Record<string, ArrayLike<number>>>} Output name -> values, for every output of the model.
+ */
+declare function runModel(model: Object, inputs: Record<string, ModelInput>): Promise<Record<string, ArrayLike<number>>>;
+export { loadModel, describeModel, runModel, toTensorData };
+/**
+ * @fileoverview Runs an i6 model (e.g. "relevance-fashion-fbt") in the browser and returns the result.
  *
- * A file is created as a new unreleased version, filled, then released to become the
- * current one; releasing removes the older versions.
- */
-declare class FS {
-    /**
-     * Removes the versions older than version.txt, and the whole file if it is left empty.
-     * Without version.txt no version is removed.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @returns {Promise<void>}
-     */
-    cleanFile(opts: {
-        name: string;
-    }): Promise<void>;
-    /**
-     * Cleans all files, see cleanFile.
-     * @returns {Promise<void>}
-     */
-    clean(): Promise<void>;
-    /**
-     * Resolves a version of a file.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} [opts.version] - defaults to the content of version.txt
-     * @returns {Promise<FileRef|null>} a new full FileRef, or null if it does not exist.
-     */
-    get(opts: {
-        name: string;
-        version?: string;
-    }): Promise<FileRef | null>;
-    /**
-     * Creates a new version, unless the latest version already has this etag.
-     * The new version is not released.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.etag - required
-     * @param {Blob|BufferSource|string} [opts.data] - content, required when a new version is created
-     * @returns {Promise<FileRef>} a new full FileRef.
-     */
-    create(opts: {
-        name: string;
-        etag: string;
-        data?: Blob | BufferSource | string;
-    }): Promise<FileRef>;
-    /**
-     * Returns the bin file path, full (with base). Does not check that it exists, see get.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.version - required
-     * @returns {Promise<string>} e.g. "i6/fs/{name}/v{version}/blob.bin"
-     */
-    resolve(opts: {
-        name: string;
-        version: string;
-    }): Promise<string>;
-    /**
-     * Reads the content (blob.bin) of a version.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.version - required
-     * @returns {Promise<Uint8Array>} the bytes of the file.
-     * @throws {DOMException} NotFoundError if the version or its blob does not exist.
-     */
-    read(opts: {
-        name: string;
-        version: string;
-    }): Promise<Uint8Array>;
-    /**
-     * Makes a version the current one (version.txt), then cleans the older versions.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.version - required, must exist
-     * @returns {Promise<FileRef>} a new full FileRef of the released version.
-     */
-    release(opts: {
-        name: string;
-        version: string;
-    }): Promise<FileRef>;
-    /**
-     * Removes a version that was never released (e.g. its download failed). Does nothing if it does not exist.
-     * @param {Object} opts
-     * @param {string} opts.name - required
-     * @param {string} opts.version - required, must not be the released one
-     * @returns {Promise<void>}
-     */
-    discard(opts: {
-        name: string;
-        version: string;
-    }): Promise<void>;
-}
-/** Shared FS instance. */
-declare const fs: FS;
-export { fs };
-/**
- * @fileoverview Helpers shared by the services that run on files downloaded from i6 (infer, dash).
- */
-export type FileRef = import("../fs/fs.js").FileRef;
-/**
- * @typedef {import("../fs/fs.js").FileRef} FileRef
- */
-/**
- * @param {Object<string, string>} partitions - Partitions, name -> value.
- * @returns {string} A stable key of the partitions, safe as part of a cache file name (e.g. "store_id%3Ds1-version%3Dv1").
- */
-declare function partitionsKey(partitions: Record<string, string>): string;
-/**
- * @param {*} partitions - Value to check.
- * @returns {boolean} True if it is an object (not an array) whose values are all strings.
- */
-declare function isPartitions(partitions: any): boolean;
-/**
- * Brings one remote file to the browser cache, downloading it only if its etag changed.
- * @param {string} name - Name of the cached file.
- * @param {string} url - URL of the file.
- * @returns {Promise<FileRef>} The cached file.
- */
-declare function downloadFile(name: string, url: string): Promise<FileRef>;
-export { partitionsKey, isPartitions, downloadFile };
-/**
- * @fileoverview Sqlite client for the SDK, running sqlite (sql.js, wasm) in the browser.
+ * Flow: get the model's sqlite + tflite (URLs from the model signed-get API, or from the caller in tests),
+ * run the named query `model-${modelName}-input` (its result is the model inputs, `{name: {data, shape}}`),
+ * run the tflite model, and run the named query `model-${modelName}-output` with the model outputs.
+ * Its result is returned as is. Nothing here is model specific.
  *
- * Usage: get the file with the downloader, open it by its OPFS path and always close the
- * connection when done:
- *
- *   const ref = await downloader.update({ name, url })
- *   const conn = await sqlitez.open({ path: await fs.resolve(ref) })
- *   try {
- *     const rows = await conn.query({ query: 'SELECT * FROM t WHERE id = ?', params: [1] })
- *   } finally {
- *     await conn.close()
- *   }
- *
- * The database lives in memory: `update` changes the memory copy, the file is never written back.
- * Every method takes a single `opts` object with the real parameters inside it.
+ * Set `window.I6_DEBUG = true` to see what happens in the console, and to get the model tensors in the "i6:infer-tensors" event.
  */
-export type SqliteValue = number | string | null | Uint8Array;
-export type SqliteRow = Object<string, SqliteValue>;
+export type Services = import("../services/services.js").Services;
+export type FileRef = import("../internal/fs/fs.js").FileRef;
+export type ServiceOptions = import("../invoker/invoker.js").ServiceOptions;
+export type InferOptions = {
+    /**
+     * - Model name (e.g. "relevance-fashion-fbt"); names the cached assets and the named queries.
+     */
+    modelName: string;
+    /**
+     * - Partitions of the model, name -> value (e.g. `{ version: "v1", store_id: "s1" }`). Any partitions.
+     */
+    partitions: Record<string, string>;
+    /**
+     * - Dataset that holds the model files.
+     */
+    dataset: string;
+    /**
+     * - Model input, any JSON (e.g. `{ skus: [...] }`). Bound as `?1` of the input query.
+     */
+    params: any;
+    /**
+     * - Id of the user session; sent in the recommendation events.
+     */
+    sessionId: string;
+    /**
+     * - Id of the user; sent in the recommendation events.
+     */
+    userId: string;
+    /**
+     * - Max number of results asked from the output query (its `?2`). Default 20.
+     */
+    limit?: number;
+    /**
+     * - Tests only, together with `tfliteUrl`: URL of the sqlite (must answer HEAD with an etag). Default: the model API.
+     */
+    sqliteUrl?: string;
+    /**
+     * - Tests only, together with `sqliteUrl`: URL of the tflite.
+     */
+    tfliteUrl?: string;
+    /**
+     * - URL of the folder with the LiteRT wasm files (ending in "/"). Defaults to the jsdelivr copy.
+     */
+    litertWasm?: string;
+    /**
+     * - Given to the API calls (the model API and the `recraw` event).
+     */
+    serviceOpts?: ServiceOptions;
+};
+export type SelectResultsOptions = {
+    /**
+     * - What the caller asked for (the cart).
+     */
+    req: any;
+    /**
+     * - What `run` returned.
+     */
+    results: any;
+    /**
+     * - Id of the recommendation run, returned by `run`.
+     */
+    recId: string;
+    /**
+     * - Id of the user session.
+     */
+    sessionId: string;
+    /**
+     * - Id of the user.
+     */
+    userId: string;
+    /**
+     * - Dataset of the model.
+     */
+    dataset: string;
+    /**
+     * - Model name.
+     */
+    modelName: string;
+    /**
+     * - Model version.
+     */
+    modelVersion: string;
+    /**
+     * - Store partition.
+     */
+    storeId?: string;
+    /**
+     * - Given to the `recshow` event call.
+     */
+    serviceOpts?: ServiceOptions;
+    /**
+     * - Custom selection function.
+     */
+    selectResults?: (req: any, results: any) => Promise<any>;
+};
 /**
- * An open in-memory sqlite connection. Obtained from `sqlitez.open`.
+ * Infer client.
  */
-declare class SqliteConn {
+declare class Infer {
     #private;
     /**
      * @private
-     * @type {Object|null}
+     * @type {Services}
      */
-    db;
+    _services;
     /**
-     * @param {Object} db - The sql.js Database instance.
+     * Constructs an Infer client instance.
+     * @param {Services} services - The services manager instance.
      */
-    constructor(db: Object);
+    constructor(services: Services);
     /**
-     * Closes the connection and frees its memory. Calling it more than once does nothing.
-     * After `close`, every other method throws.
+     * Runs the model in the browser and returns its recommendation result.
+     * @param {InferOptions} opts - Inference options.
+     * @returns {Promise<*>} The results of the model.
+     */
+    run(opts: InferOptions): Promise<any>;
+    callModel(inputs: any, opts: any): Promise<import("../index.js").Resp<import("../sdkapis/sdkapis.js").apiTfzModelPredictResp>>;
+    /**
+     * Asks `selectResults` which of the recommended skus are shown and sends their sku ids as the `recshow` event.
+     * @param {SelectResultsOptions} opts - Select options.
+     * @returns {Promise<*>} What `selectResults` returned, as is (the default sets the `rating` of each sku; see `defaultSelectResults`).
+     */
+    selectResults(opts: SelectResultsOptions): Promise<any>;
+    /**
+     * Sends one recommendation event.
+     * @private
+     * @param {{dataset: string, modelName: string, modelVersion: string, storeId: string, serviceOpts?: ServiceOptions}} opts - Event options.
+     * @param {{sessionId: string, userId: string}} ids - Session and user of the sdk.
+     * @param {string} recId - Id of the recommendation, the same in the recraw and recshow events.
+     * @param {"recraw"|"recshow"} kind - Which event.
+     * @param {*} payload - What the event carries, any JSON.
      * @returns {Promise<void>}
      */
-    close(): Promise<void>;
+    private #sendRecEvent;
     /**
-     * Runs a query and returns its rows.
-     * @param {Object} opts
-     * @param {string} opts.query - required, the SQL; use `?` for values.
-     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query (never concatenate them).
-     * @returns {Promise<SqliteRow[]>} The rows (empty array when none), each one an object by column name.
-     * @throws {TypeError} If opts.query is missing.
+     * Finds where the two model files are: the signed URLs of the model API, unless opts has them (tests).
+     * @private
+     * @param {InferOptions} opts - Inference options.
+     * @returns {Promise<{sqlite: string, tflite: string}>} Download URLs of the files.
      */
-    query(opts: {
-        query: string;
-        params?: SqliteValue[];
-    }): Promise<SqliteRow[]>;
+    private _assetUrls;
+}
+export { Infer };
+/**
+ * @fileoverview HTTP client for sending API requests to i6 services.
+ */
+export type Services = import("../services/services.js").Services;
+export type Fetcher = (url: string, opts: InvokeOptions) => Promise<Response>;
+export type PrepareRequest = (opts: InvokeOptions) => Promise<void> | void;
+export type ServiceOptions = {
     /**
-     * Runs a statement that returns no data (INSERT, UPDATE, CREATE, ...). Only the memory copy changes.
-     * @param {Object} opts
-     * @param {string} opts.query - required, the SQL; use `?` for values.
-     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the query.
-     * @returns {Promise<void>}
-     * @throws {TypeError} If opts.query is missing.
+     * - Custom fetcher function override.
      */
-    update(opts: {
-        query: string;
-        params?: SqliteValue[];
-    }): Promise<void>;
+    fetcher?: Fetcher;
     /**
-     * Runs a query stored in the `namedqueries` table of the sqlite (columns `name` and `query`).
-     * @param {Object} opts
-     * @param {string} opts.name - required, the `name` of the stored query.
-     * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the stored query.
-     * @returns {Promise<SqliteRow[]>} The rows of the stored query, like `query`.
-     * @throws {TypeError} If opts.name is missing.
+     * - Pre-request hook (e.g. for URL signing).
      */
-    namedQuery(opts: {
-        name: string;
-        params?: SqliteValue[];
-    }): Promise<SqliteRow[]>;
+    prepareRequest?: PrepareRequest;
     /**
-     * Like `namedQuery`, but with JSON in and JSON out: each value of `opts.params`
-     * is bound as a JSON string to the positional `?1`, `?2`, ... of the stored query, in order (read them in SQL with
-     * `json_extract(?1, '$.field')`, `json_each(?2)`, ...). The stored query must return a row with a column `ret`
-     * holding a JSON string. That JSON is parsed and returned.
-     * The stored query must have a placeholder for every value, otherwise sqlite rejects the bind ("column index out of range").
-     * @param {Object} opts
-     * @param {string} opts.name - required, the `name` of the stored query (see `namedQuery`).
-     * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
-     * @returns {Promise<*>} The parsed `ret` of the first row, or null if there is no row or `ret` is null.
-     * @throws {TypeError} If opts.name is missing or opts.params is not an array.
+     * - Explicit user bearer token for this request.
      */
-    namedJsonQuery(opts: {
-        name: string;
-        params?: Array<any>;
-    }): Promise<any>;
+    bearerToken?: string;
     /**
-     * Like `namedJsonQuery` (same JSON params bound as `?1`, `?2`, ...), but the `ret` column is returned as is,
-     * without JSON.parse. Use it when the stored query returns plain text (e.g. for models); use `namedJsonQuery` when it returns JSON (e.g. for dash).
-     * @param {Object} opts
-     * @param {string} opts.name - required, the `name` of the stored query (see `namedQuery`).
-     * @param {Array<*>} [opts.params] - JSON-serializable values, bound in order as `?1`, `?2`, ... Default: none.
-     * @returns {Promise<string|null>} The `ret` of the first row as a string, or null if there is no row or `ret` is null.
-     * @throws {TypeError} If opts.name is missing or opts.params is not an array.
+     * - Contextual metadata labels.
      */
-    namedStringQuery(opts: {
-        name: string;
-        params?: Array<any>;
-    }): Promise<string | null>;
+    labels?: Record<string, string>;
+};
+export type InvokeOptions = {
+    /**
+     * - Full target URL. Overrides baseUrl + path if set.
+     */
+    url?: string;
+    /**
+     * - Path appended to baseUrl (e.g. "api/item/create").
+     */
+    path?: string;
+    /**
+     * - HTTP method ("GET", "POST", "PUT", etc.).
+     */
+    method?: string;
+    /**
+     * - Query parameters serialized into the URL.
+     */
+    query?: Record<string, any>;
+    /**
+     * - Body data serialized as JSON. Sets "Content-Type: application/json".
+     */
+    json?: any;
+    /**
+     * - Additional HTTP headers.
+     */
+    headers?: HeadersInit;
+    /**
+     * - Advanced service request hooks (fetcher, prepareRequest, etc.).
+     */
+    opts?: ServiceOptions;
+    /**
+     * - Fetch credentials mode.
+     */
+    credentials?: RequestCredentials;
+};
+/**
+ * Response wrapper holding HTTP transport status and lazy parser.
+ * @template T
+ */
+declare class Resp<T> {
+    #private;
+    status: number;
+    headers: Headers;
+    ok: boolean;
+    /**
+     * @param {number} status - HTTP status code.
+     * @param {Headers} headers - HTTP response headers.
+     * @param {() => *} parser - Lazy parser function.
+     * @param {string} [text] - Raw response body text.
+     */
+    constructor(status: number, headers: Headers, parser: () => any, text?: string);
+    /**
+     * Raw body text of the response.
+     * @returns {string}
+     */
+    get text(): string;
+    /**
+     * Structured error information when response is not ok.
+     * @returns {{status: number, code: string, message: string, cause: *}|null}
+     */
+    get error(): {
+        status: number;
+        code: string;
+        message: string;
+        cause: any;
+    } | null;
+    /**
+     * Parses and returns the deserialized response value.
+     * Throws an error if deserialization fails or if the response status is not ok.
+     * @returns {T}
+     */
+    parse(): T;
 }
 /**
- * Sqlitez client. Use the `sqlitez` singleton.
+ * Invoker client for executing HTTP requests against the i6 API.
  */
-declare class Sqlitez {
+declare class Invoker {
     /**
-     * Opens a sqlite file of the browser file system into memory.
-     * @param {Object} opts
-     * @param {string} opts.path - required, OPFS path of the file (what `fs.resolve` returns for a downloaded file).
-     * @returns {Promise<SqliteConn>} The connection. The caller must `close()` it.
-     * @throws {TypeError} If opts.path is missing.
+     * @private
+     * @type {Services}
      */
-    open(opts: {
-        path: string;
-    }): Promise<SqliteConn>;
-}
-/** Shared Sqlitez instance. */
-declare const sqlitez: Sqlitez;
-export { sqlitez };
-/**
- * @fileoverview Keeps a remote file cached in the browser's file system (see fs.js),
- * downloading it only when its etag changes.
- */
-export type FileRef = import('../fs/fs.js').FileRef;
-/**
- * Downloads remote files into the versioned file store. Use the `downloader` singleton.
- */
-declare class Downloader {
+    _services;
     /**
-     * Downloads the file by name if necessary (checking etag): sends a HEAD request, and
-     * if the etag differs from the released version, streams the body into a new version
-     * and releases it.
-     * @param {Object} opts
-     * @param {string} opts.name - required, name to store the file under (see fs.js)
-     * @param {string} opts.url - required, URL of the file; must answer HEAD with an etag
-     * @returns {Promise<FileRef>} the FileRef of the up-to-date file (basically to get the version)
-     * @throws {TypeError} If name or url is missing.
-     * @throws {Error} If the HEAD or GET request fails, or the HEAD response has no etag.
-     *   When the server answered, the error has `status` (the HTTP status code).
-    */
-    update(opts: {
-        name: string;
+     * Constructs an Invoker instance.
+     * @param {Services} services - The services manager instance.
+     */
+    constructor(services: Services);
+    /**
+     * @param {{tokenTypes: string, url: string}} opts
+     * @return {{token:string, required: boolean}}
+     */
+    resolveToken(opts: {
+        tokenTypes: string;
         url: string;
-    }): Promise<FileRef>;
+    }): {
+        token: string;
+        required: boolean;
+    };
+    /**
+     * Sends an HTTP request using the Fetch API.
+     *
+     * @param {InvokeOptions} opts - Request options including path/URL, query params, and fetch options.
+     * @returns {Promise<Response>} A promise that resolves to the fetch Response.
+     */
+    invoke(opts: InvokeOptions): Promise<Response>;
+    /**
+     * Resolves with a `Resp` instance holding the HTTP status, headers, and lazy `parse()`.
+     * Network errors bubble up directly as native exceptions.
+     * @template T
+     * @param {InvokeOptions} opts - Same as `invoke`.
+     * @returns {Promise<Resp<T>>}
+     */
+    invokeResult<T>(opts: InvokeOptions): Promise<Resp<T>>;
 }
-/** Shared Downloader instance. */
-declare const downloader: Downloader;
-export { downloader };
+export { Invoker, Resp };
 /**
- * @fileoverview Compact variable-length bitmask operations, serialization, and deserialization.
- * Direct JavaScript port of commonz/bitmapz.
+ * @fileoverview Queries an i6 dash in the browser: downloads the dash's sqlite, runs the named query
+ * `dash-${dashName}` on it and returns its result as is. Nothing here is dash specific.
+ *
+ * Set `window.I6_DEBUG = true` to see what happens in the console.
  */
+export type Services = import("../services/services.js").Services;
+export type ServiceOptions = import("../invoker/invoker.js").ServiceOptions;
+export type DashOptions = {
+    /**
+     * - Dash name (e.g. "product-relevance-fashion-dash-funnel"); names the cached sqlite and the named query.
+     */
+    dashName: string;
+    /**
+     * - Partitions of the dash, name -> value (e.g. `{ store_id: "s1", version: "v1" }`).
+     */
+    partitions: Record<string, string>;
+    /**
+     * - Dataset that holds the dash file.
+     */
+    dataset: string;
+    /**
+     * - Query input, any JSON. Bound as `?1` of the named query. Omit it for a query that takes none.
+     */
+    params?: any;
+    /**
+     * - Tests only: URL of the sqlite (must answer HEAD with an etag). Default: the model API.
+     */
+    sqliteUrl?: string;
+    /**
+     * - Given to the API call that signs the sqlite URL.
+     */
+    serviceOpts?: ServiceOptions;
+};
 /**
- * Combines all given values into a single bitmask using bitwise OR.
- * @param {...(number|bigint)} values - Bitmask values to combine.
- * @returns {number} The combined bitmask.
+ * Dash client.
  */
-declare function join(...values: (number | bigint)[]): number;
+declare class Dash {
+    /**
+     * @private
+     * @type {Services}
+     */
+    _services;
+    /**
+     * Constructs a Dash client instance.
+     * @param {Services} services - The services manager instance.
+     */
+    constructor(services: Services);
+    /**
+     * Downloads the dash sqlite (cached by etag), runs the named query `dash-${dashName}` with `params` and returns its result.
+     * @param {DashOptions} opts - Dash options.
+     * @returns {Promise<*>} The `ret` of the named query.
+     */
+    query(opts: DashOptions): Promise<any>;
+    /**
+     * Finds where the dash sqlite is: the signed URL of the model API (like Infer), unless opts has `sqliteUrl` (tests).
+     * @private
+     * @param {DashOptions} opts - Dash options.
+     * @returns {Promise<string>} Download URL of the sqlite.
+     */
+    private _sqliteUrl;
+}
+export { Dash };
 /**
- * Reports whether current contains all bits in expected.
- * If expected is empty, returns true.
- * @param {number|bigint} current - Bitmask to inspect.
- * @param {...(number|bigint)} expected - Required bits.
- * @returns {boolean} True if current contains all expected bits.
+ * @fileoverview Main entry point for the i6 Web Legacy SDK.
  */
-declare function containsAll(current: number | bigint, ...expected: (number | bigint)[]): boolean;
+import { Apis, SdkFuncs } from "./services/services.js";
+import { Resp } from "./invoker/invoker.js";
+import { bitmapz } from "./internal/bitmapz/bitmapz.js";
+export type I6Storage = {
+    /**
+     * - Retrieves an item by key.
+     */
+    getItem: (key: string) => string | null;
+    /**
+     * - Stores an item by key and string value.
+     */
+    setItem: (key: string, value: string) => void;
+    /**
+     * - Removes an item by key.
+     */
+    removeItem: (key: string) => void;
+};
+export type I6SdkConfig = {
+    /**
+     * - Base URL of the i6 server. Defaults to the sandbox environment.
+     */
+    baseUrl?: string;
+    /**
+     * - Base URL of the other services, by the `servname` label of the api (e.g. `tfinfer`). An api whose service is not listed uses `baseUrl`.
+     */
+    servUrls?: Record<string, string>;
+    /**
+     * - Direct base URL override for the i6userz authentication service.
+     */
+    userzUrl?: string;
+    /**
+     * - Absolute URL of the application's exchange callback page handling PKCE token exchange.
+     */
+    userExchangeCallbackUrl?: string;
+    /**
+     * - Default application redirect URL after logout.
+     */
+    callbackUrl?: string;
+    /**
+     * - Client application identifier registered in i6userz (e.g. 'default').
+     */
+    app?: string;
+    /**
+     * - Optional storage adapter for persistent token storage. Defaults to global `localStorage` when omitted.
+     */
+    storage?: I6Storage | (() => I6Storage);
+    /**
+     * - Optional alias for persistent storage adapter (defaults to global `localStorage`).
+     */
+    localStorage?: I6Storage | (() => I6Storage);
+    /**
+     * - Optional storage adapter for session-scoped data such as PKCE code verifier. Defaults to global `sessionStorage` when omitted.
+     */
+    sessionStorage?: I6Storage | (() => I6Storage);
+    /**
+     * - Optional alias for session storage adapter.
+     */
+    storageSession?: I6Storage | (() => I6Storage);
+};
 /**
- * Reports whether current contains at least one of the bits in expected.
- * If expected is empty or current is 0, returns false.
- * @param {number|bigint} current - Bitmask to inspect.
- * @param {...(number|bigint)} expected - Expected bits.
- * @returns {boolean} True if current contains any expected bit.
+ * Main SDK class providing access to i6 services.
  */
-declare function containsAny(current: number | bigint, ...expected: (number | bigint)[]): boolean;
+declare class I6Sdk {
+    /**
+     * @private
+     * @type {Services}
+     */
+    _service;
+    /**
+     * Constructs an instance of the i6 SDK.
+     * @param {I6SdkConfig} [config] - Configuration options for the SDK.
+     */
+    constructor(config?: I6SdkConfig);
+    /**
+     * Returns a copy of the configuration the SDK is running with.
+     * @returns {I6SdkConfig} The current configuration.
+     */
+    config(): I6SdkConfig;
+    /**
+     * Overwrites the given keys of the configuration; the other keys are kept.
+     * Can be called at any time, the next call of the SDK uses the new values.
+     * @param {Partial<I6SdkConfig>} config - The keys to overwrite.
+     * @returns {void}
+     */
+    setConfig(config: Partial<I6SdkConfig>): void;
+    /**
+     * Returns an Ingest service instance.
+     * @returns {import("./ingest/ingest.js").Ingest} An instance of the Ingest client.
+     */
+    ingest(): import("./ingest/ingest.js").Ingest;
+    /**
+     * Returns an Infer service instance, which runs an i6 model in the browser and returns the result.
+     * @returns {import("./infer/infer.js").Infer} An instance of the Infer client.
+     */
+    infer(): import("./infer/infer.js").Infer;
+    /**
+     * Returns a Dash service instance, which queries an i6 dash in the browser and returns the result.
+     * @returns {import("./dash/dash.js").Dash} An instance of the Dash client.
+     */
+    dash(): import("./dash/dash.js").Dash;
+    /**
+     * Returns an Auth service instance.
+     * @returns {import("./auth/auth.js").Auth} An instance of the Auth client.
+     */
+    auth(): import("./auth/auth.js").Auth;
+    /**
+     * Returns a Tokens service instance.
+     * @returns {import("./tokens/tokens.js").Tokens} An instance of the Tokens client.
+     */
+    tokens(): import("./tokens/tokens.js").Tokens;
+    /**
+     * Returns the Apis service instance, one typed method per i6 server API.
+     * Each call resolves with `{status, ok, payload?, error?}` and does not throw on an HTTP error.
+     * @returns {Apis} An instance of the generated Apis client.
+     */
+    apis(): Apis;
+    /**
+     * Returns the Funcs service instance.
+     * @returns {SdkFuncs} An instance of the SdkFuncs client.
+     */
+    funcs(): SdkFuncs;
+    /**
+     * Registers an event listener on the SDK's internal event dispatcher (an EventTarget).
+     * @param {string} evt - The event type or name to listen for.
+     * @param {EventListenerOrEventListenerObject|Function} fn - The callback function or event listener object invoked when the event occurs.
+     * @returns {void}
+     */
+    bind(evt: string, fn: EventListenerOrEventListenerObject | Function): void;
+}
+declare namespace I6Sdk {
+    export { Resp };
+    export { bitmapz };
+    export { Grants };
+}
 /**
- * Decomposes current into an array of individual set bits in ascending order.
- * If current is 0, returns an empty array.
- * @param {number|bigint} current - Bitmask to split.
- * @returns {number[]} Array of individual set bits.
+ * Permissions catalog and bitmask constants matching Go's grants package.
  */
-declare function split(current: number | bigint): number[];
-/**
- * Adds or removes the given values from current based on enable.
- * @param {number|bigint} current - Starting bitmask.
- * @param {boolean} enable - True to set bits, false to clear them.
- * @param {...(number|bigint)} values - Bitmask flags to add or remove.
- * @returns {number} The updated bitmask.
- */
-declare function set(current: number | bigint, enable: boolean, ...values: (number | bigint)[]): number;
-/**
- * Encodes the bitmask v into a compact variable-length byte array (Uint8Array).
- * If v fits in 4 bits (0..15), it is serialized in 1 byte:
- * upper 4 bits are 0000, lower 4 bits store the value.
- * Otherwise, upper 4 bits specify the number of payload bytes (1..8),
- * lower 4 bits are 0000, followed by payload bytes in little-endian order.
- * @param {number|bigint} v - Bitmask value to serialize.
- * @returns {Uint8Array} The serialized bytes.
- */
-declare function serialize(v: number | bigint): Uint8Array;
-/**
- * Decodes a bitmask from data according to the variable-length encoding.
- * Throws an Error if data is empty, has an invalid length, invalid size,
- * or non-zero lower nibble when size > 0.
- * @param {Uint8Array} data - Binary encoded bitmask.
- * @returns {number|bigint} The decoded bitmask.
- */
-declare function deserialize(data: Uint8Array): number | bigint;
-declare const bitmapz: Readonly<{
-    join: typeof join;
-    containsAll: typeof containsAll;
-    containsAny: typeof containsAny;
-    split: typeof split;
-    set: typeof set;
-    serialize: typeof serialize;
-    deserialize: typeof deserialize;
+declare const Grants: Readonly<{
+    System: 1;
+    Admin: 2;
+    Write: 4;
+    Read: 8;
+    All: 15;
 }>;
-export { bitmapz, join, containsAll, containsAny, split, set, serialize, deserialize };
+export { I6Sdk, Resp, bitmapz, Grants };
 /**
- * @fileoverview Debug logging of the SDK. Set `window.I6_DEBUG = true` to see it in the console.
+ * @fileoverview Ingest client for uploading files to the ingestion service.
+ */
+export type Services = import("../services/services.js").Services;
+export type ServiceOptions = import("../invoker/invoker.js").ServiceOptions;
+export type Partitions = Record<string, string>;
+export type GetUrlParams = {
+    /**
+     * - Dataset name.
+     */
+    dataset: string;
+    /**
+     * - Inbox table name.
+     */
+    table: string;
+    /**
+     * - Values for the table partitions, except the ingest id one.
+     */
+    partitions: Partitions;
+    /**
+     * - Given to the ingestz-get-url API call.
+     */
+    serviceOpts?: ServiceOptions;
+};
+export type UploadProgress = {
+    /**
+     * - Bytes sent so far.
+     */
+    loaded: number;
+    /**
+     * - Total bytes to send (the file size when the browser can't tell).
+     */
+    total: number;
+    /**
+     * - Progress from 0 to 100.
+     */
+    percent: number;
+};
+export type UploadParams = {
+    /**
+     * - Dataset the file is ingested into.
+     */
+    dataset: string;
+    /**
+     * - Inbox table name.
+     */
+    table: string;
+    /**
+     * - Values for the table partitions, except the ingest id one.
+     */
+    partitions: Partitions;
+    /**
+     * - The single file to upload.
+     */
+    file: File;
+    /**
+     * - Called as the file is sent.
+     */
+    onProgress?: (progress: UploadProgress) => void;
+    /**
+     * - Aborts the upload; the promise then rejects with the signal's reason (an AbortError by default).
+     */
+    signal?: AbortSignal;
+    /**
+     * - Content-Type of the PUT. Defaults to the file's own type.
+     */
+    contentType?: string;
+    /**
+     * - Given to the ingestz-get-url API call (the PUT to the signed URL needs none).
+     */
+    serviceOpts?: ServiceOptions;
+};
+export type UploadResult = {
+    /**
+     * - Id the server assigned to this ingest.
+     */
+    ingestId: string;
+};
+/**
+ * @typedef {import("../services/services.js").Services} Services
+ * @typedef {import("../invoker/invoker.js").ServiceOptions} ServiceOptions
  */
 /**
- * @param {string} prefix - Printed first, followed by ":" (e.g. "infer").
- * @returns {(...args: *) => void} A logger that prints only when `window.I6_DEBUG` is true.
+ * Key-value mapping representing dataset table partition values, except the ingest ID.
+ * @typedef {Record<string, string>} Partitions
  */
-declare const debugLogger: (prefix: string) => (...args: any) => void;
-export { debugLogger };
+/**
+ * Parameters for requesting a signed upload URL from the ingest service.
+ * @typedef {Object} GetUrlParams
+ * @property {string} dataset - Dataset name.
+ * @property {string} table - Inbox table name.
+ * @property {Partitions} partitions - Values for the table partitions, except the ingest id one.
+ * @property {ServiceOptions} [serviceOpts] - Given to the ingestz-get-url API call.
+ */
+/**
+ * Progress of an upload in flight.
+ * @typedef {Object} UploadProgress
+ * @property {number} loaded - Bytes sent so far.
+ * @property {number} total - Total bytes to send (the file size when the browser can't tell).
+ * @property {number} percent - Progress from 0 to 100.
+ */
+/**
+ * Parameters for uploading a single file to the ingest service.
+ * @typedef {Object} UploadParams
+ * @property {string} dataset - Dataset the file is ingested into.
+ * @property {string} table - Inbox table name.
+ * @property {Partitions} partitions - Values for the table partitions, except the ingest id one.
+ * @property {File} file - The single file to upload.
+ * @property {(progress: UploadProgress) => void} [onProgress] - Called as the file is sent.
+ * @property {AbortSignal} [signal] - Aborts the upload; the promise then rejects with the signal's reason (an AbortError by default).
+ * @property {string} [contentType] - Content-Type of the PUT. Defaults to the file's own type.
+ * @property {ServiceOptions} [serviceOpts] - Given to the ingestz-get-url API call (the PUT to the signed URL needs none).
+ */
+/**
+ * Result of a successful upload.
+ * @typedef {Object} UploadResult
+ * @property {string} ingestId - Id the server assigned to this ingest.
+ */
+/**
+ * Client for handling file uploads to the ingest service.
+ */
+declare class Ingest {
+    #private;
+    /**
+     * @private
+     * @type {Services}
+     */
+    _services;
+    /**
+     * Constructs an Ingest client instance.
+     * @param {Services} services - The services manager instance.
+     */
+    constructor(services: Services);
+    /**
+     * Asks ingestz for a signed upload URL (ingestz-get-url API) and uploads a single file to it.
+     * @param {UploadParams} params - Upload parameters.
+     * @returns {Promise<UploadResult>} Resolves with the ingest id on a successful upload.
+     */
+    upload({ dataset, table, partitions, file, onProgress, signal, contentType, serviceOpts }: UploadParams): Promise<UploadResult>;
+    /**
+     * Gets one signed PUT URL from the ingestz-get-url API.
+     * @private
+     * @param {GetUrlParams} params - Parameters for requesting the upload URL.
+     * @returns {Promise<{ingestId: string, url: string}>} The ingest id and the signed PUT URL.
+     */
+    private #getUrl;
+    /**
+     * Uploads a file to a signed PUT URL using XMLHttpRequest (fetch has no upload progress).
+     * @private
+     * @param {string} signedPutUrl - The signed URL to PUT the file to.
+     * @param {File} file - The file to upload.
+     * @param {Pick<UploadParams, "onProgress"|"signal"|"contentType">} opts
+     * @returns {Promise<void>} Resolves on a successful upload, rejects on network or HTTP error or abort.
+     */
+    private #put;
+}
+export { Ingest };

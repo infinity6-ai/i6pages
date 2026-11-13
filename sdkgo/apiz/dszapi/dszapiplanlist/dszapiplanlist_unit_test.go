@@ -39,6 +39,36 @@ func TestUnitDszListPlansApi(t *testing.T) {
 		require.JSONEq(t, `{"plans":[]}`, body(&dszapiplanlist.Resp{}))
 	})
 
+	t.Run("included requests and decimal request price", func(t *testing.T) {
+		body := func(plan dszapiplanlist.Plan) string {
+			api := &dszapiplanlist.Api{Resp: &dszapiplanlist.Resp{Plans: []dszapiplanlist.Plan{plan}}}
+			return string(jsonz.MustFormat(api.ApiDataRefs().RespBody).Bytes())
+		}
+		included := int64(500000)
+
+		informed := plan
+		informed.IncludedRequests = &included
+		informed.ReqAmountDecimal = "0.0294"
+		require.Contains(t, body(informed), `"included_requests":500000`)
+		require.Contains(t, body(informed), `"req_amount_decimal":"0.0294"`)
+
+		free := plan
+		free.ReqAmountDecimal = "0"
+		require.Contains(t, body(free), `"req_amount_decimal":"0"`)
+
+		unlimited := plan
+		unlimited.IncludedRequestsUnlimited = true
+		require.Contains(t, body(unlimited), `"included_requests":null`)
+
+		// not informed: both keys are absent
+		require.NotContains(t, body(plan), "included_requests")
+		require.NotContains(t, body(plan), "req_amount_decimal")
+
+		api := &dszapiplanlist.Api{Resp: &dszapiplanlist.Resp{Plans: []dszapiplanlist.Plan{informed}}}
+		apiCopy := jsonz.MustCopy(api, &dszapiplanlist.Api{})
+		require.Equal(t, api.Resp, apiCopy.Resp)
+	})
+
 	t.Run("spec", func(t *testing.T) {
 		parsed := jsparserapi.ParseApi(ctx, &dszapiplanlist.Api{})
 		require.NotNil(t, parsed)
