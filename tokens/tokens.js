@@ -351,12 +351,31 @@ export function describeToken(rawToken) {
 
             // Type 1 = Binary Dataset Access Token
             if (tokType === 1) {
+                let embeddedDataset = "";
+                let embeddedPubKeyHex = "";
+                let embeddedPubKeyB64 = "";
+                if (bytes.length >= 8) {
+                    const dsLen = bytes[7];
+                    if (bytes.length >= 8 + dsLen) {
+                        embeddedDataset = new TextDecoder().decode(bytes.subarray(8, 8 + dsLen));
+                        const pubStart = 8 + dsLen;
+                        if (bytes.length >= pubStart + 32) {
+                            const pubBytes = bytes.subarray(pubStart, pubStart + 32);
+                            embeddedPubKeyHex = bytesToHex(pubBytes);
+                            embeddedPubKeyB64 = base64UrlEncode(pubBytes);
+                        }
+                    }
+                }
+
                 return {
                     kind: "dataset_access_token",
                     checkable: true,
-                    summary: `Binary Dataset Access Token (Type 1, ${bytes.length} bytes)`,
+                    summary: `Binary Dataset Access Token (Type 1, ${bytes.length} bytes${embeddedDataset ? ', ' + embeddedDataset : ''})`,
                     byteLength: bytes.length,
                     typeByte: bytes[0],
+                    dataset: embeddedDataset,
+                    clientPubKeyHex: embeddedPubKeyHex,
+                    clientPubKeyB64: embeddedPubKeyB64,
                     raw: str
                 };
             }

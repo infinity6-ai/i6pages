@@ -153,6 +153,10 @@
                             <div class="kv-list">
                                 <span class="kv-key">Binary Length:</span>
                                 <span class="kv-val" id="local-dataset-length">-</span>
+                                <span class="kv-key">Dataset:</span>
+                                <span class="kv-val" id="local-dataset-id">-</span>
+                                <span class="kv-key">Bound PubKey (JTI):</span>
+                                <span class="kv-val" id="local-dataset-pubkey" style="font-family: monospace; font-size: 11px;">-</span>
                             </div>
                         </div>
                     </div>
@@ -787,6 +791,8 @@
                 } else if (desc.embeddedToken && desc.embeddedToken.kind === 'dataset_access_token') {
                     $('local-dataset-card').style.display = 'block';
                     $('local-dataset-length').textContent = `${desc.embeddedToken.byteLength} raw bytes`;
+                    $('local-dataset-id').textContent = desc.embeddedToken.dataset || '-';
+                    $('local-dataset-pubkey').textContent = desc.embeddedToken.clientPubKeyB64 || '(unbound / bearer)';
                 }
 
                 $('check-request-context').style.display = 'block';
@@ -804,6 +810,8 @@
                 kindBadge.textContent = 'Dataset Access Token (Type 1)';
                 $('local-dataset-card').style.display = 'block';
                 $('local-dataset-length').textContent = `${desc.byteLength} raw bytes`;
+                $('local-dataset-id').textContent = desc.dataset || '-';
+                $('local-dataset-pubkey').textContent = desc.clientPubKeyB64 || '(unbound / bearer)';
                 $('check-request-context').style.display = 'none';
             } else {
                 kindBadge.textContent = 'Unknown Format';
@@ -1014,6 +1022,11 @@
                             desc.envelope.unsignedBody
                         );
                         $('local-canonical-text').textContent = localCanon;
+
+                        if (!data.valid && diag.server_canonical_string === localCanon && diag.crypto_check && !diag.crypto_check.match) {
+                            $('check-hint-box').style.display = 'block';
+                            $('check-hint-text').innerHTML = `<strong>Key Mismatch Detected:</strong> Canonical strings match 100%! The Ed25519 signature in the envelope was created using a private key that does not correspond to the public key bound to this access token (<code>${diag.crypto_check.verified_against_pubkey}</code>). You must sign with the matching private key for this public key.`;
+                        }
                     } catch (_) {
                         $('local-canonical-text').textContent = 'Unable to compute local canonical string';
                     }
@@ -1202,6 +1215,27 @@
             }
         });
 
+        $('wiz-privkey').addEventListener('input', async (e) => {
+            const privKey = e.target.value.trim();
+            if (!privKey) {
+                $('wiz-jti').value = '';
+                state.keypair.privKey = '';
+                state.keypair.jti = '';
+                checkBoundTokenKeyMatch();
+                return;
+            }
+            try {
+                const key = await importEd25519PrivateKey(privKey);
+                const pubB64 = await getEd25519PublicKeyB64(key);
+                $('wiz-jti').value = pubB64;
+                state.keypair.privKey = privKey;
+                state.keypair.jti = pubB64;
+                checkBoundTokenKeyMatch();
+            } catch (_) {
+                // typing in progress
+            }
+        });
+
         $('btn-wiz-derive-pub').addEventListener('click', async () => {
             const privKey = $('wiz-privkey').value.trim();
             if (!privKey) {
@@ -1214,11 +1248,37 @@
                 $('wiz-jti').value = pubB64;
                 state.keypair.privKey = privKey;
                 state.keypair.jti = pubB64;
+                checkBoundTokenKeyMatch();
                 showToast("Key validated; JTI derived!");
             } catch (err) {
                 alert(`Key error: ${err.message}`);
             }
         });
+
+        function checkBoundTokenKeyMatch() {
+            const rawToken = $('wiz-bound-access-token').value.trim();
+            if (!rawToken) {
+                $('wiz-bound-token-desc').textContent = "No access token bound yet.";
+                return;
+            }
+            const desc = describeToken(rawToken);
+            if (desc.kind === 'dataset_access_token' && desc.clientPubKeyB64) {
+                const jti = $('wiz-jti').value.trim();
+                if (jti && desc.clientPubKeyB64 !== jti) {
+                    $('wiz-bound-token-desc').innerHTML = `<span style="color: var(--err); font-weight: 600;">⚠️ Key Mismatch: Token is bound to public key JTI <code>${desc.clientPubKeyB64}</code>, but Step 2 key JTI is <code>${jti}</code>!</span>`;
+                    return;
+                }
+                $('wiz-bound-token-desc').innerHTML = `<span style="color: var(--success); font-weight: 600;">✔ Token matches Step 2 key JTI (<code>${desc.clientPubKeyB64}</code>)</span>`;
+                return;
+            }
+            if (desc.kind === 'user_jwt') {
+                $('wiz-bound-token-desc').textContent = `User Access Token JWT bound (User ID: ${desc.userId})`;
+                return;
+            }
+            $('wiz-bound-token-desc').textContent = `Bound token set (${rawToken.length} chars)`;
+        }
+
+        $('wiz-bound-access-token').addEventListener('input', checkBoundTokenKeyMatch);
 
         // Step 3: Access Token
         $('btn-wiz-mint-access-token').addEventListener('click', async () => {
@@ -1242,7 +1302,7 @@
 
                 state.boundAccessToken = res.access_token;
                 $('wiz-bound-access-token').value = res.access_token;
-                $('wiz-bound-token-desc').textContent = `Binary dataset access token (Grants: ${formatGrants(res.grants)})`;
+                checkBoundTokenKeyMatch();
                 showToast("Dataset access token minted!");
             } catch (err) {
                 alert(`Mint failed: ${err.message}`);
@@ -1259,7 +1319,7 @@
             }
             state.boundAccessToken = state.userToken.user_access_token;
             $('wiz-bound-access-token').value = state.boundAccessToken;
-            $('wiz-bound-token-desc').textContent = "Using User JWT as bound access token.";
+            checkBoundTokenKeyMatch();
             showToast("User JWT bound!");
         });
 
@@ -1306,6 +1366,18 @@
             if (!accessToken) {
                 alert("Please provide or mint a bound access token in Step 3.");
                 return;
+            }
+
+            const tokenDesc = describeToken(accessToken);
+            if (tokenDesc.kind === 'dataset_access_token' && tokenDesc.clientPubKeyB64) {
+                try {
+                    const key = await importEd25519PrivateKey(privKey);
+                    const privJti = await getEd25519PublicKeyB64(key);
+                    if (privJti !== tokenDesc.clientPubKeyB64) {
+                        const proceed = confirm(`⚠️ Warning: Key Mismatch!\n\nYour access token expects signatures from public key JTI:\n${tokenDesc.clientPubKeyB64}\n\nBut your private key in Step 2 has JTI:\n${privJti}\n\nThe server will reject this signature with 'signature_mismatch'. Do you still want to sign?`);
+                        if (!proceed) return;
+                    }
+                } catch (_) {}
             }
 
             const method = $('wiz-sign-method').value;
