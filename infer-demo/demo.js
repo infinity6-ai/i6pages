@@ -140,17 +140,28 @@ window.addEventListener('i6:infer-tensors', ({ detail }) => {
 $('copyTensors').onclick = () => navigator.clipboard?.writeText(JSON.stringify(lastTensors, null, 1))
 
 // --- dash --------------------------------------------------------------------------------------------
+const isDisplayMetrics = () => $('dashFunc').value === 'productRelevanceFashionDashDisplayMetricsV1'
+
 function dashRequest() {
   const text = (id) => $(id).value.trim()
+  const params = { min_year_month: text('minYearMonth'), max_year_month: text('maxYearMonth') }
+  if (isDisplayMetrics()) {
+    // optional params: an omitted key reaches the query as null
+    if (text('fromRec') !== '') params.from_rec = text('fromRec') === 'true'
+    if (text('displayId') !== '') params.display_id = text('displayId')
+  }
   return {
-    input: { dataset: text('dashDataset'), params: { min_year_month: text('minYearMonth'), max_year_month: text('maxYearMonth') } },
+    input: { dataset: text('dashDataset'), params },
     partitions: { store_id: text('dashStoreId'), version: text('dashVersion') },
   }
 }
 
 const dashUsage = () => `const result = await new I6Sdk().funcs().${$('dashFunc').value}(${JSON.stringify(dashRequest(), null, 2)}${usageOpts()})`
-const dashIds = ['dashFunc', 'dashDataset', 'dashStoreId', 'dashVersion', 'minYearMonth', 'maxYearMonth']
-for (const id of [...dashIds, 'bearerToken']) $(id).addEventListener('input', () => { $('dashUsage').textContent = dashUsage() })
+const dashIds = ['dashFunc', 'dashDataset', 'dashStoreId', 'dashVersion', 'minYearMonth', 'maxYearMonth', 'fromRec', 'displayId']
+for (const id of [...dashIds, 'bearerToken']) $(id).addEventListener('input', () => {
+  $('displayMetricsParams').hidden = !isDisplayMetrics()
+  $('dashUsage').textContent = dashUsage()
+})
 $('dashUsage').textContent = dashUsage()
 
 const setDashStatus = (status) => {

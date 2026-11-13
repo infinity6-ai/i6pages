@@ -2088,6 +2088,31 @@ export type apiUserAuthRefreshRespPayload = {
      */
     user_refresh_token: string;
 };
+export type apiUserConfSettingsResp = {
+    payload: apiUserConfSettingsRespPayload;
+};
+export type apiUserConfSettingsRespPayload = {
+    /**
+     * - [Go: int64] Time-to-live for dataset access tokens in seconds.
+     */
+    dataset_access_token_ttl_seconds: number;
+    /**
+     * - [Go: int64] Time-to-live for RFC 8628 device codes in seconds.
+     */
+    device_code_ttl_seconds: number;
+    /**
+     * - [Go: int64] Maximum idle duration for refresh tokens in seconds before expiration.
+     */
+    refresh_token_max_idle_seconds: number;
+    /**
+     * - [Go: int64] Maximum allowed future expiration for Ed25519 request signatures in seconds.
+     */
+    signed_request_max_ttl_seconds: number;
+    /**
+     * - [Go: int64] Time-to-live for human user access tokens in seconds.
+     */
+    user_access_token_ttl_seconds: number;
+};
 export type apiUserDatasetTokenAccessAttenuateReq = {
     headers: apiUserDatasetTokenAccessAttenuateReqHeaders;
     payload: apiUserDatasetTokenAccessAttenuateReqPayload;
@@ -2460,6 +2485,229 @@ export type apiUserDatasetTokenRefreshRespPayload = {
 };
 export type apiUserDatasetTokenRefreshRespPayloadLabelsKey = string;
 export type apiUserDatasetTokenRefreshRespPayloadLabelsValue = string;
+export type apiUserTokenCheckReq = {
+    headers: apiUserTokenCheckReqHeaders;
+    payload: apiUserTokenCheckReqPayload;
+};
+export type apiUserTokenCheckReqHeaders = {
+    /**
+     * - [Go: string] Optional Bearer authorization header.
+     */
+    authorization: string;
+    /**
+     * - [Go: string] Optional request signature header (X-I6-Signature).
+     */
+    x_i6_signature: string;
+};
+export type apiUserTokenCheckReqPayload = {
+    /**
+     * - [Go: string] Target request body.
+     */
+    body: string;
+    /**
+     * - [Go: string] Target HTTP method.
+     */
+    method: string;
+    /**
+     * - [Go: string] Target URL path.
+     */
+    path: string;
+    /**
+     * - [Go: string] Target URL query string.
+     */
+    query: string;
+    /**
+     * - [Go: string] Request signature (envelope + token) in payload mode.
+     */
+    signature: string;
+    /**
+     * - [Go: string] Bearer token in payload mode (User JWT or Dataset Access Token).
+     */
+    token: string;
+};
+export type apiUserTokenCheckResp = {
+    payload: apiUserTokenCheckRespPayload;
+};
+export type apiUserTokenCheckRespPayload = {
+    /**
+     * - Detailed diagnostic breakdown and server-computed values.
+     */
+    diagnostics: apiUserTokenCheckRespPayloadDiagnostics;
+    /**
+     * - [Go: string] Standard error code if invalid.
+     */
+    error_code: string;
+    /**
+     * - [Go: string] High-level summary of verification status.
+     */
+    summary: string;
+    /**
+     * - [Go: string] Detected credential type: request_signature, user_jwt, or dataset_access_token.
+     */
+    token_kind: string;
+    /**
+     * - [Go: bool] Indicates whether credential was mathematically verified.
+     */
+    valid: boolean;
+};
+export type apiUserTokenCheckRespPayloadDiagnostics = {
+    /**
+     * - [Go: string] Audience client app extracted from User JWT.
+     */
+    audience: string;
+    /**
+     * - Component fields of canonical string.
+     */
+    breakdown: apiUserTokenCheckRespPayloadDiagnosticsBreakdown;
+    /**
+     * - [Go: string] Client Ed25519 public key in lowercase hex.
+     */
+    client_pub_key_hex: string;
+    /**
+     * - Cryptographic signature verification results.
+     */
+    crypto_check: apiUserTokenCheckRespPayloadDiagnosticsCryptoCheck;
+    /**
+     * - [Go: string] Dataset ID from dataset access token.
+     */
+    dataset: string;
+    /**
+     * - Embedded dataset access token details.
+     */
+    embedded_token: apiUserTokenCheckRespPayloadDiagnosticsEmbeddedToken;
+    /**
+     * - Envelope metadata.
+     */
+    envelope: apiUserTokenCheckRespPayloadDiagnosticsEnvelope;
+    /**
+     * - [Go: int64] Expiration timestamp.
+     */
+    expires_at: number;
+    /**
+     * - [Go: uint8] Permission bitmask.
+     */
+    grants: number;
+    /**
+     * - [Go: string] Actionable troubleshooting guidance.
+     */
+    hint: string;
+    /**
+     * - [Go: bool] Reports whether credential has expired.
+     */
+    is_expired: boolean;
+    /**
+     * - [Go: string] Dataset token mode: unbound_bearer or sender_constrained.
+     */
+    mode: string;
+    /**
+     * - [Go: string] Server-computed canonical string for signatures.
+     */
+    server_canonical_string: string;
+    /**
+     * - [Go: uint8] Solutions bitmask.
+     */
+    solutions: number;
+    /**
+     * - [Go: int64] Seconds remaining until expiration.
+     */
+    time_remaining_seconds: number;
+    /**
+     * - [Go: string] User ID extracted from User JWT.
+     */
+    user_id: string;
+};
+export type apiUserTokenCheckRespPayloadDiagnosticsBreakdown = {
+    /**
+     * - [Go: string] SHA-256 digest of request body.
+     */
+    body_sha256: string;
+    /**
+     * - [Go: string] Canonical sorted query string.
+     */
+    canonical_query: string;
+    /**
+     * - [Go: uint64] Expiration timestamp in epoch seconds.
+     */
+    exp: number;
+    /**
+     * - [Go: string] HTTP method.
+     */
+    method: string;
+    /**
+     * - [Go: string] Nonce in lowercase hex.
+     */
+    nonce: string;
+    /**
+     * - [Go: string] Normalized URL path.
+     */
+    path: string;
+    /**
+     * - [Go: string] SHA-256 digest of access token.
+     */
+    token_sha256: string;
+    /**
+     * - [Go: bool] Reports whether unsigned body flag was enabled.
+     */
+    unsigned_body: boolean;
+};
+export type apiUserTokenCheckRespPayloadDiagnosticsCryptoCheck = {
+    /**
+     * - [Go: bool] Reports whether Ed25519 verification succeeded.
+     */
+    match: boolean;
+    /**
+     * - [Go: string] Client public key used to verify signature.
+     */
+    verified_against_pubkey: string;
+};
+export type apiUserTokenCheckRespPayloadDiagnosticsEmbeddedToken = {
+    /**
+     * - [Go: string] Client Ed25519 public key in lowercase hex.
+     */
+    client_pub_key_hex: string;
+    /**
+     * - [Go: string] Target dataset ID.
+     */
+    dataset: string;
+    /**
+     * - [Go: int64] Expiration in epoch milliseconds.
+     */
+    expires_at: number;
+    /**
+     * - [Go: uint8] Permission bitmask.
+     */
+    grants: number;
+    /**
+     * - [Go: uint8] Solutions bitmask.
+     */
+    solutions: number;
+};
+export type apiUserTokenCheckRespPayloadDiagnosticsEnvelope = {
+    /**
+     * - [Go: uint64] Expiration epoch seconds.
+     */
+    exp: number;
+    /**
+     * - [Go: bool] Reports whether envelope has expired.
+     */
+    is_expired: boolean;
+    /**
+     * - [Go: bool] Reports whether time-windowed replay mode is active.
+     */
+    is_time_windowed: boolean;
+    /**
+     * - [Go: string] Nonce in lowercase hex.
+     */
+    nonce_hex: string;
+    /**
+     * - [Go: int64] Seconds remaining until expiration.
+     */
+    time_remaining_seconds: number;
+    /**
+     * - [Go: uint8] Wire token type identifier.
+     */
+    token_type: number;
+};
 export type dszFileStat = {
     /**
      * - missing summary
@@ -2620,6 +2868,87 @@ export type sdkFuncProductRelevanceFashionDashCoverageReq = {
 };
 export type sdkFuncProductRelevanceFashionDashCoverageResp = {
     output: sdkFuncProductRelevanceFashionDashCoverageOutput;
+};
+export type sdkFuncProductRelevanceFashionDashDisplayMetricsInput = {
+    /**
+     * - [Go: lakedsz.Dataset] Dataset identifier.
+     */
+    dataset: string;
+    /**
+     * - Query params.
+     */
+    params: sdkFuncProductRelevanceFashionDashDisplayMetricsInputParams;
+};
+export type sdkFuncProductRelevanceFashionDashDisplayMetricsInputParams = {
+    /**
+     * - [Go: string] Display filter: NO_DISPLAY, ALL_DISPLAYS or a display id.
+     */
+    display_id: string;
+    /**
+     * - [Go: bool] Recommendation filter: true, false, or null for all.
+     */
+    from_rec: boolean;
+    /**
+     * - [Go: string] Last year-month of the period.
+     */
+    max_year_month: string;
+    /**
+     * - [Go: string] First year-month of the period.
+     */
+    min_year_month: string;
+};
+export type sdkFuncProductRelevanceFashionDashDisplayMetricsOutput = {
+    /**
+     * - Result rows.
+     */
+    rows: Array<sdkFuncProductRelevanceFashionDashDisplayMetricsOutputRowsElement>;
+};
+export type sdkFuncProductRelevanceFashionDashDisplayMetricsOutputRowsElement = {
+    /**
+     * - [Go: float64] Number of cart adds.
+     */
+    cart_adds: number;
+    /**
+     * - [Go: float64] Number of clicks.
+     */
+    clicks: number;
+    /**
+     * - [Go: float64] Purchases divided by clicks.
+     */
+    conversion_rate: number;
+    /**
+     * - [Go: int] 1 if from recommendations, else 0.
+     */
+    from_rec: number;
+    /**
+     * - [Go: float64] Number of purchases.
+     */
+    purchases: number;
+    /**
+     * - [Go: float64] Raw recommendations count.
+     */
+    recraws: number;
+    /**
+     * - [Go: float64] Recommendations shown count.
+     */
+    recshows: number;
+    /**
+     * - [Go: string] Display id, null if not registered.
+     */
+    src_display_id: string;
+};
+export type sdkFuncProductRelevanceFashionDashDisplayMetricsPartitions = {
+    /**
+     * - [Go: string] Store identifier.
+     */
+    store_id: string;
+};
+export type sdkFuncProductRelevanceFashionDashDisplayMetricsReq = {
+    input: sdkFuncProductRelevanceFashionDashDisplayMetricsInput;
+    partitions: sdkFuncProductRelevanceFashionDashDisplayMetricsPartitions;
+};
+export type sdkFuncProductRelevanceFashionDashDisplayMetricsResp = {
+    output: sdkFuncProductRelevanceFashionDashDisplayMetricsOutput;
 };
 export type sdkFuncProductRelevanceFashionDashFunnelInput = {
     /**
@@ -4490,6 +4819,20 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @property {string} user_refresh_token - [Go: string] Rotated opaque user refresh token with new secret.
  */
 /**
+ * apiUserConfSettings Response
+ * @typedef {object} apiUserConfSettingsResp
+ * @property {apiUserConfSettingsRespPayload} payload
+ */
+/**
+ * apiUserConfSettings respPayload
+ * @typedef {object} apiUserConfSettingsRespPayload
+ * @property {number} dataset_access_token_ttl_seconds - [Go: int64] Time-to-live for dataset access tokens in seconds.
+ * @property {number} device_code_ttl_seconds - [Go: int64] Time-to-live for RFC 8628 device codes in seconds.
+ * @property {number} refresh_token_max_idle_seconds - [Go: int64] Maximum idle duration for refresh tokens in seconds before expiration.
+ * @property {number} signed_request_max_ttl_seconds - [Go: int64] Maximum allowed future expiration for Ed25519 request signatures in seconds.
+ * @property {number} user_access_token_ttl_seconds - [Go: int64] Time-to-live for human user access tokens in seconds.
+ */
+/**
  * apiUserDatasetTokenAccessAttenuate Request
  * @typedef {object} apiUserDatasetTokenAccessAttenuateReq
  * @property {apiUserDatasetTokenAccessAttenuateReqHeaders} headers
@@ -4776,6 +5119,99 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * @typedef {string} apiUserDatasetTokenRefreshRespPayloadLabelsValue
  */
 /**
+ * apiUserTokenCheck Request
+ * @typedef {object} apiUserTokenCheckReq
+ * @property {apiUserTokenCheckReqHeaders} headers
+ * @property {apiUserTokenCheckReqPayload} payload
+ */
+/**
+ * apiUserTokenCheck reqHeaders
+ * @typedef {object} apiUserTokenCheckReqHeaders
+ * @property {string} authorization - [Go: string] Optional Bearer authorization header.
+ * @property {string} x_i6_signature - [Go: string] Optional request signature header (X-I6-Signature).
+ */
+/**
+ * apiUserTokenCheck reqPayload
+ * @typedef {object} apiUserTokenCheckReqPayload
+ * @property {string} body - [Go: string] Target request body.
+ * @property {string} method - [Go: string] Target HTTP method.
+ * @property {string} path - [Go: string] Target URL path.
+ * @property {string} query - [Go: string] Target URL query string.
+ * @property {string} signature - [Go: string] Request signature (envelope + token) in payload mode.
+ * @property {string} token - [Go: string] Bearer token in payload mode (User JWT or Dataset Access Token).
+ */
+/**
+ * apiUserTokenCheck Response
+ * @typedef {object} apiUserTokenCheckResp
+ * @property {apiUserTokenCheckRespPayload} payload
+ */
+/**
+ * apiUserTokenCheck respPayload
+ * @typedef {object} apiUserTokenCheckRespPayload
+ * @property {apiUserTokenCheckRespPayloadDiagnostics} diagnostics - Detailed diagnostic breakdown and server-computed values.
+ * @property {string} error_code - [Go: string] Standard error code if invalid.
+ * @property {string} summary - [Go: string] High-level summary of verification status.
+ * @property {string} token_kind - [Go: string] Detected credential type: request_signature, user_jwt, or dataset_access_token.
+ * @property {boolean} valid - [Go: bool] Indicates whether credential was mathematically verified.
+ */
+/**
+ * Detailed diagnostic breakdown and server-computed values.
+ * @typedef {object} apiUserTokenCheckRespPayloadDiagnostics
+ * @property {string} audience - [Go: string] Audience client app extracted from User JWT.
+ * @property {apiUserTokenCheckRespPayloadDiagnosticsBreakdown} breakdown - Component fields of canonical string.
+ * @property {string} client_pub_key_hex - [Go: string] Client Ed25519 public key in lowercase hex.
+ * @property {apiUserTokenCheckRespPayloadDiagnosticsCryptoCheck} crypto_check - Cryptographic signature verification results.
+ * @property {string} dataset - [Go: string] Dataset ID from dataset access token.
+ * @property {apiUserTokenCheckRespPayloadDiagnosticsEmbeddedToken} embedded_token - Embedded dataset access token details.
+ * @property {apiUserTokenCheckRespPayloadDiagnosticsEnvelope} envelope - Envelope metadata.
+ * @property {number} expires_at - [Go: int64] Expiration timestamp.
+ * @property {number} grants - [Go: uint8] Permission bitmask.
+ * @property {string} hint - [Go: string] Actionable troubleshooting guidance.
+ * @property {boolean} is_expired - [Go: bool] Reports whether credential has expired.
+ * @property {string} mode - [Go: string] Dataset token mode: unbound_bearer or sender_constrained.
+ * @property {string} server_canonical_string - [Go: string] Server-computed canonical string for signatures.
+ * @property {number} solutions - [Go: uint8] Solutions bitmask.
+ * @property {number} time_remaining_seconds - [Go: int64] Seconds remaining until expiration.
+ * @property {string} user_id - [Go: string] User ID extracted from User JWT.
+ */
+/**
+ * Component fields of canonical string.
+ * @typedef {object} apiUserTokenCheckRespPayloadDiagnosticsBreakdown
+ * @property {string} body_sha256 - [Go: string] SHA-256 digest of request body.
+ * @property {string} canonical_query - [Go: string] Canonical sorted query string.
+ * @property {number} exp - [Go: uint64] Expiration timestamp in epoch seconds.
+ * @property {string} method - [Go: string] HTTP method.
+ * @property {string} nonce - [Go: string] Nonce in lowercase hex.
+ * @property {string} path - [Go: string] Normalized URL path.
+ * @property {string} token_sha256 - [Go: string] SHA-256 digest of access token.
+ * @property {boolean} unsigned_body - [Go: bool] Reports whether unsigned body flag was enabled.
+ */
+/**
+ * Cryptographic signature verification results.
+ * @typedef {object} apiUserTokenCheckRespPayloadDiagnosticsCryptoCheck
+ * @property {boolean} match - [Go: bool] Reports whether Ed25519 verification succeeded.
+ * @property {string} verified_against_pubkey - [Go: string] Client public key used to verify signature.
+ */
+/**
+ * Embedded dataset access token details.
+ * @typedef {object} apiUserTokenCheckRespPayloadDiagnosticsEmbeddedToken
+ * @property {string} client_pub_key_hex - [Go: string] Client Ed25519 public key in lowercase hex.
+ * @property {string} dataset - [Go: string] Target dataset ID.
+ * @property {number} expires_at - [Go: int64] Expiration in epoch milliseconds.
+ * @property {number} grants - [Go: uint8] Permission bitmask.
+ * @property {number} solutions - [Go: uint8] Solutions bitmask.
+ */
+/**
+ * Envelope metadata.
+ * @typedef {object} apiUserTokenCheckRespPayloadDiagnosticsEnvelope
+ * @property {number} exp - [Go: uint64] Expiration epoch seconds.
+ * @property {boolean} is_expired - [Go: bool] Reports whether envelope has expired.
+ * @property {boolean} is_time_windowed - [Go: bool] Reports whether time-windowed replay mode is active.
+ * @property {string} nonce_hex - [Go: string] Nonce in lowercase hex.
+ * @property {number} time_remaining_seconds - [Go: int64] Seconds remaining until expiration.
+ * @property {number} token_type - [Go: uint8] Wire token type identifier.
+ */
+/**
  * @typedef {object} dszFileStat
  * @property {string} url - missing summary
  * @property {string} content_type - missing summary
@@ -4872,6 +5308,52 @@ export type sdkFuncProductRelevanceFashionFbtSelected = {
  * sdkFuncProductRelevanceFashionDashCoverage Response
  * @typedef {object} sdkFuncProductRelevanceFashionDashCoverageResp
  * @property {sdkFuncProductRelevanceFashionDashCoverageOutput} output
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashDisplayMetrics input
+ * @typedef {object} sdkFuncProductRelevanceFashionDashDisplayMetricsInput
+ * @property {string} dataset - [Go: lakedsz.Dataset] Dataset identifier.
+ * @property {sdkFuncProductRelevanceFashionDashDisplayMetricsInputParams} params - Query params.
+ */
+/**
+ * Query params.
+ * @typedef {object} sdkFuncProductRelevanceFashionDashDisplayMetricsInputParams
+ * @property {string} display_id - [Go: string] Display filter: NO_DISPLAY, ALL_DISPLAYS or a display id.
+ * @property {boolean} from_rec - [Go: bool] Recommendation filter: true, false, or null for all.
+ * @property {string} max_year_month - [Go: string] Last year-month of the period.
+ * @property {string} min_year_month - [Go: string] First year-month of the period.
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashDisplayMetrics output
+ * @typedef {object} sdkFuncProductRelevanceFashionDashDisplayMetricsOutput
+ * @property {Array<sdkFuncProductRelevanceFashionDashDisplayMetricsOutputRowsElement>} rows - Result rows.
+ */
+/**
+ * @typedef {object} sdkFuncProductRelevanceFashionDashDisplayMetricsOutputRowsElement
+ * @property {number} cart_adds - [Go: float64] Number of cart adds.
+ * @property {number} clicks - [Go: float64] Number of clicks.
+ * @property {number} conversion_rate - [Go: float64] Purchases divided by clicks.
+ * @property {number} from_rec - [Go: int] 1 if from recommendations, else 0.
+ * @property {number} purchases - [Go: float64] Number of purchases.
+ * @property {number} recraws - [Go: float64] Raw recommendations count.
+ * @property {number} recshows - [Go: float64] Recommendations shown count.
+ * @property {string} src_display_id - [Go: string] Display id, null if not registered.
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashDisplayMetrics partitions
+ * @typedef {object} sdkFuncProductRelevanceFashionDashDisplayMetricsPartitions
+ * @property {string} store_id - [Go: string] Store identifier.
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashDisplayMetrics Request
+ * @typedef {object} sdkFuncProductRelevanceFashionDashDisplayMetricsReq
+ * @property {sdkFuncProductRelevanceFashionDashDisplayMetricsInput} input
+ * @property {sdkFuncProductRelevanceFashionDashDisplayMetricsPartitions} partitions
+ */
+/**
+ * sdkFuncProductRelevanceFashionDashDisplayMetrics Response
+ * @typedef {object} sdkFuncProductRelevanceFashionDashDisplayMetricsResp
+ * @property {sdkFuncProductRelevanceFashionDashDisplayMetricsOutput} output
  */
 /**
  * sdkFuncProductRelevanceFashionDashFunnel input
@@ -5099,55 +5581,125 @@ declare class Apis {
      */
     constructor(services: Services);
     /**
-     * Create Ingestion Token
+     * Current User Profile
      *
-     * Creates a write token for data ingestion into a specific dataset.
+     * Retrieves current authenticated user identity profile metadata.
      *
-     * @param {apiDszCreateIngestionTokenReq} req
+     * @param {apiUserAuthMeReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateIngestionTokenResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthMeResp>>}
      */
-    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszCreateIngestionTokenResp>>;
+    userAuthMe(req: apiUserAuthMeReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthMeResp>>;
     /**
-     * Create Recsys Token
+     * Human User Session Refresh
      *
-     * Creates a read/recommendation token for the recommendation system associated with a specific dataset.
+     * Exchanges a human user refresh token for fresh access and rotated refresh tokens.
      *
-     * @param {apiDszCreateRecsysTokenReq} req
+     * @param {apiUserAuthRefreshReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateRecsysTokenResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthRefreshResp>>}
      */
-    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszCreateRecsysTokenResp>>;
+    userAuthRefresh(req: apiUserAuthRefreshReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthRefreshResp>>;
     /**
-     * Delete Token
+     * Create Dataset Refresh Token
      *
-     * Deletes (revokes) a specific token (e.g. ingestion or recsys token) associated with a dataset.
+     * Provisions a long-lived machine dataset refresh token with an Ed25519 keypair.
      *
-     * @param {apiDszDeleteTokenReq} req
+     * @param {apiUserDatasetTokenRefreshCreateReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDeleteTokenResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshCreateResp>>}
      */
-    dszDeleteToken(req: apiDszDeleteTokenReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszDeleteTokenResp>>;
+    userDatasetTokenRefreshCreate(req: apiUserDatasetTokenRefreshCreateReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshCreateResp>>;
     /**
-     * List Plans
+     * Universal Token & Signature Diagnostics
      *
-     * Lists the plans a subscription of a solution can be switched to, with the price data from Stripe.
+     * Auto-detects, validates, and diagnoses any credential supported by authz.Filter without state side-effects.
      *
-     * @param {apiDszListPlansReq} req
+     * @param {apiUserTokenCheckReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListPlansResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserTokenCheckResp>>}
      */
-    dszListPlans(req: apiDszListPlansReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListPlansResp>>;
+    userTokenCheck(req: apiUserTokenCheckReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserTokenCheckResp>>;
     /**
-     * PKCE Authorization Code Exchange
+     * Deactivate Pipeline Scheduler
      *
-     * Exchanges a PKCE authorization code and verifier for user access and refresh tokens.
+     * Deactivates a scheduler for a pipeline on a dataset.
      *
-     * @param {apiUserAuthExchangeReq} req
+     * @param {apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthExchangeResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainResp>>}
      */
-    userAuthExchange(req: apiUserAuthExchangeReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthExchangeResp>>;
+    pipezSchedulerDeactivateRelevanceFashionRelevanceFashionMain(req: apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainResp>>;
+    /**
+     * List Pipelines
+     *
+     * Lists the pipelines of a dataset, optionally filtered, with cursor pagination.
+     *
+     * @param {apiPipezListReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezListResp>>}
+     */
+    pipezList(req: apiPipezListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezListResp>>;
+    /**
+     * Get Ingestion Upload URLs
+     *
+     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
+     *
+     * @param {apiIngestzGetUrlReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiIngestzGetUrlResp>>}
+     */
+    ingestzGetUrl(req: apiIngestzGetUrlReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiIngestzGetUrlResp>>;
+    /**
+     * Load Table File as JSON
+     *
+     * Load a table file from the datalake as JSON and return it.
+     *
+     * @param {apiDszResultLastBatchSummaryReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszResultLastBatchSummaryResp>>}
+     */
+    dszResultLastBatchSummary(req: apiDszResultLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszResultLastBatchSummaryResp>>;
+    /**
+     * List Active Dataset Solutions
+     *
+     * Lists all active solutions configured for a specific dataset.
+     *
+     * @param {apiDszDatasetSolutionsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDatasetSolutionsResp>>}
+     */
+    dszDatasetSolutions(req: apiDszDatasetSolutionsReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszDatasetSolutionsResp>>;
+    /**
+     * Attenuate Dataset Access Token
+     *
+     * Derives an in-flight attenuated child access token with dropped privileges from an active access token.
+     *
+     * @param {apiUserDatasetTokenAccessAttenuateReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessAttenuateResp>>}
+     */
+    userDatasetTokenAccessAttenuate(req: apiUserDatasetTokenAccessAttenuateReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessAttenuateResp>>;
+    /**
+     * Create Dataset Access Token
+     *
+     * Mints a short-lived dataset access token for an authenticated user.
+     *
+     * @param {apiUserDatasetTokenAccessCreateReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessCreateResp>>}
+     */
+    userDatasetTokenAccessCreate(req: apiUserDatasetTokenAccessCreateReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessCreateResp>>;
+    /**
+     * List Dataset Refresh Tokens
+     *
+     * Lists all active machine refresh tokens provisioned for a dataset.
+     *
+     * @param {apiUserDatasetTokenRefreshListReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshListResp>>}
+     */
+    userDatasetTokenRefreshList(req: apiUserDatasetTokenRefreshListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshListResp>>;
     /**
      * Get Dataset Table File
      *
@@ -5159,15 +5711,15 @@ declare class Apis {
      */
     dszTableGet(req: apiDszTableGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszTableGetResp>>;
     /**
-     * Get Model Metadata
+     * Get Subscription
      *
-     * Gets the input and output tensors of a model version.
+     * Gets the plan and the status of the Stripe subscription of a dataset product/solution. The payload is empty for contracts without Stripe.
      *
-     * @param {apiTfzModelMetadataReq} req
+     * @param {apiDszGetSubscriptionReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiTfzModelMetadataResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszGetSubscriptionResp>>}
      */
-    tfzModelMetadata(req: apiTfzModelMetadataReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiTfzModelMetadataResp>>;
+    dszGetSubscription(req: apiDszGetSubscriptionReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszGetSubscriptionResp>>;
     /**
      * List Payments
      *
@@ -5178,6 +5730,256 @@ declare class Apis {
      * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListPaymentsResp>>}
      */
     dszListPayments(req: apiDszListPaymentsReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListPaymentsResp>>;
+    /**
+     * Update Subscription Plan
+     *
+     * Updates the plan (price) of the Stripe subscription for a dataset product/solution.
+     *
+     * @param {apiDszUpdateSubscriptionPlanReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszUpdateSubscriptionPlanResp>>}
+     */
+    dszUpdateSubscriptionPlan(req: apiDszUpdateSubscriptionPlanReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszUpdateSubscriptionPlanResp>>;
+    /**
+     * Device Authorization Code Initiation
+     *
+     * Initiates an RFC 8628 device authorization flow for CLI and remote headless SSH sessions.
+     *
+     * @param {apiUserAuthDeviceCodeReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthDeviceCodeResp>>}
+     */
+    userAuthDeviceCode(req: apiUserAuthDeviceCodeReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthDeviceCodeResp>>;
+    /**
+     * PKCE Authorization Code Exchange
+     *
+     * Exchanges a PKCE authorization code and verifier for user access and refresh tokens.
+     *
+     * @param {apiUserAuthExchangeReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthExchangeResp>>}
+     */
+    userAuthExchange(req: apiUserAuthExchangeReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthExchangeResp>>;
+    /**
+     * List Datasets
+     *
+     * Lists all datasets available to the user.
+     *
+     * @param {apiDszListDatasetsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListDatasetsResp>>}
+     */
+    dszListDatasets(req: apiDszListDatasetsReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListDatasetsResp>>;
+    /**
+     * Create Recsys Token
+     *
+     * Creates a read/recommendation token for the recommendation system associated with a specific dataset.
+     *
+     * @param {apiDszCreateRecsysTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateRecsysTokenResp>>}
+     */
+    dszCreateRecsysToken(req: apiDszCreateRecsysTokenReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszCreateRecsysTokenResp>>;
+    /**
+     * Event Ingestion
+     *
+     * Ingests events data into a target dataset table.
+     *
+     * @param {apiIngestzEventRelevanceFashionEventReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionEventResp>>}
+     */
+    ingestzEventRelevanceFashionEvent(req: apiIngestzEventRelevanceFashionEventReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionEventResp>>;
+    /**
+     * Create Customer Portal
+     *
+     * Creates a Stripe billing portal session URL where the user can manage cards, auto-renew, and plans.
+     *
+     * @param {apiDszCreateCustomerPortalReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateCustomerPortalResp>>}
+     */
+    dszCreateCustomerPortal(req: apiDszCreateCustomerPortalReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszCreateCustomerPortalResp>>;
+    /**
+     * Email and Password Sign-In
+     *
+     * Authenticates an email and password against Identity Platform, enforcing confirmed emails and minting a PKCE code.
+     *
+     * @param {apiUserAuthPasswordSigninReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSigninResp>>}
+     */
+    userAuthPasswordSignin(req: apiUserAuthPasswordSigninReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSigninResp>>;
+    /**
+     * Refresh Dataset Access Token
+     *
+     * Refreshes and attenuates a dataset access token using an Ed25519 signature assertion.
+     *
+     * @param {apiUserDatasetTokenRefreshReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshResp>>}
+     */
+    userDatasetTokenRefresh(req: apiUserDatasetTokenRefreshReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshResp>>;
+    /**
+     * Sample Fraction
+     *
+     * Sample API that performs a fraction operation
+     *
+     * @param {apiSampleFractionReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiSampleFractionResp>>}
+     */
+    sampleFraction(req: apiSampleFractionReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiSampleFractionResp>>;
+    /**
+     * Get Pipeline
+     *
+     * Gets a pipeline of a dataset by its id.
+     *
+     * @param {apiPipezGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezGetResp>>}
+     */
+    pipezGet(req: apiPipezGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezGetResp>>;
+    /**
+     * Create Store Display
+     *
+     * Creates a store display configuration mapping for a store under a specific dataset.
+     *
+     * @param {apiDszStoreDisplayCreateReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayCreateResp>>}
+     */
+    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayCreateResp>>;
+    /**
+     * Get Solution Domain
+     *
+     * Retrieves the active solutions and their corresponding domains for a given store in a dataset.
+     *
+     * @param {apiDszDomainGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDomainGetResp>>}
+     */
+    dszDomainGet(req: apiDszDomainGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszDomainGetResp>>;
+    /**
+     * Create Ingestion Token
+     *
+     * Creates a write token for data ingestion into a specific dataset.
+     *
+     * @param {apiDszCreateIngestionTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateIngestionTokenResp>>}
+     */
+    dszCreateIngestionToken(req: apiDszCreateIngestionTokenReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszCreateIngestionTokenResp>>;
+    /**
+     * Model Predict
+     *
+     * Runs a prediction of a dataset model version on the inference service (tfinfer), sending the model inputs and the model partitions and returning the model outputs.
+     *
+     * @param {apiTfzModelPredictReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiTfzModelPredictResp>>}
+     */
+    tfzModelPredict(req: apiTfzModelPredictReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiTfzModelPredictResp>>;
+    /**
+     * Create Stripe Checkout
+     *
+     * Creates a Stripe checkout session for a subscription and returns its id and url.
+     *
+     * @param {apiDszStripeCheckoutReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStripeCheckoutResp>>}
+     */
+    dszStripeCheckout(req: apiDszStripeCheckoutReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszStripeCheckoutResp>>;
+    /**
+     * Activate Pipeline Scheduler
+     *
+     * Activates a scheduler for a pipeline on a dataset.
+     *
+     * @param {apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainResp>>}
+     */
+    pipezSchedulerActivateRelevanceFashionRelevanceFashionMain(req: apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainResp>>;
+    /**
+     * Delete Token
+     *
+     * Deletes (revokes) a specific token (e.g. ingestion or recsys token) associated with a dataset.
+     *
+     * @param {apiDszDeleteTokenReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDeleteTokenResp>>}
+     */
+    dszDeleteToken(req: apiDszDeleteTokenReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszDeleteTokenResp>>;
+    /**
+     * Get Model Signed URLs
+     *
+     * Generates presigned URLs for accessing model files in the specified dataset.
+     *
+     * @param {apiDszModelGetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszModelGetResp>>}
+     */
+    dszModelGet(req: apiDszModelGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszModelGetResp>>;
+    /**
+     * Get Model Metadata
+     *
+     * Gets the input and output tensors of a model version.
+     *
+     * @param {apiTfzModelMetadataReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiTfzModelMetadataResp>>}
+     */
+    tfzModelMetadata(req: apiTfzModelMetadataReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiTfzModelMetadataResp>>;
+    /**
+     * Password Reset Email Dispatch
+     *
+     * Dispatches an out-of-band password reset email via Identity Platform.
+     *
+     * @param {apiUserAuthPasswordResetReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordResetResp>>}
+     */
+    userAuthPasswordReset(req: apiUserAuthPasswordResetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordResetResp>>;
+    /**
+     * Email and Password Sign-Up
+     *
+     * Registers a new user with Identity Platform and dispatches a verification email.
+     *
+     * @param {apiUserAuthPasswordSignupReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSignupResp>>}
+     */
+    userAuthPasswordSignup(req: apiUserAuthPasswordSignupReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSignupResp>>;
+    /**
+     * Start Pipeline
+     *
+     * Starts a pipeline on a dataset with the given params and returns its id.
+     *
+     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
+     */
+    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
+    /**
+     * Update Payment Auto Renew
+     *
+     * Turns auto renew on or off for the Stripe subscription of a dataset product/solution.
+     *
+     * @param {apiDszUpdatePaymentAutoRenewReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszUpdatePaymentAutoRenewResp>>}
+     */
+    dszUpdatePaymentAutoRenew(req: apiDszUpdatePaymentAutoRenewReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszUpdatePaymentAutoRenewResp>>;
+    /**
+     * List Plans
+     *
+     * Lists the plans a subscription of a solution can be switched to, with the price data from Stripe.
+     *
+     * @param {apiDszListPlansReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListPlansResp>>}
+     */
+    dszListPlans(req: apiDszListPlansReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListPlansResp>>;
     /**
      * Device Token Polling & Exchange
      *
@@ -5199,15 +6001,14 @@ declare class Apis {
      */
     userAuthLogout(req: apiUserAuthLogoutReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthLogoutResp>>;
     /**
-     * Refresh Dataset Access Token
+     * Public Settings Discovery
      *
-     * Refreshes and attenuates a dataset access token using an Ed25519 signature assertion.
+     * Retrieves public operational policies and token expiration parameters.
      *
-     * @param {apiUserDatasetTokenRefreshReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserConfSettingsResp>>}
      */
-    userDatasetTokenRefresh(req: apiUserDatasetTokenRefreshReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshResp>>;
+    userConfSettings(opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserConfSettingsResp>>;
     /**
      * Revoke Dataset Refresh Token
      *
@@ -5219,155 +6020,15 @@ declare class Apis {
      */
     userDatasetTokenRefreshDelete(req: apiUserDatasetTokenRefreshDeleteReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshDeleteResp>>;
     /**
-     * Load Table File as JSON
+     * List Stores
      *
-     * Load a table file from the datalake as JSON and return it.
+     * Lists all stores configured under a specific dataset.
      *
-     * @param {apiDszResultRelevanceFashionCatalogReq} req
+     * @param {apiDszListStoresReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszResultRelevanceFashionCatalogResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListStoresResp>>}
      */
-    dszResultRelevanceFashionCatalog(req: apiDszResultRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszResultRelevanceFashionCatalogResp>>;
-    /**
-     * Get Pipeline
-     *
-     * Gets a pipeline of a dataset by its id.
-     *
-     * @param {apiPipezGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezGetResp>>}
-     */
-    pipezGet(req: apiPipezGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezGetResp>>;
-    /**
-     * Model Predict
-     *
-     * Runs a prediction of a dataset model version on the inference service (tfinfer), sending the model inputs and the model partitions and returning the model outputs.
-     *
-     * @param {apiTfzModelPredictReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiTfzModelPredictResp>>}
-     */
-    tfzModelPredict(req: apiTfzModelPredictReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiTfzModelPredictResp>>;
-    /**
-     * Create Customer Portal
-     *
-     * Creates a Stripe billing portal session URL where the user can manage cards, auto-renew, and plans.
-     *
-     * @param {apiDszCreateCustomerPortalReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszCreateCustomerPortalResp>>}
-     */
-    dszCreateCustomerPortal(req: apiDszCreateCustomerPortalReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszCreateCustomerPortalResp>>;
-    /**
-     * Event Ingestion
-     *
-     * Ingests events data into a target dataset table.
-     *
-     * @param {apiIngestzEventRelevanceFashionEventReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionEventResp>>}
-     */
-    ingestzEventRelevanceFashionEvent(req: apiIngestzEventRelevanceFashionEventReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionEventResp>>;
-    /**
-     * Get Dataset Signed URLs
-     *
-     * Generates presigned URLs for accessing or mutating files in the specified dataset.
-     *
-     * @param {apiDszSignedUrlReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszSignedUrlResp>>}
-     */
-    dszSignedUrl(req: apiDszSignedUrlReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszSignedUrlResp>>;
-    /**
-     * Load Table File as JSON
-     *
-     * Load a table file from the datalake as JSON and return it.
-     *
-     * @param {apiDszResultLastBatchSummaryReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszResultLastBatchSummaryResp>>}
-     */
-    dszResultLastBatchSummary(req: apiDszResultLastBatchSummaryReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszResultLastBatchSummaryResp>>;
-    /**
-     * Activate Pipeline Scheduler
-     *
-     * Activates a scheduler for a pipeline on a dataset.
-     *
-     * @param {apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainResp>>}
-     */
-    pipezSchedulerActivateRelevanceFashionRelevanceFashionMain(req: apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerActivateRelevanceFashionRelevanceFashionMainResp>>;
-    /**
-     * List Ingestion Tokens
-     *
-     * Lists all active data ingestion tokens for a specific dataset.
-     *
-     * @param {apiDszListIngestionTokensReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListIngestionTokensResp>>}
-     */
-    dszListIngestionTokens(req: apiDszListIngestionTokensReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListIngestionTokensResp>>;
-    /**
-     * Update Subscription Plan
-     *
-     * Updates the plan (price) of the Stripe subscription for a dataset product/solution.
-     *
-     * @param {apiDszUpdateSubscriptionPlanReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszUpdateSubscriptionPlanResp>>}
-     */
-    dszUpdateSubscriptionPlan(req: apiDszUpdateSubscriptionPlanReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszUpdateSubscriptionPlanResp>>;
-    /**
-     * Current User Profile
-     *
-     * Retrieves current authenticated user identity profile metadata.
-     *
-     * @param {apiUserAuthMeReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthMeResp>>}
-     */
-    userAuthMe(req: apiUserAuthMeReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthMeResp>>;
-    /**
-     * Create Dataset Access Token
-     *
-     * Mints a short-lived dataset access token for an authenticated user.
-     *
-     * @param {apiUserDatasetTokenAccessCreateReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessCreateResp>>}
-     */
-    userDatasetTokenAccessCreate(req: apiUserDatasetTokenAccessCreateReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessCreateResp>>;
-    /**
-     * List Pipelines
-     *
-     * Lists the pipelines of a dataset, optionally filtered, with cursor pagination.
-     *
-     * @param {apiPipezListReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezListResp>>}
-     */
-    pipezList(req: apiPipezListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezListResp>>;
-    /**
-     * List Store Displays
-     *
-     * Lists all active store displays configured for a store under a specific dataset.
-     *
-     * @param {apiDszStoreDisplayListReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayListResp>>}
-     */
-    dszStoreDisplayList(req: apiDszStoreDisplayListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayListResp>>;
-    /**
-     * Get Solution Domain
-     *
-     * Retrieves the active solutions and their corresponding domains for a given store in a dataset.
-     *
-     * @param {apiDszDomainGetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDomainGetResp>>}
-     */
-    dszDomainGet(req: apiDszDomainGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszDomainGetResp>>;
+    dszListStores(req: apiDszListStoresReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListStoresResp>>;
     /**
      * List Recsys Tokens
      *
@@ -5379,45 +6040,25 @@ declare class Apis {
      */
     dszListRecsysTokens(req: apiDszListRecsysTokensReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListRecsysTokensResp>>;
     /**
-     * Get Model Signed URLs
+     * Event Ingestion
      *
-     * Generates presigned URLs for accessing model files in the specified dataset.
+     * Ingests events data into a target dataset table.
      *
-     * @param {apiDszModelGetReq} req
+     * @param {apiIngestzEventRelevanceFashionCatalogReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszModelGetResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionCatalogResp>>}
      */
-    dszModelGet(req: apiDszModelGetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszModelGetResp>>;
+    ingestzEventRelevanceFashionCatalog(req: apiIngestzEventRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionCatalogResp>>;
     /**
-     * Create Stripe Checkout
+     * Get Dataset Signed URLs
      *
-     * Creates a Stripe checkout session for a subscription and returns its id and url.
+     * Generates presigned URLs for accessing or mutating files in the specified dataset.
      *
-     * @param {apiDszStripeCheckoutReq} req
+     * @param {apiDszSignedUrlReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStripeCheckoutResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszSignedUrlResp>>}
      */
-    dszStripeCheckout(req: apiDszStripeCheckoutReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszStripeCheckoutResp>>;
-    /**
-     * Update Payment Auto Renew
-     *
-     * Turns auto renew on or off for the Stripe subscription of a dataset product/solution.
-     *
-     * @param {apiDszUpdatePaymentAutoRenewReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszUpdatePaymentAutoRenewResp>>}
-     */
-    dszUpdatePaymentAutoRenew(req: apiDszUpdatePaymentAutoRenewReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszUpdatePaymentAutoRenewResp>>;
-    /**
-     * Google Sign-In Credential Exchange
-     *
-     * Verifies a Google OAuth ID token via Identity Platform and mints a single-use PKCE code.
-     *
-     * @param {apiUserAuthGoogleReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthGoogleResp>>}
-     */
-    userAuthGoogle(req: apiUserAuthGoogleReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthGoogleResp>>;
+    dszSignedUrl(req: apiDszSignedUrlReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszSignedUrlResp>>;
     /**
      * List Dataset Tables
      *
@@ -5429,35 +6070,15 @@ declare class Apis {
      */
     dszTableList(req: apiDszTableListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszTableListResp>>;
     /**
-     * Human User Session Refresh
+     * Load Table File as JSON
      *
-     * Exchanges a human user refresh token for fresh access and rotated refresh tokens.
+     * Load a table file from the datalake as JSON and return it.
      *
-     * @param {apiUserAuthRefreshReq} req
+     * @param {apiDszResultRelevanceFashionCatalogReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthRefreshResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszResultRelevanceFashionCatalogResp>>}
      */
-    userAuthRefresh(req: apiUserAuthRefreshReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthRefreshResp>>;
-    /**
-     * Attenuate Dataset Access Token
-     *
-     * Derives an in-flight attenuated child access token with dropped privileges from an active access token.
-     *
-     * @param {apiUserDatasetTokenAccessAttenuateReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessAttenuateResp>>}
-     */
-    userDatasetTokenAccessAttenuate(req: apiUserDatasetTokenAccessAttenuateReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenAccessAttenuateResp>>;
-    /**
-     * Start Pipeline
-     *
-     * Starts a pipeline on a dataset with the given params and returns its id.
-     *
-     * @param {apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>}
-     */
-    pipezStartRelevanceFashionRelevanceFashionBatchIngest(req: apiPipezStartRelevanceFashionRelevanceFashionBatchIngestReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionBatchIngestResp>>;
+    dszResultRelevanceFashionCatalog(req: apiDszResultRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszResultRelevanceFashionCatalogResp>>;
     /**
      * Start Pipeline
      *
@@ -5469,15 +6090,25 @@ declare class Apis {
      */
     pipezStartRelevanceFashionRelevanceFashionMain(req: apiPipezStartRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezStartRelevanceFashionRelevanceFashionMainResp>>;
     /**
-     * Deactivate Pipeline Scheduler
+     * List Store Displays
      *
-     * Deactivates a scheduler for a pipeline on a dataset.
+     * Lists all active store displays configured for a store under a specific dataset.
      *
-     * @param {apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainReq} req
+     * @param {apiDszStoreDisplayListReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayListResp>>}
      */
-    pipezSchedulerDeactivateRelevanceFashionRelevanceFashionMain(req: apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiPipezSchedulerDeactivateRelevanceFashionRelevanceFashionMainResp>>;
+    dszStoreDisplayList(req: apiDszStoreDisplayListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayListResp>>;
+    /**
+     * List Ingestion Tokens
+     *
+     * Lists all active data ingestion tokens for a specific dataset.
+     *
+     * @param {apiDszListIngestionTokensReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListIngestionTokensResp>>}
+     */
+    dszListIngestionTokens(req: apiDszListIngestionTokensReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListIngestionTokensResp>>;
     /**
      * Create Store
      *
@@ -5489,145 +6120,15 @@ declare class Apis {
      */
     dszCreateStore(req: apiDszCreateStoreReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszCreateStoreResp>>;
     /**
-     * List Stores
+     * Google Sign-In Credential Exchange
      *
-     * Lists all stores configured under a specific dataset.
+     * Verifies a Google OAuth ID token via Identity Platform and mints a single-use PKCE code.
      *
-     * @param {apiDszListStoresReq} req
+     * @param {apiUserAuthGoogleReq} req
      * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListStoresResp>>}
+     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthGoogleResp>>}
      */
-    dszListStores(req: apiDszListStoresReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListStoresResp>>;
-    /**
-     * Get Subscription
-     *
-     * Gets the plan and the status of the Stripe subscription of a dataset product/solution. The payload is empty for contracts without Stripe.
-     *
-     * @param {apiDszGetSubscriptionReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszGetSubscriptionResp>>}
-     */
-    dszGetSubscription(req: apiDszGetSubscriptionReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszGetSubscriptionResp>>;
-    /**
-     * Password Reset Email Dispatch
-     *
-     * Dispatches an out-of-band password reset email via Identity Platform.
-     *
-     * @param {apiUserAuthPasswordResetReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordResetResp>>}
-     */
-    userAuthPasswordReset(req: apiUserAuthPasswordResetReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordResetResp>>;
-    /**
-     * Create Dataset Refresh Token
-     *
-     * Provisions a long-lived machine dataset refresh token with an Ed25519 keypair.
-     *
-     * @param {apiUserDatasetTokenRefreshCreateReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshCreateResp>>}
-     */
-    userDatasetTokenRefreshCreate(req: apiUserDatasetTokenRefreshCreateReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshCreateResp>>;
-    /**
-     * Event Ingestion
-     *
-     * Ingests events data into a target dataset table.
-     *
-     * @param {apiIngestzEventRelevanceFashionCatalogReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionCatalogResp>>}
-     */
-    ingestzEventRelevanceFashionCatalog(req: apiIngestzEventRelevanceFashionCatalogReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiIngestzEventRelevanceFashionCatalogResp>>;
-    /**
-     * List Datasets
-     *
-     * Lists all datasets available to the user.
-     *
-     * @param {apiDszListDatasetsReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszListDatasetsResp>>}
-     */
-    dszListDatasets(req: apiDszListDatasetsReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszListDatasetsResp>>;
-    /**
-     * List Active Dataset Solutions
-     *
-     * Lists all active solutions configured for a specific dataset.
-     *
-     * @param {apiDszDatasetSolutionsReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszDatasetSolutionsResp>>}
-     */
-    dszDatasetSolutions(req: apiDszDatasetSolutionsReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszDatasetSolutionsResp>>;
-    /**
-     * Device Authorization Code Initiation
-     *
-     * Initiates an RFC 8628 device authorization flow for CLI and remote headless SSH sessions.
-     *
-     * @param {apiUserAuthDeviceCodeReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthDeviceCodeResp>>}
-     */
-    userAuthDeviceCode(req: apiUserAuthDeviceCodeReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthDeviceCodeResp>>;
-    /**
-     * Email and Password Sign-In
-     *
-     * Authenticates an email and password against Identity Platform, enforcing confirmed emails and minting a PKCE code.
-     *
-     * @param {apiUserAuthPasswordSigninReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSigninResp>>}
-     */
-    userAuthPasswordSignin(req: apiUserAuthPasswordSigninReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSigninResp>>;
-    /**
-     * Email and Password Sign-Up
-     *
-     * Registers a new user with Identity Platform and dispatches a verification email.
-     *
-     * @param {apiUserAuthPasswordSignupReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSignupResp>>}
-     */
-    userAuthPasswordSignup(req: apiUserAuthPasswordSignupReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthPasswordSignupResp>>;
-    /**
-     * List Dataset Refresh Tokens
-     *
-     * Lists all active machine refresh tokens provisioned for a dataset.
-     *
-     * @param {apiUserDatasetTokenRefreshListReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshListResp>>}
-     */
-    userDatasetTokenRefreshList(req: apiUserDatasetTokenRefreshListReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserDatasetTokenRefreshListResp>>;
-    /**
-     * Sample Fraction
-     *
-     * Sample API that performs a fraction operation
-     *
-     * @param {apiSampleFractionReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiSampleFractionResp>>}
-     */
-    sampleFraction(req: apiSampleFractionReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiSampleFractionResp>>;
-    /**
-     * Get Ingestion Upload URLs
-     *
-     * Generates presigned PUT URLs and an ingestion token for uploading files into a target dataset table and partitions.
-     *
-     * @param {apiIngestzGetUrlReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiIngestzGetUrlResp>>}
-     */
-    ingestzGetUrl(req: apiIngestzGetUrlReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiIngestzGetUrlResp>>;
-    /**
-     * Create Store Display
-     *
-     * Creates a store display configuration mapping for a store under a specific dataset.
-     *
-     * @param {apiDszStoreDisplayCreateReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayCreateResp>>}
-     */
-    dszStoreDisplayCreate(req: apiDszStoreDisplayCreateReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiDszStoreDisplayCreateResp>>;
+    userAuthGoogle(req: apiUserAuthGoogleReq, opts?: ServiceOptions): Promise<import("../invoker/invoker.js").Resp<apiUserAuthGoogleResp>>;
 }
 export { Apis };
 declare class SdkFuncs {
@@ -5641,26 +6142,6 @@ declare class SdkFuncs {
      * @param {Services} services - The services manager instance.
      */
     constructor(services: Services);
-    /**
-     * Get Metrics by SKU
-     *
-     * Gets the metrics impacted by recommendations by SKU for a store and period.
-     *
-     * @param {sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutput>}
-     */
-    productRelevanceFashionDashImpactedMetricsBySkuV1(req: sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutput>;
-    /**
-     * Get Coverage
-     *
-     * Gets the recommendation coverage of the catalog for a store and period.
-     *
-     * @param {sdkFuncProductRelevanceFashionDashCoverageReq} req
-     * @param {ServiceOptions} [opts]
-     * @returns {Promise<sdkFuncProductRelevanceFashionDashCoverageOutput>}
-     */
-    productRelevanceFashionDashCoverageV1(req: sdkFuncProductRelevanceFashionDashCoverageReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashCoverageOutput>;
     /**
      * Get Bought Together
      *
@@ -5712,5 +6193,35 @@ declare class SdkFuncs {
      * @returns {Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryOutput>}
      */
     productRelevanceFashionDashImpactedMetricsByShowcaseCategoryV1(req: sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsByShowcaseCategoryOutput>;
+    /**
+     * Get Metrics by SKU
+     *
+     * Gets the metrics impacted by recommendations by SKU for a store and period.
+     *
+     * @param {sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutput>}
+     */
+    productRelevanceFashionDashImpactedMetricsBySkuV1(req: sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashImpactedMetricsBySkuOutput>;
+    /**
+     * Get Coverage
+     *
+     * Gets the recommendation coverage of the catalog for a store and period.
+     *
+     * @param {sdkFuncProductRelevanceFashionDashCoverageReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashCoverageOutput>}
+     */
+    productRelevanceFashionDashCoverageV1(req: sdkFuncProductRelevanceFashionDashCoverageReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashCoverageOutput>;
+    /**
+     * Get Display Metrics
+     *
+     * Gets recommendation metrics by display for a store and period, optionally filtered by display and recommendation origin.
+     *
+     * @param {sdkFuncProductRelevanceFashionDashDisplayMetricsReq} req
+     * @param {ServiceOptions} [opts]
+     * @returns {Promise<sdkFuncProductRelevanceFashionDashDisplayMetricsOutput>}
+     */
+    productRelevanceFashionDashDisplayMetricsV1(req: sdkFuncProductRelevanceFashionDashDisplayMetricsReq, opts?: ServiceOptions): Promise<sdkFuncProductRelevanceFashionDashDisplayMetricsOutput>;
 }
 export { SdkFuncs };

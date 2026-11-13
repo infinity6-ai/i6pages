@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>i6 Token Diagnostics & Signing Wizard</title>
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+    <div id="wrapper">
+        <header>
+            <div class="brand">
+                <img src="../favicon.png" alt="i6 Logo">
+                <div>
+                    <h1>i6 Token Diagnostics & Signing Wizard</h1>
+                    <p class="subtitle">Inspect, diagnose, locally sign, and test credentials against <code>/api/userz/token/check</code></p>
+                </div>
+            </div>
+            <div class="header-controls">
+                <div class="env-selector">
+                    <label for="env-select">Target Env:</label>
+                    <select id="env-select">
+                        <option value="sandbox" selected>Sandbox</option>
+                        <option value="staging">Staging</option>
+                        <option value="local">Local (9023)</option>
+                        <option value="custom">Custom...</option>
+                    </select>
+                    <input type="text" id="custom-env-url" placeholder="https://..." style="display:none; width: 180px;">
+                </div>
+                <div class="header-links">
+                    <a href="../console.html" class="btn btn-secondary btn-outline">Console</a>
+                    <a href="../test.html" class="btn btn-secondary btn-outline" target="_blank" rel="noopener">Tests</a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="tabs-nav">
+            <button class="tab-btn active" data-tab="tab-inspector">Token Inspector & Checker</button>
+            <button class="tab-btn" data-tab="tab-wizard">Request Signing Wizard</button>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- TAB 1: TOKEN INSPECTOR & CHECKER                                          -->
+        <!-- ========================================================================= -->
+        <div id="tab-inspector" class="tab-content active">
+            <div class="card">
+                <div class="card-head">
+                    <div>
+                        <h2>Credential Input</h2>
+                        <div class="field-desc">Input any User JWT, Request Signature (<code>&lt;envelope&gt;.&lt;token&gt;</code>), Refresh Assertion, or Dataset Access Token.</div>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-secondary btn-outline" id="load-sample-sig">Sample Signature</button>
+                        <button type="button" class="btn btn-secondary btn-outline" id="load-sample-jwt">Sample JWT</button>
+                        <button type="button" class="btn btn-secondary btn-outline" id="load-sample-assertion">Sample Assertion</button>
+                        <button type="button" class="btn btn-secondary btn-outline" id="clear-inspect-input">Clear</button>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <textarea id="inspect-input" rows="4" class="mono-input" placeholder="Paste credential string here (e.g. eyJ... or AQAAAA... or <envelope>.<access_token>)"></textarea>
+                </div>
+            </div>
+
+            <!-- Two-column diagnostic grid -->
+            <div class="grid-2">
+                <!-- Column 1: Local Describe -->
+                <div class="card">
+                    <div class="card-head">
+                        <h2>1. Local Describe (In-Browser)</h2>
+                        <span id="local-kind-badge" class="badge">Awaiting Input</span>
+                    </div>
+
+                    <div id="local-describe-empty" style="color: var(--muted); padding: 20px 0; text-align: center;">
+                        Paste or generate a token above to see its mathematical decomposition and decoded metadata.
+                    </div>
+
+                    <div id="local-describe-content" style="display: none;">
+                        <!-- Summary and Expiration Banner -->
+                        <div class="sub-card" id="local-expiry-card">
+                            <div class="sub-card-head">
+                                <span class="sub-card-title">Lifetime & Status</span>
+                                <span id="local-expiry-badge" class="badge">Active</span>
+                            </div>
+                            <div class="kv-list">
+                                <span class="kv-key">Expires At:</span>
+                                <span class="kv-val" id="local-expiry-date">-</span>
+                                <span class="kv-key">Remaining:</span>
+                                <span class="kv-val" id="local-expiry-remaining">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Envelope Details (for Request Signature) -->
+                        <div class="sub-card" id="local-envelope-card" style="display: none;">
+                            <div class="sub-card-head">
+                                <span class="sub-card-title">Signature Envelope (89 Bytes)</span>
+                                <span class="badge badge-accent">Type 2</span>
+                            </div>
+                            <div class="kv-list">
+                                <span class="kv-key">Unsigned Body:</span>
+                                <span class="kv-val" id="local-env-unsigned">-</span>
+                                <span class="kv-key">Nonce (16B):</span>
+                                <span class="kv-val" id="local-env-nonce">-</span>
+                                <span class="kv-key">Replay Mode:</span>
+                                <span class="kv-val" id="local-env-timewindowed">-</span>
+                                <span class="kv-key">Signature (64B):</span>
+                                <span class="kv-val" id="local-env-sig" style="font-family: monospace; font-size: 11px;">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Embedded / JWT Token Details -->
+                        <div class="sub-card" id="local-jwt-card" style="display: none;">
+                            <div class="sub-card-head">
+                                <span class="sub-card-title" id="local-jwt-title">Token Payload</span>
+                                <span class="badge" id="local-jwt-badge">JWT</span>
+                            </div>
+                            <div class="kv-list" id="local-jwt-kv">
+                                <!-- Populated dynamically -->
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <div style="font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 4px;">RAW PAYLOAD JSON:</div>
+                                <pre id="local-jwt-json" style="max-height: 180px;"></pre>
+                            </div>
+                        </div>
+
+                        <!-- Refresh Assertion Details -->
+                        <div class="sub-card" id="local-assertion-card" style="display: none;">
+                            <div class="sub-card-head">
+                                <span class="sub-card-title">Refresh Assertion (121 Bytes)</span>
+                                <span class="badge badge-accent">Type 3</span>
+                            </div>
+                            <div class="kv-list">
+                                <span class="kv-key">Public Key (JTI):</span>
+                                <span class="kv-val" id="local-assertion-pubkey">-</span>
+                                <span class="kv-key">Nonce (16B):</span>
+                                <span class="kv-val" id="local-assertion-nonce">-</span>
+                                <span class="kv-key">Signature (64B):</span>
+                                <span class="kv-val" id="local-assertion-sig" style="font-family: monospace; font-size: 11px;">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Dataset Access Token (Type 1) Details -->
+                        <div class="sub-card" id="local-dataset-card" style="display: none;">
+                            <div class="sub-card-head">
+                                <span class="sub-card-title">Binary Dataset Token</span>
+                                <span class="badge badge-accent">Type 1</span>
+                            </div>
+                            <p style="font-size: 13px; color: var(--muted); margin: 0 0 8px;">
+                                This is a binary-packed execution token. Detailed permissions and constraints (Grants, Solutions, JTI binding) will be mathematically extracted by the Server Check endpoint.
+                            </p>
+                            <div class="kv-list">
+                                <span class="kv-key">Binary Length:</span>
+                                <span class="kv-val" id="local-dataset-length">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column 2: Server Check -->
+                <div class="card">
+                    <div class="card-head">
+                        <h2>2. Server Check (<code>/api/userz/token/check</code>)</h2>
+                        <span id="server-status-badge" class="badge">Not Checked</span>
+                    </div>
+
+                    <!-- Context drawer for Request Signatures -->
+                    <div id="check-request-context" class="sub-card" style="display: none;">
+                        <div class="sub-card-head">
+                            <span class="sub-card-title">HTTP Request Context</span>
+                            <span class="field-desc">Required to verify Request Signatures</span>
+                        </div>
+                        <div class="field-row">
+                            <div class="field" style="max-width: 110px;">
+                                <label for="check-method">Method</label>
+                                <select id="check-method">
+                                    <option value="GET" selected>GET</option>
+                                    <option value="POST">POST</option>
+                                    <option value="PUT">PUT</option>
+                                    <option value="DELETE">DELETE</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="check-path">Path</label>
+                                <input type="text" id="check-path" class="mono-input" value="/api/ds/dataset/dectest/solutions" placeholder="/api/ds/dataset/dectest/solutions">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="check-query">Query String</label>
+                            <input type="text" id="check-query" class="mono-input" placeholder="Optional query (e.g. limit=10)">
+                        </div>
+                        <div class="field">
+                            <label for="check-body">Request Body</label>
+                            <textarea id="check-body" rows="2" class="mono-input" placeholder="Optional request body"></textarea>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <button type="button" id="btn-run-check" class="btn" style="width: 100%;">
+                            <span>Run Universal Server Diagnostics</span>
+                        </button>
+                    </div>
+
+                    <!-- Check Results Section -->
+                    <div id="check-result-container" style="display: none;">
+                        <!-- Status Banner -->
+                        <div id="check-result-banner" class="result-banner valid">
+                            <div style="font-size: 20px;" id="check-result-icon">&#x2714;</div>
+                            <div>
+                                <div class="result-title" id="check-result-title">Valid Credential</div>
+                                <div class="result-summary" id="check-result-summary">Request signature is valid and mathematically verified.</div>
+                            </div>
+                        </div>
+
+                        <!-- Troubleshooting Hint Box -->
+                        <div id="check-hint-box" class="hint-box" style="display: none;">
+                            <strong>Diagnostic Hint:</strong> <span id="check-hint-text"></span>
+                        </div>
+
+                        <!-- Diff Viewer: Canonical String -->
+                        <div id="check-canonical-diff" class="sub-card" style="display: none;">
+                            <div class="sub-card-head">
+                                <span class="sub-card-title">Canonical String Alignment</span>
+                            </div>
+                            <div class="diff-view">
+                                <div>
+                                    <div class="diff-pane-title">Server Canonical String</div>
+                                    <pre id="server-canonical-text" style="height: 140px;"></pre>
+                                </div>
+                                <div>
+                                    <div class="diff-pane-title">Local Canonical String</div>
+                                    <pre id="local-canonical-text" style="height: 140px;"></pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Breakdown Details Table -->
+                        <div class="sub-card" id="check-breakdown-card" style="display: none;">
+                            <div class="sub-card-head">
+                                <span class="sub-card-title">Canonical Breakdown Components</span>
+                            </div>
+                            <table class="data-table">
+                                <tbody>
+                                    <tr><th>Method</th><td id="diag-bd-method">-</td></tr>
+                                    <tr><th>Path</th><td id="diag-bd-path">-</td></tr>
+                                    <tr><th>Canonical Query</th><td id="diag-bd-query">-</td></tr>
+                                    <tr><th>Body SHA-256</th><td><code id="diag-bd-body">-</code></td></tr>
+                                    <tr><th>Token SHA-256</th><td><code id="diag-bd-token">-</code></td></tr>
+                                    <tr><th>Expiration (Exp)</th><td id="diag-bd-exp">-</td></tr>
+                                    <tr><th>Nonce</th><td><code id="diag-bd-nonce">-</code></td></tr>
+                                    <tr><th>Unsigned Body Flag</th><td id="diag-bd-unsigned">-</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Crypto & Diagnostic Details -->
+                        <div class="sub-card" id="check-crypto-card">
+                            <div class="sub-card-head">
+                                <span class="sub-card-title">Diagnostic Identity & Cryptography</span>
+                            </div>
+                            <div class="kv-list">
+                                <span class="kv-key">Token Kind:</span>
+                                <span class="kv-val" id="diag-token-kind">-</span>
+                                <span class="kv-key">User ID:</span>
+                                <span class="kv-val" id="diag-user-id">-</span>
+                                <span class="kv-key">Dataset:</span>
+                                <span class="kv-val" id="diag-dataset">-</span>
+                                <span class="kv-key">Mode:</span>
+                                <span class="kv-val" id="diag-mode">-</span>
+                                <span class="kv-key">Grants Bitmask:</span>
+                                <span class="kv-val" id="diag-grants">-</span>
+                                <span class="kv-key">Solutions:</span>
+                                <span class="kv-val" id="diag-solutions">-</span>
+                                <span class="kv-key">Client Public Key:</span>
+                                <span class="kv-val" id="diag-client-pubkey" style="font-family: monospace; font-size: 11px;">-</span>
+                                <span class="kv-key">Crypto Verified:</span>
+                                <span class="kv-val" id="diag-crypto-verified">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- TAB 2: REQUEST SIGNING WIZARD                                             -->
+        <!-- ========================================================================= -->
+        <div id="tab-wizard" class="tab-content">
+            <!-- Stepper Progress Bar -->
+            <div class="stepper">
+                <div class="step-item active" data-step="1">
+                    <div class="step-num">1</div>
+                    <div class="step-label">Login</div>
+                </div>
+                <div class="step-item" data-step="2">
+                    <div class="step-num">2</div>
+                    <div class="step-label">Keypair</div>
+                </div>
+                <div class="step-item" data-step="3">
+                    <div class="step-num">3</div>
+                    <div class="step-label">Access Token</div>
+                </div>
+                <div class="step-item" data-step="4">
+                    <div class="step-num">4</div>
+                    <div class="step-label">Sign Locally</div>
+                </div>
+                <div class="step-item" data-step="5">
+                    <div class="step-num">5</div>
+                    <div class="step-label">Check</div>
+                </div>
+                <div class="step-item" data-step="6">
+                    <div class="step-num">6</div>
+                    <div class="step-label">cURL & Execute</div>
+                </div>
+            </div>
+
+            <!-- STEP 1: LOGIN -->
+            <div id="wizard-step-1" class="wizard-step-panel active card">
+                <div class="card-head">
+                    <div>
+                        <h2>Step 1: Authenticate with i6userz</h2>
+                        <div class="field-desc">Sign in with an email & password via PKCE, or paste an existing User JWT.</div>
+                    </div>
+                    <span id="wizard-user-badge" class="badge">Unauthenticated</span>
+                </div>
+
+                <div class="grid-2">
+                    <div>
+                        <h3>Sign In with Password (In-Page PKCE)</h3>
+                        <div class="field">
+                            <label for="wiz-email">Email Address</label>
+                            <input type="email" id="wiz-email" placeholder="user@company.com">
+                        </div>
+                        <div class="field">
+                            <label for="wiz-password">Password</label>
+                            <input type="password" id="wiz-password" placeholder="••••••••">
+                        </div>
+                        <div class="field">
+                            <label for="wiz-app">App Identifier</label>
+                            <input type="text" id="wiz-app" value="default">
+                        </div>
+                        <button type="button" id="btn-wiz-login" class="btn">Sign In via PKCE</button>
+                    </div>
+
+                    <div>
+                        <h3>Or Use Existing User Access Token</h3>
+                        <div class="field">
+                            <label for="wiz-pasted-jwt">User JWT (<code>user_access_token</code>)</label>
+                            <textarea id="wiz-pasted-jwt" rows="4" class="mono-input" placeholder="eyJhbGciOiBFZERTQ..."></textarea>
+                        </div>
+                        <button type="button" id="btn-wiz-use-jwt" class="btn btn-secondary">Apply Token</button>
+
+                        <div id="wiz-user-summary" class="sub-card" style="margin-top: 14px; display: none;">
+                            <div class="sub-card-title">Active User Session</div>
+                            <div class="kv-list" style="margin-top: 6px;">
+                                <span class="kv-key">User ID:</span>
+                                <span class="kv-val" id="wiz-user-id">-</span>
+                                <span class="kv-key">Expires:</span>
+                                <span class="kv-val" id="wiz-user-exp">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="wizard-footer">
+                    <div></div>
+                    <button type="button" class="btn btn-wizard-next" data-next="2">Proceed to Step 2 &rarr;</button>
+                </div>
+            </div>
+
+            <!-- STEP 2: CREATE REFRESH KEYPAIR -->
+            <div id="wizard-step-2" class="wizard-step-panel card">
+                <div class="card-head">
+                    <div>
+                        <h2>Step 2: Dataset Refresh Token & Ed25519 Keypair</h2>
+                        <div class="field-desc">Provision a long-lived machine dataset refresh token with an Ed25519 signing keypair.</div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div>
+                        <h3>Provision Keypair on Server</h3>
+                        <div class="field">
+                            <label for="wiz-dataset">Target Dataset ID</label>
+                            <input type="text" id="wiz-dataset" value="dectest" class="mono-input">
+                        </div>
+                        <div class="field">
+                            <label for="wiz-solution">Solution Restriction (Optional)</label>
+                            <input type="text" id="wiz-solution" placeholder="Leave empty for all solutions" class="mono-input">
+                        </div>
+                        <div class="field">
+                            <label for="wiz-grants">Permissions (Grants)</label>
+                            <select id="wiz-grants">
+                                <option value="15" selected>All Permissions (Read, Write, Admin, System - 15)</option>
+                                <option value="12">Read + Write (12)</option>
+                                <option value="8">Read Only (8)</option>
+                                <option value="4">Write Only (4)</option>
+                            </select>
+                        </div>
+                        <button type="button" id="btn-wiz-create-keypair" class="btn">Provision Dataset Refresh Token</button>
+                    </div>
+
+                    <div>
+                        <h3>Active Ed25519 Signing Credentials</h3>
+                        <div class="field">
+                            <label for="wiz-privkey">Ed25519 Private Key (Base64URL)</label>
+                            <textarea id="wiz-privkey" rows="3" class="mono-input" placeholder="Base64URL private key (from server or paste existing)"></textarea>
+                            <span class="field-desc">Can be raw 64-byte key or 32-byte seed.</span>
+                        </div>
+                        <div class="field">
+                            <label for="wiz-jti">Public Key JTI</label>
+                            <input type="text" id="wiz-jti" class="mono-input" placeholder="Derived or returned JTI" readonly>
+                        </div>
+                        <button type="button" id="btn-wiz-derive-pub" class="btn btn-secondary btn-outline">Derive & Validate JTI</button>
+                    </div>
+                </div>
+
+                <div class="wizard-footer">
+                    <button type="button" class="btn btn-secondary btn-wizard-prev" data-prev="1">&larr; Back to Step 1</button>
+                    <button type="button" class="btn btn-wizard-next" data-next="3">Proceed to Step 3 &rarr;</button>
+                </div>
+            </div>
+
+            <!-- STEP 3: DATASET ACCESS TOKEN -->
+            <div id="wizard-step-3" class="wizard-step-panel card">
+                <div class="card-head">
+                    <div>
+                        <h2>Step 3: Mint or Bound Dataset Access Token</h2>
+                        <div class="field-desc">A request signature bundles a signature envelope and an access token: <code>&lt;envelope&gt;.&lt;access_token&gt;</code>.</div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div>
+                        <h3>Option A: Mint Binary Dataset Access Token</h3>
+                        <p style="font-size: 13px; color: var(--muted);">
+                            Calls <code>POST /api/userz/dataset-access-token/{dataset}</code> with client public key binding (PoP).
+                        </p>
+                        <div class="field">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="wiz-bind-pop" checked>
+                                Bind token to Step 2 Public Key (Sender-Constrained PoP)
+                            </label>
+                        </div>
+                        <button type="button" id="btn-wiz-mint-access-token" class="btn">Mint Dataset Access Token</button>
+                    </div>
+
+                    <div>
+                        <h3>Option B: Use User JWT as Bound Token</h3>
+                        <p style="font-size: 13px; color: var(--muted);">
+                            You can also bind the User Access Token JWT directly to your request signature.
+                        </p>
+                        <button type="button" id="btn-wiz-use-jwt-access" class="btn btn-secondary">Use Active User JWT</button>
+                    </div>
+                </div>
+
+                <div class="sub-card" style="margin-top: 18px;">
+                    <div class="sub-card-title">Bound Access Token for Signature</div>
+                    <div class="field" style="margin-top: 8px;">
+                        <textarea id="wiz-bound-access-token" rows="3" class="mono-input" placeholder="Bound access token string will appear here..."></textarea>
+                    </div>
+                    <span id="wiz-bound-token-desc" class="field-desc">No access token bound yet.</span>
+                </div>
+
+                <div class="wizard-footer">
+                    <button type="button" class="btn btn-secondary btn-wizard-prev" data-prev="2">&larr; Back to Step 2</button>
+                    <button type="button" class="btn btn-wizard-next" data-next="4">Proceed to Step 4 &rarr;</button>
+                </div>
+            </div>
+
+            <!-- STEP 4: LOCAL SIGN -->
+            <div id="wizard-step-4" class="wizard-step-panel card">
+                <div class="card-head">
+                    <div>
+                        <h2>Step 4: Request Builder & Local Ed25519 Signing</h2>
+                        <div class="field-desc">Constructs the canonical request string and signs it locally in your browser using the Web Crypto API.</div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div>
+                        <h3>Target Request Parameters</h3>
+                        <div class="field-row">
+                            <div class="field" style="max-width: 110px;">
+                                <label for="wiz-sign-method">Method</label>
+                                <select id="wiz-sign-method">
+                                    <option value="GET" selected>GET</option>
+                                    <option value="POST">POST</option>
+                                    <option value="PUT">PUT</option>
+                                    <option value="DELETE">DELETE</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="wiz-sign-path">Path</label>
+                                <input type="text" id="wiz-sign-path" class="mono-input" value="/api/ds/dataset/dectest/solutions">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="wiz-sign-query">Query String</label>
+                            <input type="text" id="wiz-sign-query" class="mono-input" value="" placeholder="Optional query parameters (e.g. limit=10)">
+                        </div>
+                        <div class="field">
+                            <label for="wiz-sign-body">Request Body</label>
+                            <textarea id="wiz-sign-body" rows="3" class="mono-input" placeholder="Optional payload for POST/PUT"></textarea>
+                        </div>
+                        <div class="field-row">
+                            <div class="field">
+                                <label for="wiz-sign-ttl">TTL (Seconds)</label>
+                                <input type="number" id="wiz-sign-ttl" value="300" min="10" max="300">
+                            </div>
+                            <div class="field" style="justify-content: flex-end; padding-bottom: 8px;">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="wiz-sign-unsigned">
+                                    Unsigned Body (Flag 0x80)
+                                </label>
+                            </div>
+                        </div>
+                        <button type="button" id="btn-wiz-execute-sign" class="btn btn-success" style="width: 100%;">
+                            <span>Sign Request Locally Now</span>
+                        </button>
+                    </div>
+
+                    <div>
+                        <h3>Canonical String & Output Signature</h3>
+                        <div class="field">
+                            <label>Computed Local Canonical String (7 Lines)</label>
+                            <pre id="wiz-canonical-preview" style="height: 120px;">(Will compute automatically)</pre>
+                        </div>
+                        <div class="field">
+                            <label>Generated <code>X-I6-Signature</code> Header Value</label>
+                            <textarea id="wiz-generated-sig" rows="3" class="mono-input" readonly placeholder="Composite signature token (<envelope>.<access_token>) will appear here"></textarea>
+                        </div>
+                        <button type="button" id="btn-wiz-copy-sig" class="btn btn-secondary btn-outline">Copy Signature</button>
+                    </div>
+                </div>
+
+                <div class="wizard-footer">
+                    <button type="button" class="btn btn-secondary btn-wizard-prev" data-prev="3">&larr; Back to Step 3</button>
+                    <button type="button" class="btn btn-wizard-next" data-next="5">Proceed to Step 5 (Check) &rarr;</button>
+                </div>
+            </div>
+
+            <!-- STEP 5: CHECK -->
+            <div id="wizard-step-5" class="wizard-step-panel card">
+                <div class="card-head">
+                    <div>
+                        <h2>Step 5: Verify Signature on Server</h2>
+                        <div class="field-desc">Validate your locally created request signature against <code>/api/userz/token/check</code>.</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <button type="button" id="btn-wiz-verify-sig" class="btn" style="padding: 10px 20px;">
+                        <span>Verify Signature with Server Diagnostic API</span>
+                    </button>
+                </div>
+
+                <div id="wiz-check-result-container" style="display: none;">
+                    <div id="wiz-check-banner" class="result-banner valid">
+                        <div style="font-size: 20px;" id="wiz-check-icon">&#x2714;</div>
+                        <div>
+                            <div class="result-title" id="wiz-check-title">Valid Request Signature</div>
+                            <div class="result-summary" id="wiz-check-summary">-</div>
+                        </div>
+                    </div>
+
+                    <div id="wiz-check-hint" class="hint-box" style="display: none;">
+                        <strong>Diagnostic Hint:</strong> <span id="wiz-check-hint-text"></span>
+                    </div>
+
+                    <div class="sub-card">
+                        <div class="sub-card-title">Server Canonical vs Local Canonical Match</div>
+                        <div class="diff-view">
+                            <div>
+                                <div class="diff-pane-title">Server Canonical String</div>
+                                <pre id="wiz-server-canonical-text" style="height: 120px;"></pre>
+                            </div>
+                            <div>
+                                <div class="diff-pane-title">Local Canonical String</div>
+                                <pre id="wiz-local-canonical-text" style="height: 120px;"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="wizard-footer">
+                    <button type="button" class="btn btn-secondary btn-wizard-prev" data-prev="4">&larr; Back to Step 4</button>
+                    <button type="button" class="btn btn-wizard-next" data-next="6">Proceed to Step 6 (cURL & Execute) &rarr;</button>
+                </div>
+            </div>
+
+            <!-- STEP 6: VIEW AS CURL & EXECUTE -->
+            <div id="wizard-step-6" class="wizard-step-panel card">
+                <div class="card-head">
+                    <div>
+                        <h2>Step 6: View as cURL & Execute Live Request</h2>
+                        <div class="field-desc">Inspect the final command and execute it directly against the target endpoint.</div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3>1. Ready-to-Use cURL Command</h3>
+                    <pre id="wiz-curl-output" style="max-height: 150px;"></pre>
+                    <div style="margin-bottom: 20px;">
+                        <button type="button" id="btn-wiz-copy-curl" class="btn btn-secondary">Copy cURL Command</button>
+                    </div>
+
+                    <h3>2. Execute Request from Browser</h3>
+                    <div class="field-row" style="align-items: center; margin-bottom: 12px;">
+                        <div class="field" style="flex: 2;">
+                            <label for="wiz-exec-target-url">Target API Base URL</label>
+                            <input type="text" id="wiz-exec-target-url" value="https://decsuite.sandbox.rs.infinity6.ai" class="mono-input">
+                        </div>
+                        <div style="flex: 1; padding-top: 14px;">
+                            <button type="button" id="btn-wiz-execute-live" class="btn btn-success" style="width: 100%;">
+                                <span>Execute Live Request</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="wiz-live-exec-container" class="sub-card" style="display: none; margin-top: 14px;">
+                        <div class="sub-card-head">
+                            <span class="sub-card-title">Live Execution Response</span>
+                            <span id="wiz-live-status-badge" class="badge">200 OK</span>
+                        </div>
+                        <div class="kv-list" style="margin-bottom: 8px;">
+                            <span class="kv-key">Time Elapsed:</span>
+                            <span class="kv-val" id="wiz-live-elapsed">-</span>
+                        </div>
+                        <div style="font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 4px;">RESPONSE HEADERS:</div>
+                        <pre id="wiz-live-headers" style="max-height: 100px; font-size: 11.5px;"></pre>
+                        <div style="font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 4px;">RESPONSE BODY:</div>
+                        <pre id="wiz-live-body" style="max-height: 220px;"></pre>
+                    </div>
+                </div>
+
+                <div class="wizard-footer">
+                    <button type="button" class="btn btn-secondary btn-wizard-prev" data-prev="5">&larr; Back to Step 5</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.location.reload()">Start Over</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast">Copied to clipboard</div>
+
+    <!-- Main Logic Script -->
+    <script type="module">
+        import {
+            ENV_URLS,
+            GRANTS,
+            formatGrants,
+            describeToken,
+            checkToken,
+            signRequest,
+            buildCanonicalString,
+            importEd25519PrivateKey,
+            getEd25519PublicKeyB64,
+            loginPasswordPKCE,
+            createDatasetRefreshToken,
+            createDatasetAccessToken,
+            bytesToHex,
+            base64UrlEncode
+        } from './tokens.js';
+
+        // --- State Management ---
+        const state = {
+            env: localStorage.getItem('i6_token_env') || 'sandbox',
+            customUrl: localStorage.getItem('i6_token_custom_url') || '',
+            inspectData: null,
+            userToken: null,
+            keypair: {
+                dataset: 'dectest',
+                privKey: '',
+                jti: ''
+            },
+            boundAccessToken: '',
+            signatureHeader: '',
+            canonicalString: '',
+            lastCheckResult: null
+        };
+
+        const $ = (id) => document.getElementById(id);
+
+        function showToast(msg = "Copied to clipboard") {
+            const t = $('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        function getUserzUrl() {
+            if (state.env === 'custom') {
+                return (state.customUrl || '').trim() || ENV_URLS.sandbox;
+            }
+            return ENV_URLS[state.env] || ENV_URLS.sandbox;
+        }
+
+        // --- Environment Setup ---
+        $('env-select').value = state.env;
+        if (state.env === 'custom') {
+            $('custom-env-url').style.display = 'inline-block';
+            $('custom-env-url').value = state.customUrl;
+        }
+
+        $('env-select').addEventListener('change', (e) => {
+            state.env = e.target.value;
+            localStorage.setItem('i6_token_env', state.env);
+            if (state.env === 'custom') {
+                $('custom-env-url').style.display = 'inline-block';
+            } else {
+                $('custom-env-url').style.display = 'none';
+            }
+        });
+
+        $('custom-env-url').addEventListener('input', (e) => {
+            state.customUrl = e.target.value.trim();
+            localStorage.setItem('i6_token_custom_url', state.customUrl);
+        });
+
+        // --- Tab Switching ---
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                $(btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        // =========================================================================
+        // TAB 1: INSPECTOR LOGIC
+        // =========================================================================
+        const inspectInput = $('inspect-input');
+
+        function updateLocalDescribe() {
+            const raw = inspectInput.value.trim();
+            if (!raw) {
+                $('local-describe-empty').style.display = 'block';
+                $('local-describe-content').style.display = 'none';
+                $('local-kind-badge').textContent = 'Awaiting Input';
+                $('local-kind-badge').className = 'badge';
+                $('check-request-context').style.display = 'none';
+                state.inspectData = null;
+                return;
+            }
+
+            const desc = describeToken(raw);
+            state.inspectData = desc;
+
+            $('local-describe-empty').style.display = 'none';
+            $('local-describe-content').style.display = 'block';
+
+            // Update Kind Badge
+            const kindBadge = $('local-kind-badge');
+            kindBadge.className = 'badge badge-accent';
+
+            $('local-envelope-card').style.display = 'none';
+            $('local-jwt-card').style.display = 'none';
+            $('local-assertion-card').style.display = 'none';
+            $('local-dataset-card').style.display = 'none';
+            $('local-expiry-card').style.display = 'none';
+
+            if (desc.kind === 'user_jwt') {
+                kindBadge.textContent = 'User JWT (EdDSA)';
+                $('local-expiry-card').style.display = 'block';
+                renderExpiry(desc.expiresAt, desc.isExpired, desc.timeRemainingSeconds);
+                renderJwtCard(desc.header, desc.payload, 'User JWT Payload');
+                $('check-request-context').style.display = 'none';
+            } else if (desc.kind === 'request_signature') {
+                kindBadge.textContent = 'Request Signature (Type 2)';
+                $('local-expiry-card').style.display = 'block';
+                renderExpiry(desc.envelope.exp * 1000, desc.envelope.isExpired, desc.envelope.timeRemainingSeconds);
+
+                // Show Envelope
+                $('local-envelope-card').style.display = 'block';
+                $('local-env-unsigned').textContent = desc.envelope.unsignedBody ? 'Yes (Flag 0x80)' : 'No (Body SHA-256 Verified)';
+                $('local-env-nonce').textContent = desc.envelope.nonceHex;
+                $('local-env-timewindowed').textContent = desc.envelope.isTimeWindowed ? 'Time-Windowed (Zero Nonce)' : 'Random Nonce (Anti-Replay)';
+                $('local-env-sig').textContent = desc.envelope.signatureHex;
+
+                // Show Embedded Token
+                if (desc.embeddedToken && desc.embeddedToken.kind === 'user_jwt') {
+                    renderJwtCard(desc.embeddedToken.header, desc.embeddedToken.payload, 'Embedded User JWT');
+                } else if (desc.embeddedToken && desc.embeddedToken.kind === 'dataset_access_token') {
+                    $('local-dataset-card').style.display = 'block';
+                    $('local-dataset-length').textContent = `${desc.embeddedToken.byteLength} raw bytes`;
+                }
+
+                $('check-request-context').style.display = 'block';
+            } else if (desc.kind === 'refresh_assertion') {
+                kindBadge.textContent = 'Refresh Assertion (Type 3)';
+                $('local-expiry-card').style.display = 'block';
+                renderExpiry(desc.assertion.exp * 1000, desc.assertion.isExpired, desc.assertion.timeRemainingSeconds);
+
+                $('local-assertion-card').style.display = 'block';
+                $('local-assertion-pubkey').textContent = desc.assertion.pubKeyB64;
+                $('local-assertion-nonce').textContent = desc.assertion.nonceHex;
+                $('local-assertion-sig').textContent = desc.assertion.signatureHex;
+                $('check-request-context').style.display = 'none';
+            } else if (desc.kind === 'dataset_access_token') {
+                kindBadge.textContent = 'Dataset Access Token (Type 1)';
+                $('local-dataset-card').style.display = 'block';
+                $('local-dataset-length').textContent = `${desc.byteLength} raw bytes`;
+                $('check-request-context').style.display = 'none';
+            } else {
+                kindBadge.textContent = 'Unknown Format';
+                kindBadge.className = 'badge badge-warn';
+                $('check-request-context').style.display = 'none';
+            }
+        }
+
+        function renderExpiry(expMs, isExpired, remainingSec) {
+            const badge = $('local-expiry-badge');
+            if (!expMs) {
+                $('local-expiry-date').textContent = 'No expiration claim';
+                $('local-expiry-remaining').textContent = '-';
+                badge.textContent = 'N/A';
+                badge.className = 'badge';
+                return;
+            }
+
+            const dt = new Date(expMs);
+            $('local-expiry-date').textContent = `${dt.toISOString()} (${dt.toLocaleString()})`;
+
+            if (isExpired) {
+                badge.textContent = 'EXPIRED';
+                badge.className = 'badge badge-error';
+                $('local-expiry-remaining').textContent = `${Math.abs(remainingSec)}s ago`;
+            } else {
+                badge.textContent = 'ACTIVE';
+                badge.className = 'badge badge-success';
+                $('local-expiry-remaining').textContent = `${remainingSec}s (${Math.round(remainingSec / 60)} min)`;
+            }
+        }
+
+        function renderJwtCard(header, payload, title) {
+            $('local-jwt-card').style.display = 'block';
+            $('local-jwt-title').textContent = title;
+            const kv = $('local-jwt-kv');
+            kv.innerHTML = '';
+
+            const addRow = (k, v) => {
+                if (v === undefined || v === null || v === '') return;
+                const sk = document.createElement('span');
+                sk.className = 'kv-key';
+                sk.textContent = k + ':';
+                const sv = document.createElement('span');
+                sv.className = 'kv-val';
+                sv.textContent = String(v);
+                kv.appendChild(sk);
+                kv.appendChild(sv);
+            };
+
+            addRow('User ID', payload.user_id || payload.sub);
+            addRow('Email', payload.email);
+            addRow('Audience', payload.aud);
+            addRow('Issuer', payload.iss);
+            addRow('Algorithm', header.alg);
+
+            $('local-jwt-json').textContent = JSON.stringify(payload, null, 2);
+        }
+
+        inspectInput.addEventListener('input', updateLocalDescribe);
+
+        // Samples
+        $('load-sample-jwt').addEventListener('click', () => {
+            const header = base64UrlEncode(new TextEncoder().encode(JSON.stringify({ alg: "EdDSA", typ: "JWT" })));
+            const exp = Math.floor(Date.now() / 1000) + 3600;
+            const payload = base64UrlEncode(new TextEncoder().encode(JSON.stringify({
+                user_id: "usr_test_64l7qauv4l6512kf0c",
+                email: "customer@company.com",
+                aud: "default",
+                exp: exp
+            })));
+            const sig = base64UrlEncode(new Uint8Array(64).fill(0x55));
+            inspectInput.value = `${header}.${payload}.${sig}`;
+            updateLocalDescribe();
+        });
+
+        $('load-sample-sig').addEventListener('click', async () => {
+            // Generate dummy sample signature
+            const dummyPrivKey = base64UrlEncode(new Uint8Array(64).fill(0x2a));
+            const dummyAccessToken = "AQAAAACp_dummy_dataset_access_token";
+            const exp = Math.floor(Date.now() / 1000) + 300;
+            try {
+                const res = await signRequest(
+                    dummyPrivKey,
+                    "GET",
+                    "/api/ds/dataset/dectest/solutions",
+                    "",
+                    null,
+                    dummyAccessToken,
+                    exp,
+                    new Uint8Array(16),
+                    false
+                );
+                inspectInput.value = res.signatureHeader;
+                $('check-method').value = "GET";
+                $('check-path').value = "/api/ds/dataset/dectest/solutions";
+                $('check-query').value = "";
+                $('check-body').value = "";
+                updateLocalDescribe();
+            } catch (err) {
+                console.error("Failed to generate sample signature:", err);
+            }
+        });
+
+        $('load-sample-assertion').addEventListener('click', () => {
+            const buf = new Uint8Array(121);
+            buf[0] = 3; // TypeRefreshAssertion
+            const view = new DataView(buf.buffer);
+            view.setBigUint64(1, BigInt(Math.floor(Date.now() / 1000) + 86400), false);
+            buf.set(new Uint8Array(32).fill(0x33), 25); // pubkey
+            buf.set(new Uint8Array(64).fill(0x77), 57); // signature
+            inspectInput.value = base64UrlEncode(buf);
+            updateLocalDescribe();
+        });
+
+        $('clear-inspect-input').addEventListener('click', () => {
+            inspectInput.value = '';
+            updateLocalDescribe();
+            $('check-result-container').style.display = 'none';
+        });
+
+        // Run Server Check
+        $('btn-run-check').addEventListener('click', async () => {
+            const rawToken = inspectInput.value.trim();
+            if (!rawToken) {
+                alert("Please input a token first.");
+                return;
+            }
+
+            const btn = $('btn-run-check');
+            btn.disabled = true;
+            btn.textContent = "Checking with Server...";
+
+            try {
+                const userzUrl = getUserzUrl();
+                const desc = state.inspectData || describeToken(rawToken);
+
+                const req = {};
+                if (desc.kind === 'request_signature') {
+                    req.signature = rawToken;
+                    req.method = $('check-method').value.trim() || 'GET';
+                    req.path = $('check-path').value.trim() || '/api/ds/dataset/dectest/solutions';
+                    req.query = $('check-query').value.trim();
+                    req.body = $('check-body').value;
+                } else {
+                    req.token = rawToken;
+                }
+
+                const res = await checkToken(userzUrl, req);
+                renderCheckResult(res.data, desc);
+            } catch (err) {
+                alert(`Server check error: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Run Universal Server Diagnostics";
+            }
+        });
+
+        async function renderCheckResult(data, desc) {
+            $('check-result-container').style.display = 'block';
+
+            const banner = $('check-result-banner');
+            const icon = $('check-result-icon');
+            const title = $('check-result-title');
+            const summary = $('check-result-summary');
+            const statusBadge = $('server-status-badge');
+
+            if (data.valid) {
+                banner.className = 'result-banner valid';
+                icon.innerHTML = '&#x2714;';
+                title.textContent = 'Mathematically Valid & Verified';
+                summary.textContent = data.summary || 'Credential verified successfully without state side-effects.';
+                statusBadge.textContent = 'VALID';
+                statusBadge.className = 'badge badge-success';
+            } else {
+                banner.className = 'result-banner invalid';
+                icon.innerHTML = '&#x2718;';
+                title.textContent = `Invalid: ${data.error_code || 'Verification Failed'}`;
+                summary.textContent = data.summary || 'The provided credential failed mathematical verification.';
+                statusBadge.textContent = 'INVALID';
+                statusBadge.className = 'badge badge-error';
+            }
+
+            // Hint
+            const diag = data.diagnostics || {};
+            if (diag.hint) {
+                $('check-hint-box').style.display = 'block';
+                $('check-hint-text').textContent = diag.hint;
+            } else {
+                $('check-hint-box').style.display = 'none';
+            }
+
+            // Canonical Diff
+            if (diag.server_canonical_string) {
+                $('check-canonical-diff').style.display = 'block';
+                $('server-canonical-text').textContent = diag.server_canonical_string;
+
+                if (desc && desc.envelope) {
+                    try {
+                        const localCanon = await buildCanonicalString(
+                            $('check-method').value.trim() || 'GET',
+                            $('check-path').value.trim() || '/api/ds/dataset/dectest/solutions',
+                            $('check-query').value.trim(),
+                            new TextEncoder().encode($('check-body').value),
+                            desc.embeddedTokenRaw,
+                            desc.envelope.exp,
+                            desc.envelope.nonceHex,
+                            desc.envelope.unsignedBody
+                        );
+                        $('local-canonical-text').textContent = localCanon;
+                    } catch (_) {
+                        $('local-canonical-text').textContent = 'Unable to compute local canonical string';
+                    }
+                }
+            } else {
+                $('check-canonical-diff').style.display = 'none';
+            }
+
+            // Breakdown
+            if (diag.breakdown) {
+                $('check-breakdown-card').style.display = 'block';
+                $('diag-bd-method').textContent = diag.breakdown.method || '-';
+                $('diag-bd-path').textContent = diag.breakdown.path || '-';
+                $('diag-bd-query').textContent = diag.breakdown.canonical_query || '(empty)';
+                $('diag-bd-body').textContent = diag.breakdown.body_sha256 || '(omitted)';
+                $('diag-bd-token').textContent = diag.breakdown.token_sha256 || '(omitted)';
+                $('diag-bd-exp').textContent = diag.breakdown.exp || '-';
+                $('diag-bd-nonce').textContent = diag.breakdown.nonce || '-';
+                $('diag-bd-unsigned').textContent = diag.breakdown.unsigned_body ? 'True (0x80)' : 'False';
+            } else {
+                $('check-breakdown-card').style.display = 'none';
+            }
+
+            // Diagnostic identity & cryptography
+            $('diag-token-kind').textContent = data.token_kind || '-';
+            $('diag-user-id').textContent = diag.user_id || '-';
+            $('diag-dataset').textContent = diag.dataset || (diag.embedded_token?.dataset) || '-';
+            $('diag-mode').textContent = diag.mode || '-';
+
+            const grantsVal = diag.grants !== undefined ? diag.grants : diag.embedded_token?.grants;
+            $('diag-grants').textContent = formatGrants(grantsVal);
+
+            const solutionsVal = diag.solutions !== undefined ? diag.solutions : diag.embedded_token?.solutions;
+            $('diag-solutions').textContent = solutionsVal !== undefined ? `0x${solutionsVal.toString(16).toUpperCase()}` : '-';
+
+            const clientPub = diag.client_pub_key_hex || diag.embedded_token?.client_pub_key_hex || '-';
+            $('diag-client-pubkey').textContent = clientPub;
+
+            if (diag.crypto_check) {
+                $('diag-crypto-verified').textContent = diag.crypto_check.match ?
+                    `Match (${diag.crypto_check.verified_against_pubkey})` :
+                    `Mismatch against ${diag.crypto_check.verified_against_pubkey}`;
+            } else {
+                $('diag-crypto-verified').textContent = data.valid ? 'Verified' : 'Unverified';
+            }
+        }
+
+        // =========================================================================
+        // TAB 2: SIGNING WIZARD LOGIC
+        // =========================================================================
+
+        // Stepper Navigation
+        function goToStep(stepNum) {
+            document.querySelectorAll('.step-item').forEach(el => {
+                const s = parseInt(el.dataset.step, 10);
+                el.classList.remove('active');
+                if (s < stepNum) el.classList.add('completed');
+                else el.classList.remove('completed');
+                if (s === stepNum) el.classList.add('active');
+            });
+
+            document.querySelectorAll('.wizard-step-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            $(`wizard-step-${stepNum}`).classList.add('active');
+        }
+
+        document.querySelectorAll('.step-item').forEach(item => {
+            item.addEventListener('click', () => goToStep(parseInt(item.dataset.step, 10)));
+        });
+
+        document.querySelectorAll('.btn-wizard-next').forEach(btn => {
+            btn.addEventListener('click', () => goToStep(parseInt(btn.dataset.next, 10)));
+        });
+
+        document.querySelectorAll('.btn-wizard-prev').forEach(btn => {
+            btn.addEventListener('click', () => goToStep(parseInt(btn.dataset.prev, 10)));
+        });
+
+        // Step 1: Login
+        $('btn-wiz-login').addEventListener('click', async () => {
+            const email = $('wiz-email').value.trim();
+            const password = $('wiz-password').value;
+            const app = $('wiz-app').value.trim() || 'default';
+
+            if (!email || !password) {
+                alert("Please enter both email and password.");
+                return;
+            }
+
+            const btn = $('btn-wiz-login');
+            btn.disabled = true;
+            btn.textContent = "Authenticating...";
+
+            try {
+                const userzUrl = getUserzUrl();
+                const tokenData = await loginPasswordPKCE(userzUrl, email, password, app);
+                state.userToken = tokenData;
+
+                $('wizard-user-badge').textContent = 'Authenticated';
+                $('wizard-user-badge').className = 'badge badge-success';
+                $('wiz-user-summary').style.display = 'block';
+                $('wiz-user-id').textContent = tokenData.user_id;
+                $('wiz-user-exp').textContent = new Date(tokenData.expires_at).toLocaleString();
+
+                showToast("Signed in successfully via PKCE!");
+            } catch (err) {
+                alert(`Login error: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Sign In via PKCE";
+            }
+        });
+
+        $('btn-wiz-use-jwt').addEventListener('click', () => {
+            const jwt = $('wiz-pasted-jwt').value.trim();
+            if (!jwt) {
+                alert("Please paste a User JWT.");
+                return;
+            }
+            const desc = describeToken(jwt);
+            if (desc.kind !== 'user_jwt') {
+                alert("The pasted token does not appear to be a valid User JWT.");
+                return;
+            }
+
+            state.userToken = {
+                user_access_token: jwt,
+                user_id: desc.userId,
+                expires_at: desc.expiresAt
+            };
+
+            $('wizard-user-badge').textContent = 'Authenticated';
+            $('wizard-user-badge').className = 'badge badge-success';
+            $('wiz-user-summary').style.display = 'block';
+            $('wiz-user-id').textContent = desc.userId;
+            $('wiz-user-exp').textContent = desc.expiresAt ? new Date(desc.expiresAt).toLocaleString() : 'N/A';
+
+            showToast("User token applied!");
+        });
+
+        // Step 2: Keypair
+        $('wiz-dataset').addEventListener('input', (e) => {
+            const ds = e.target.value.trim() || 'dectest';
+            state.keypair.dataset = ds;
+            $('wiz-sign-path').value = `/api/ds/dataset/${encodeURIComponent(ds)}/solutions`;
+            updateWizardCanonicalPreview();
+        });
+
+        $('btn-wiz-create-keypair').addEventListener('click', async () => {
+            if (!state.userToken || !state.userToken.user_access_token) {
+                alert("Please complete Step 1 (Authentication) first.");
+                return;
+            }
+
+            const dataset = $('wiz-dataset').value.trim();
+            if (!dataset) {
+                alert("Dataset ID is required.");
+                return;
+            }
+
+            const btn = $('btn-wiz-create-keypair');
+            btn.disabled = true;
+            btn.textContent = "Provisioning Keypair...";
+
+            try {
+                const userzUrl = getUserzUrl();
+                const res = await createDatasetRefreshToken(userzUrl, state.userToken.user_access_token, dataset, {
+                    solution: $('wiz-solution').value.trim(),
+                    grants: parseInt($('wiz-grants').value, 10)
+                });
+
+                state.keypair.dataset = res.dataset || dataset;
+                state.keypair.privKey = res.priv_key;
+                state.keypair.jti = res.jti;
+
+                $('wiz-privkey').value = res.priv_key;
+                $('wiz-jti').value = res.jti;
+
+                showToast("Keypair created and private key received!");
+            } catch (err) {
+                alert(`Failed to create keypair: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Provision Dataset Refresh Token";
+            }
+        });
+
+        $('btn-wiz-derive-pub').addEventListener('click', async () => {
+            const privKey = $('wiz-privkey').value.trim();
+            if (!privKey) {
+                alert("Please provide an Ed25519 private key.");
+                return;
+            }
+            try {
+                const key = await importEd25519PrivateKey(privKey);
+                const pubB64 = await getEd25519PublicKeyB64(key);
+                $('wiz-jti').value = pubB64;
+                state.keypair.privKey = privKey;
+                state.keypair.jti = pubB64;
+                showToast("Key validated; JTI derived!");
+            } catch (err) {
+                alert(`Key error: ${err.message}`);
+            }
+        });
+
+        // Step 3: Access Token
+        $('btn-wiz-mint-access-token').addEventListener('click', async () => {
+            if (!state.userToken || !state.userToken.user_access_token) {
+                alert("User JWT required. Please sign in in Step 1.");
+                return;
+            }
+            const dataset = $('wiz-dataset').value.trim();
+            const bindPoP = $('wiz-bind-pop').checked;
+            const clientPubKey = bindPoP ? $('wiz-jti').value.trim() : "";
+
+            const btn = $('btn-wiz-mint-access-token');
+            btn.disabled = true;
+            btn.textContent = "Minting Access Token...";
+
+            try {
+                const userzUrl = getUserzUrl();
+                const res = await createDatasetAccessToken(userzUrl, state.userToken.user_access_token, dataset, {
+                    clientPubKey
+                });
+
+                state.boundAccessToken = res.access_token;
+                $('wiz-bound-access-token').value = res.access_token;
+                $('wiz-bound-token-desc').textContent = `Binary dataset access token (Grants: ${formatGrants(res.grants)})`;
+                showToast("Dataset access token minted!");
+            } catch (err) {
+                alert(`Mint failed: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Mint Dataset Access Token";
+            }
+        });
+
+        $('btn-wiz-use-jwt-access').addEventListener('click', () => {
+            if (!state.userToken || !state.userToken.user_access_token) {
+                alert("No User JWT available. Please sign in in Step 1.");
+                return;
+            }
+            state.boundAccessToken = state.userToken.user_access_token;
+            $('wiz-bound-access-token').value = state.boundAccessToken;
+            $('wiz-bound-token-desc').textContent = "Using User JWT as bound access token.";
+            showToast("User JWT bound!");
+        });
+
+        // Step 4: Request Builder & Local Sign
+        async function updateWizardCanonicalPreview() {
+            const method = $('wiz-sign-method').value;
+            const path = $('wiz-sign-path').value;
+            const query = $('wiz-sign-query').value;
+            const body = $('wiz-sign-body').value;
+            const unsigned = $('wiz-sign-unsigned').checked;
+            const ttl = parseInt($('wiz-sign-ttl').value, 10) || 300;
+            const exp = Math.floor(Date.now() / 1000) + ttl;
+            const accessToken = $('wiz-bound-access-token').value.trim() || state.boundAccessToken;
+
+            try {
+                const canon = await buildCanonicalString(
+                    method,
+                    path,
+                    query,
+                    new TextEncoder().encode(body),
+                    accessToken,
+                    exp,
+                    "00000000000000000000000000000000",
+                    unsigned
+                );
+                $('wiz-canonical-preview').textContent = canon;
+            } catch (e) {
+                $('wiz-canonical-preview').textContent = e.message;
+            }
+        }
+
+        ['wiz-sign-method', 'wiz-sign-path', 'wiz-sign-query', 'wiz-sign-body', 'wiz-sign-ttl', 'wiz-sign-unsigned'].forEach(id => {
+            $(id).addEventListener('input', updateWizardCanonicalPreview);
+        });
+
+        $('btn-wiz-execute-sign').addEventListener('click', async () => {
+            const privKey = $('wiz-privkey').value.trim() || state.keypair.privKey;
+            if (!privKey) {
+                alert("Please provide an Ed25519 private key in Step 2.");
+                return;
+            }
+
+            const accessToken = $('wiz-bound-access-token').value.trim() || state.boundAccessToken;
+            if (!accessToken) {
+                alert("Please provide or mint a bound access token in Step 3.");
+                return;
+            }
+
+            const method = $('wiz-sign-method').value;
+            const path = $('wiz-sign-path').value;
+            const query = $('wiz-sign-query').value;
+            const body = $('wiz-sign-body').value;
+            const unsigned = $('wiz-sign-unsigned').checked;
+            const ttl = parseInt($('wiz-sign-ttl').value, 10) || 300;
+            const exp = Math.floor(Date.now() / 1000) + ttl;
+
+            try {
+                const res = await signRequest(
+                    privKey,
+                    method,
+                    path,
+                    query,
+                    new TextEncoder().encode(body),
+                    accessToken,
+                    exp,
+                    new Uint8Array(16), // time-windowed zero nonce
+                    unsigned
+                );
+
+                state.signatureHeader = res.signatureHeader;
+                state.canonicalString = res.canonicalString;
+
+                $('wiz-generated-sig').value = res.signatureHeader;
+                $('wiz-canonical-preview').textContent = res.canonicalString;
+
+                updateCurlOutput();
+                showToast("Request signed locally!");
+            } catch (err) {
+                alert(`Signing failed: ${err.message}`);
+            }
+        });
+
+        $('btn-wiz-copy-sig').addEventListener('click', () => {
+            const sig = $('wiz-generated-sig').value;
+            if (!sig) return;
+            navigator.clipboard.writeText(sig);
+            showToast("X-I6-Signature copied to clipboard!");
+        });
+
+        // Step 5: Check Signature
+        $('btn-wiz-verify-sig').addEventListener('click', async () => {
+            const sig = $('wiz-generated-sig').value.trim() || state.signatureHeader;
+            if (!sig) {
+                alert("Please generate a signature in Step 4 first.");
+                return;
+            }
+
+            const btn = $('btn-wiz-verify-sig');
+            btn.disabled = true;
+            btn.textContent = "Verifying with Server...";
+
+            try {
+                const userzUrl = getUserzUrl();
+                const req = {
+                    signature: sig,
+                    method: $('wiz-sign-method').value,
+                    path: $('wiz-sign-path').value,
+                    query: $('wiz-sign-query').value,
+                    body: $('wiz-sign-body').value
+                };
+
+                const res = await checkToken(userzUrl, req);
+                const data = res.data;
+
+                $('wiz-check-result-container').style.display = 'block';
+                const banner = $('wiz-check-banner');
+                const icon = $('wiz-check-icon');
+                const title = $('wiz-check-title');
+                const summary = $('wiz-check-summary');
+
+                if (data.valid) {
+                    banner.className = 'result-banner valid';
+                    icon.innerHTML = '&#x2714;';
+                    title.textContent = 'Signature Verified by Server';
+                    summary.textContent = data.summary || 'Ed25519 signature is mathematically valid.';
+                } else {
+                    banner.className = 'result-banner invalid';
+                    icon.innerHTML = '&#x2718;';
+                    title.textContent = `Invalid: ${data.error_code || 'Verification Failed'}`;
+                    summary.textContent = data.summary || 'Failed verification.';
+                }
+
+                if (data.diagnostics?.hint) {
+                    $('wiz-check-hint').style.display = 'block';
+                    $('wiz-check-hint-text').textContent = data.diagnostics.hint;
+                } else {
+                    $('wiz-check-hint').style.display = 'none';
+                }
+
+                $('wiz-server-canonical-text').textContent = data.diagnostics?.server_canonical_string || '(none)';
+                $('wiz-local-canonical-text').textContent = state.canonicalString || '(none)';
+            } catch (err) {
+                alert(`Check failed: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Verify Signature with Server Diagnostic API";
+            }
+        });
+
+        // Step 6: cURL & Execute Live
+        function updateCurlOutput() {
+            const baseUrl = ($('wiz-exec-target-url').value || '').replace(/\/$/, "");
+            const method = $('wiz-sign-method').value;
+            const path = $('wiz-sign-path').value;
+            const query = $('wiz-sign-query').value.trim();
+            const body = $('wiz-sign-body').value;
+            const sig = $('wiz-generated-sig').value.trim() || state.signatureHeader;
+
+            const fullUrl = `${baseUrl}${path}${query ? '?' + query : ''}`;
+
+            let curl = `curl -X ${method} "${fullUrl}" \\\n  -H "X-I6-Signature: ${sig}"`;
+            if (body && (method === 'POST' || method === 'PUT')) {
+                curl += ` \\\n  -H "Content-Type: application/json" \\\n  -d '${body.replace(/'/g, "'\\''")}'`;
+            }
+
+            $('wiz-curl-output').textContent = curl;
+        }
+
+        $('wiz-exec-target-url').addEventListener('input', updateCurlOutput);
+
+        $('btn-wiz-copy-curl').addEventListener('click', () => {
+            const curl = $('wiz-curl-output').textContent;
+            if (!curl) return;
+            navigator.clipboard.writeText(curl);
+            showToast("cURL command copied!");
+        });
+
+        $('btn-wiz-execute-live').addEventListener('click', async () => {
+            const baseUrl = ($('wiz-exec-target-url').value || '').replace(/\/$/, "");
+            const method = $('wiz-sign-method').value;
+            const path = $('wiz-sign-path').value;
+            const query = $('wiz-sign-query').value.trim();
+            const body = $('wiz-sign-body').value;
+            const sig = $('wiz-generated-sig').value.trim() || state.signatureHeader;
+
+            if (!sig) {
+                alert("Please sign the request first in Step 4.");
+                return;
+            }
+
+            const fullUrl = `${baseUrl}${path}${query ? '?' + query : ''}`;
+            const btn = $('btn-wiz-execute-live');
+            btn.disabled = true;
+            btn.textContent = "Executing Request...";
+
+            const startTime = performance.now();
+            try {
+                const opts = {
+                    method,
+                    headers: {
+                        "X-I6-Signature": sig
+                    }
+                };
+
+                if (body && (method === 'POST' || method === 'PUT')) {
+                    opts.headers["Content-Type"] = "application/json";
+                    opts.body = body;
+                }
+
+                const resp = await fetch(fullUrl, opts);
+                const elapsedMs = Math.round(performance.now() - startTime);
+
+                $('wiz-live-exec-container').style.display = 'block';
+                const badge = $('wiz-live-status-badge');
+                badge.textContent = `${resp.status} ${resp.statusText || ''}`;
+                badge.className = resp.ok ? 'badge badge-success' : 'badge badge-error';
+
+                $('wiz-live-elapsed').textContent = `${elapsedMs} ms`;
+
+                // Headers
+                const headersArr = [];
+                resp.headers.forEach((v, k) => headersArr.push(`${k}: ${v}`));
+                $('wiz-live-headers').textContent = headersArr.join("\n") || '(none)';
+
+                // Body
+                const respText = await resp.text();
+                try {
+                    const json = JSON.parse(respText);
+                    $('wiz-live-body').textContent = JSON.stringify(json, null, 2);
+                } catch (_) {
+                    $('wiz-live-body').textContent = respText || '(empty response)';
+                }
+            } catch (err) {
+                $('wiz-live-exec-container').style.display = 'block';
+                const badge = $('wiz-live-status-badge');
+                badge.textContent = 'Network Error';
+                badge.className = 'badge badge-error';
+                $('wiz-live-elapsed').textContent = `${Math.round(performance.now() - startTime)} ms`;
+                $('wiz-live-headers').textContent = '(none)';
+                $('wiz-live-body').textContent = `Failed to fetch: ${err.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Execute Live Request";
+            }
+        });
+
+        // Initialize Canonical Preview
+        updateWizardCanonicalPreview();
+    </script>
+</body>
+</html>

@@ -102,6 +102,7 @@
       <option value="productRelevanceFashionDashImpactedMetricsByShowcaseCategoryV1">product-relevance-fashion-dash-impacted-metrics-by-showcase-category</option>
       <option value="productRelevanceFashionDashImpactedMetricsBySkuV1">product-relevance-fashion-dash-impacted-metrics-by-sku</option>
       <option value="productRelevanceFashionDashCoverageV1">product-relevance-fashion-dash-coverage</option>
+      <option value="productRelevanceFashionDashDisplayMetricsV1">product-relevance-fashion-dash-display-metrics</option>
     </select>
     <label for="dashDataset">input.dataset</label>
     <input type="text" id="dashDataset" value="dectest">
@@ -113,6 +114,16 @@
     <input type="text" id="minYearMonth" value="2026-07">
     <label for="maxYearMonth">input.params.max_year_month</label>
     <input type="text" id="maxYearMonth" value="2026-09">
+    <div id="displayMetricsParams" hidden>
+      <label for="fromRec">input.params.from_rec (display metrics only)</label>
+      <select id="fromRec">
+        <option value="">(omit) all rows</option>
+        <option value="true">true - only from recommendations</option>
+        <option value="false">false - only not from recommendations</option>
+      </select>
+      <label for="displayId">input.params.display_id (display metrics only)</label>
+      <input type="text" id="displayId" value="" placeholder="empty = omit; NO_DISPLAY, ALL_DISPLAYS or a display id">
+    </div>
     <pre id="dashUsage" style="margin-top:8px"></pre>
     <div class="row" style="margin-top:8px"><button id="dashRun" class="primary">Run the dash</button><span class="badge" id="dashBadge">idle</span></div>
     <div class="io"><div><h3>Input (req)</h3><pre id="dashIn"></pre></div><div><h3>Output (result)</h3><pre id="dashOut"></pre></div></div>
