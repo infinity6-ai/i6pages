@@ -143,10 +143,10 @@ declare class Infer {
      */
     private #sendRecEvent;
     /**
-     * Finds where the two model files are: the signed URLs of the model API, unless opts has them (tests).
+     * Finds where the model file is: the signed URLs of the model API, unless opts has them (tests).
      * @private
      * @param {InferOptions} opts - Inference options.
-     * @returns {Promise<{sqlite: string, tflite: string}>} Download URLs of the files.
+     * @returns {Promise<{sqlite: string}>} Download URLs of the files.
      */
     private _assetUrls;
 }

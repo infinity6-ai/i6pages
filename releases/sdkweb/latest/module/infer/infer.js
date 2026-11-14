@@ -3,8 +3,9 @@ import { fs } from "../internal/fs/fs.js";
 import { sqlitez } from "../internal/sqlitez/sqlitez.js";
 import { describeModel, loadModel, runModel } from "./litert.js";
 import { debugLogger } from "../internal/debug/debug.js";
-const FILES = { sqlite: "sqlite.bin", tflite: "tflite.bin" };
+const FILES = { sqlite: "sqlite.bin" };
 const DEFAULT_LIMIT = 20;
+const MIN_PRELOAD_TIME = 60;
 const debug = debugLogger("infer");
 class Infer {
   /**
@@ -22,15 +23,15 @@ class Infer {
   async run(opts) {
     validate(opts);
     const startedAt = performance.now();
+    const elapsed = () => `[${((performance.now() - startedAt) / 1e3).toFixed(2)}s]`;
     const { modelName, params, sessionId, userId } = opts;
     const ids = { sessionId, userId };
     const queryName = (kind) => `model-${modelName}-${kind}`;
     const urls = await this._assetUrls(opts);
-    debug("1/4 model files located", { sqlite: withoutQuery(urls.sqlite), tflite: withoutQuery(urls.tflite) });
+    debug(elapsed(), "1/4 model files located", { sqlite: withoutQuery(urls.sqlite) });
     const cacheName = (kind) => `infer-${modelName}-${partitionsKey(opts.partitions)}-${kind}`;
-    const [sqliteRef, tfliteRef] = await Promise.all([
-      downloadFile(cacheName("sqlite"), urls.sqlite)
-      // downloadFile(cacheName("tflite"), urls.tflite),
+    const [sqliteRef] = await Promise.all([
+      downloadFile(cacheName("sqlite"), urls.sqlite, MIN_PRELOAD_TIME)
     ]);
     const conn = await sqlitez.open({ path: await fs.resolve(sqliteRef) });
     try {
@@ -39,21 +40,25 @@ class Infer {
         // loadModel({ ref: tfliteRef, wasmUrl: opts.litertWasm }),
       ]);
       if (!inputs) throw new Error(`infer: ${queryName("input")} returned no model inputs`);
-      debug("2/4 input query", queryName("input"), "| bound as ?1:", params, "| returned (model inputs):", preview(inputs));
-      debug("3/4 calling the model on the server", { model_name: modelName, version: opts.partitions.version, model_partitions: opts.partitions });
+      debug(elapsed(), "2/4 input query", queryName("input"), "| bound as ?1:", params, "| returned (model inputs):", preview(inputs));
+      debug(elapsed(), "3/4 calling the model on the server", { model_name: modelName, version: opts.partitions.version, model_partitions: opts.partitions });
       const modelStartedAt = performance.now();
       const outputs = await this.callModel(inputs, opts);
       const data = outputs.parse();
-      debug("3/4 model answered", { ms: Math.round(performance.now() - modelStartedAt), ok: outputs?.ok, status: outputs?.status, error: outputs?.error, outputs: preview(data?.outputs) });
+      debug(elapsed(), "3/4 model answered", { sec: +((performance.now() - modelStartedAt) / 1e3).toFixed(2), ok: outputs?.ok, status: outputs?.status, error: outputs?.error, outputs: preview(data?.outputs) });
       let modelOutputsAndLimit = [JSON.parse(data.outputs), opts.limit ?? DEFAULT_LIMIT];
-      debug("4/4 output query", queryName("output"), "| bound as ?1 (model outputs) and ?2 (limit):", preview(modelOutputsAndLimit));
+      debug(elapsed(), "4/4 output query", queryName("output"), "| bound as ?1 (model outputs) and ?2 (limit):", preview(modelOutputsAndLimit));
       const result = await conn.namedJsonQuery({ name: queryName("output"), params: modelOutputsAndLimit });
-      debug("output query returned (after namedJsonQuery)", result);
+      debug(elapsed(), "output query returned (after namedJsonQuery)", result);
       const recId = crypto.randomUUID();
       const results = { ...result, rec_id: recId };
       const eventOpts = { dataset: opts.dataset, modelName, modelVersion: opts.partitions.version, storeId: opts.partitions.store_id, serviceOpts: opts.serviceOpts };
-      await this.#sendRecEvent(eventOpts, ids, recId, "recraw", results);
-      debug("recraw event sent", { rec_id: recId, results: results.results?.length, totalMs: Math.round(performance.now() - startedAt) });
+      this.#sendRecEvent(eventOpts, ids, recId, "recraw", results).then(
+        () => debug(elapsed(), "recraw event sent", { rec_id: recId, results: results.results?.length }),
+        (err) => debug(elapsed(), "recraw event failed", err)
+      );
+      const totalSec = +((performance.now() - startedAt) / 1e3).toFixed(2);
+      debug(elapsed(), "run completed", { rec_id: recId, totalSec });
       return results;
     } finally {
       await conn.close();
@@ -101,8 +106,10 @@ class Infer {
       })
     };
     debug("selectResults picked", { rec_id: recId, sku_ids: shown.skus.map((s) => s.sku_id) });
-    await this.#sendRecEvent(opts, ids, recId, "recshow", shown);
-    debug("recshow event sent", { rec_id: recId });
+    this.#sendRecEvent(opts, ids, recId, "recshow", shown).then(
+      () => debug("recshow event sent", { rec_id: recId }),
+      (err) => debug("recshow event failed", err)
+    );
     return selected;
   }
   /**
@@ -134,13 +141,13 @@ class Infer {
     }, opts.serviceOpts);
   }
   /**
-   * Finds where the two model files are: the signed URLs of the model API, unless opts has them (tests).
+   * Finds where the model file is: the signed URLs of the model API, unless opts has them (tests).
    * @private
    * @param {InferOptions} opts - Inference options.
-   * @returns {Promise<{sqlite: string, tflite: string}>} Download URLs of the files.
+   * @returns {Promise<{sqlite: string}>} Download URLs of the files.
    */
   async _assetUrls(opts) {
-    if (opts.sqliteUrl) return { sqlite: opts.sqliteUrl, tflite: opts.tfliteUrl };
+    if (opts.sqliteUrl) return { sqlite: opts.sqliteUrl };
     const { modelName, partitions, dataset } = opts;
     const resp = await this._services.apis().dszModelGet({
       params: { dataset, model_name: modelName },
@@ -152,7 +159,7 @@ class Infer {
     if (missing) {
       throw new Error(`infer: the model api gave no "${missing}" file: ${resp.error?.message ?? JSON.stringify(Object.keys(byName))}`);
     }
-    return { sqlite: byName[FILES.sqlite], tflite: byName[FILES.tflite] };
+    return { sqlite: byName[FILES.sqlite] };
   }
 }
 function withoutQuery(url) {
@@ -178,9 +185,6 @@ function validate(opts) {
   if (opts.params === void 0) throw new TypeError("infer: opts.params is required");
   if (opts.limit !== void 0 && !(Number.isInteger(opts.limit) && opts.limit > 0)) {
     throw new TypeError("infer: opts.limit must be a positive integer");
-  }
-  if (!opts.sqliteUrl !== !opts.tfliteUrl) {
-    throw new TypeError("infer: opts.sqliteUrl and opts.tfliteUrl go together");
   }
 }
 function outputQueryParams(outputs, opts) {

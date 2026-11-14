@@ -3,6 +3,7 @@
  *
  * Layout under `i6/fs`:
  *   {name}/version.txt          the released (current) version, if any
+ *   {name}/checkedat.txt        timestamp of the last check against remote
  *   {name}/v{version}/etag.txt  the etag the version was created for
  *   {name}/v{version}/blob.bin  the content (written by the caller, see `resolve`)
  *
@@ -21,6 +22,10 @@ export type FileRef = {
      * - Etag of the remote content this version was created for.
      */
     etag: string;
+    /**
+     * - Timestamp of the last check against remote.
+     */
+    checkedAt?: string;
 };
 /**
  * Versioned file store. Use the `fs` singleton.
@@ -61,13 +66,11 @@ declare class FS {
      * @param {Object} opts
      * @param {string} opts.name - required
      * @param {string} opts.etag - required
-     * @param {Blob|BufferSource|string} [opts.data] - content, required when a new version is created
      * @returns {Promise<FileRef>} a new full FileRef.
      */
     create(opts: {
         name: string;
         etag: string;
-        data?: Blob | BufferSource | string;
     }): Promise<FileRef>;
     /**
      * Returns the bin file path, full (with base). Does not check that it exists, see get.
@@ -93,7 +96,7 @@ declare class FS {
         version: string;
     }): Promise<Uint8Array>;
     /**
-     * Makes a version the current one (version.txt), then cleans the older versions.
+     * Makes a version the current one (version.txt), sets checkedat.txt, then cleans older versions.
      * @param {Object} opts
      * @param {string} opts.name - required
      * @param {string} opts.version - required, must exist
@@ -103,6 +106,17 @@ declare class FS {
         name: string;
         version: string;
     }): Promise<FileRef>;
+    /**
+     * Updates checkedat.txt to now (or opts.checkedAt), marking the file as recently checked.
+     * @param {Object} opts
+     * @param {string} opts.name - required
+     * @param {string} [opts.checkedAt] - ISO timestamp, defaults to now
+     * @returns {Promise<string>} the timestamp written.
+     */
+    touch(opts: {
+        name: string;
+        checkedAt?: string;
+    }): Promise<string>;
     /**
      * Removes a version that was never released (e.g. its download failed). Does nothing if it does not exist.
      * @param {Object} opts

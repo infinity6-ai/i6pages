@@ -1,3 +1,5 @@
+import { debugLogger } from "../debug/debug.js";
+const debug = debugLogger("fs");
 const base = "i6/fs";
 const getDirIfExists = async (parent, name) => {
   try {
@@ -102,16 +104,22 @@ class FS {
     if (!baseHandle) return null;
     const dir = await getDirIfExists(baseHandle, opts.name);
     if (!dir) return null;
-    const version = opts.version || await readTextIfExists(dir, "version.txt");
+    const releasedVersion = await readTextIfExists(dir, "version.txt");
+    const version = opts.version || releasedVersion;
     if (!version) return null;
     const versionDir = await getDirIfExists(dir, "v" + version);
     if (!versionDir) return null;
     const etag = await readTextIfExists(versionDir, "etag.txt");
-    return {
+    const res = {
       name: opts.name,
       version,
       etag
     };
+    if (!opts.version || opts.version === releasedVersion) {
+      const checkedAt = await readTextIfExists(dir, "checkedat.txt");
+      if (checkedAt) res.checkedAt = checkedAt;
+    }
+    return res;
   }
   /**
    * Creates a new version, unless the latest version already has this etag.
@@ -119,7 +127,6 @@ class FS {
    * @param {Object} opts
    * @param {string} opts.name - required
    * @param {string} opts.etag - required
-   * @param {Blob|BufferSource|string} [opts.data] - content, required when a new version is created
    * @returns {Promise<FileRef>} a new full FileRef.
    */
   async create(opts) {
@@ -139,7 +146,6 @@ class FS {
         return { name: opts.name, version: latest.substring(1), etag: opts.etag };
       }
     }
-    if (opts.data === void 0) throw new TypeError("fs: opts.data is required to create a new version");
     const version = (/* @__PURE__ */ new Date()).toISOString();
     const versionDir = await dir.getDirectoryHandle("v" + version, { create: true });
     await writeFile(versionDir, "etag.txt", opts.etag);
@@ -176,7 +182,7 @@ class FS {
     return new Uint8Array(await file.arrayBuffer());
   }
   /**
-   * Makes a version the current one (version.txt), then cleans the older versions.
+   * Makes a version the current one (version.txt), sets checkedat.txt, then cleans older versions.
    * @param {Object} opts
    * @param {string} opts.name - required
    * @param {string} opts.version - required, must exist
@@ -187,9 +193,30 @@ class FS {
     if (!opts.version) throw new TypeError("fs: opts.version is required");
     const ref = await this.get(opts);
     if (!ref) throw new Error(`fs: version ${opts.version} of ${opts.name} does not exist`);
-    await writeFile(await (await baseDir()).getDirectoryHandle(opts.name), "version.txt", opts.version);
+    const dir = await (await baseDir()).getDirectoryHandle(opts.name);
+    await writeFile(dir, "version.txt", opts.version);
+    const checkedAt = await this.touch(opts);
     await this.cleanFile(opts);
-    return ref;
+    debug(`released ${opts.name} v${opts.version}`, { etag: ref.etag, checkedAt });
+    return { ...ref, checkedAt };
+  }
+  /**
+   * Updates checkedat.txt to now (or opts.checkedAt), marking the file as recently checked.
+   * @param {Object} opts
+   * @param {string} opts.name - required
+   * @param {string} [opts.checkedAt] - ISO timestamp, defaults to now
+   * @returns {Promise<string>} the timestamp written.
+   */
+  async touch(opts) {
+    if (!opts || !opts.name) throw new TypeError("fs: opts.name is required");
+    const parent = await baseDirIfExists();
+    if (!parent) throw new Error(`fs: file ${opts.name} does not exist`);
+    const dir = await getDirIfExists(parent, opts.name);
+    if (!dir) throw new Error(`fs: file ${opts.name} does not exist`);
+    const checkedAt = opts.checkedAt || (/* @__PURE__ */ new Date()).toISOString();
+    await writeFile(dir, "checkedat.txt", checkedAt);
+    debug(`touched ${opts.name}`, checkedAt);
+    return checkedAt;
   }
   /**
    * Removes a version that was never released (e.g. its download failed). Does nothing if it does not exist.
@@ -209,6 +236,7 @@ class FS {
       throw new Error(`fs: version ${opts.version} of ${opts.name} is the released one`);
     }
     await removeEntryIfExists(dir, "v" + opts.version, { recursive: true });
+    debug(`discarded unreleased version ${opts.name} v${opts.version}`);
   }
 }
 const fs = new FS();

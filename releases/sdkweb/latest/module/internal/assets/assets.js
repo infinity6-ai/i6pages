@@ -7,8 +7,8 @@ function partitionsKey(partitions) {
 function isPartitions(partitions) {
   return !!partitions && typeof partitions === "object" && !Array.isArray(partitions) && Object.values(partitions).every((v) => typeof v === "string");
 }
-async function downloadFile(name, url) {
-  const ref = await downloader.update({ name, url });
+async function downloadFile(name, url, minPreloadTime) {
+  const ref = await downloader.update({ name, url, minPreloadTime });
   debug(`${name} is ready`, ref);
   return ref;
 }

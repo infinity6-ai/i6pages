@@ -167,7 +167,7 @@ declare class Tokens {
      */
     redeemCheckout(checkoutCode: string): Promise<CheckoutRedeemResult>;
     /**
-     * Refreshes the user access token using the stored user refresh token via `POST /api/userz/auth/refresh`.
+     * Refreshes the user access token using the stored user refresh token via `POST /api/userz/refresh-user`.
      * Enforces token family rotation by storing the newly rotated refresh token and fresh access token.
      * If session renewal is revoked or family reuse is detected, wipes the stored user session.
      * Concurrent refresh calls are deduplicated using an in-flight promise cache.

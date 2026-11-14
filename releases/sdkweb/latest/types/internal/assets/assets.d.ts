@@ -19,7 +19,8 @@ declare function isPartitions(partitions: any): boolean;
  * Brings one remote file to the browser cache, downloading it only if its etag changed.
  * @param {string} name - Name of the cached file.
  * @param {string} url - URL of the file.
+ * @param {number} [minPreloadTime] - Optional seconds before triggering a background update check.
  * @returns {Promise<FileRef>} The cached file.
  */
-declare function downloadFile(name: string, url: string): Promise<FileRef>;
+declare function downloadFile(name: string, url: string, minPreloadTime?: number): Promise<FileRef>;
 export { partitionsKey, isPartitions, downloadFile };

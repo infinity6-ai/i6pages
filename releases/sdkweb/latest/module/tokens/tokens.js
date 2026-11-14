@@ -189,7 +189,7 @@ class Tokens {
     return ret;
   }
   /**
-   * Refreshes the user access token using the stored user refresh token via `POST /api/userz/auth/refresh`.
+   * Refreshes the user access token using the stored user refresh token via `POST /api/userz/refresh-user`.
    * Enforces token family rotation by storing the newly rotated refresh token and fresh access token.
    * If session renewal is revoked or family reuse is detected, wipes the stored user session.
    * Concurrent refresh calls are deduplicated using an in-flight promise cache.
@@ -208,7 +208,7 @@ class Tokens {
           return null;
         }
         const userzUrl = this._getUserzUrl();
-        const refreshUrl = `${userzUrl}/api/userz/auth/refresh`;
+        const refreshUrl = `${userzUrl}/api/userz/refresh-user`;
         const resp = await fetch(refreshUrl, {
           method: "POST",
           headers: {
