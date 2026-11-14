@@ -157,6 +157,11 @@ class Invoker {
     if (opts.opts?.fetcher) {
       return opts.opts.fetcher(opts.url, opts);
     }
+    const config = this._services.config();
+    const configFetcher = config.fetcher || config.fetch;
+    if (configFetcher) {
+      return configFetcher(opts.url, opts);
+    }
     return fetch(opts.url, opts);
   }
   /**

@@ -59,6 +59,14 @@ export type I6SdkConfig = {
      * - Optional alias for session storage adapter.
      */
     storageSession?: I6Storage | (() => I6Storage);
+    /**
+     * - Custom fetch implementation for intercepting or proxying all SDK requests.
+     */
+    fetcher?: import("./invoker/invoker.js").Fetcher;
+    /**
+     * - Optional alias for `fetcher`.
+     */
+    fetch?: import("./invoker/invoker.js").Fetcher;
 };
 /**
  * Main SDK class providing access to i6 services.

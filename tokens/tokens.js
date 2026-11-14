@@ -121,7 +121,7 @@ export async function getEd25519PublicKeyB64(cryptoPrivateKey) {
 
 /**
  * Canonicalizes query string according to i6 reqsign specifications.
- * - Strips `i6_sig`
+ * - Strips `i6sig`
  * - Sorts keys lexicographically
  * - Sorts values for each key
  * - Encodes with url.QueryEscape rules (space as '+')
@@ -132,7 +132,7 @@ export function canonicalizeQuery(query) {
     query = (query || "").trim().replace(/^\?/, "");
     if (!query) return "";
     const params = new URLSearchParams(query);
-    params.delete("i6_sig");
+    params.delete("i6sig");
 
     const keys = Array.from(new Set(params.keys())).sort();
     const parts = [];
