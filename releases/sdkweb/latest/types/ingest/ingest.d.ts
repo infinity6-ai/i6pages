@@ -20,7 +20,7 @@ export type GetUrlParams = {
     /**
      * - Given to the ingestz-get-url API call.
      */
-    serviceOpts?: ServiceOptions;
+    serviceOptions?: ServiceOptions;
 };
 export type UploadProgress = {
     /**
@@ -68,7 +68,7 @@ export type UploadParams = {
     /**
      * - Given to the ingestz-get-url API call (the PUT to the signed URL needs none).
      */
-    serviceOpts?: ServiceOptions;
+    serviceOptions?: ServiceOptions;
 };
 export type UploadResult = {
     /**
@@ -90,7 +90,7 @@ export type UploadResult = {
  * @property {string} dataset - Dataset name.
  * @property {string} table - Inbox table name.
  * @property {Partitions} partitions - Values for the table partitions, except the ingest id one.
- * @property {ServiceOptions} [serviceOpts] - Given to the ingestz-get-url API call.
+ * @property {ServiceOptions} [serviceOptions] - Given to the ingestz-get-url API call.
  */
 /**
  * Progress of an upload in flight.
@@ -109,7 +109,7 @@ export type UploadResult = {
  * @property {(progress: UploadProgress) => void} [onProgress] - Called as the file is sent.
  * @property {AbortSignal} [signal] - Aborts the upload; the promise then rejects with the signal's reason (an AbortError by default).
  * @property {string} [contentType] - Content-Type of the PUT. Defaults to the file's own type.
- * @property {ServiceOptions} [serviceOpts] - Given to the ingestz-get-url API call (the PUT to the signed URL needs none).
+ * @property {ServiceOptions} [serviceOptions] - Given to the ingestz-get-url API call (the PUT to the signed URL needs none).
  */
 /**
  * Result of a successful upload.
@@ -136,7 +136,7 @@ declare class Ingest {
      * @param {UploadParams} params - Upload parameters.
      * @returns {Promise<UploadResult>} Resolves with the ingest id on a successful upload.
      */
-    upload({ dataset, table, partitions, file, onProgress, signal, contentType, serviceOpts }: UploadParams): Promise<UploadResult>;
+    upload({ dataset, table, partitions, file, onProgress, signal, contentType, serviceOptions }: UploadParams): Promise<UploadResult>;
     /**
      * Gets one signed PUT URL from the ingestz-get-url API.
      * @private

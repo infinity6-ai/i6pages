@@ -91,6 +91,29 @@ class I6Sdk {
     return this._service.funcs();
   }
   /**
+   * Warms up/preloads model assets for a dataset in the background.
+   * Safe to call on page load or during SDK initialization.
+   * @param {WarmupDatasetOptions} opts - Warmup options.
+   * @returns {Promise<Array<import("./internal/fs/fs.js").FileRef>>} References to the preloaded model files.
+   */
+  async warmupDataset(opts) {
+    if (!opts || !opts.dataset) throw new TypeError("i6sdk: opts.dataset is required");
+    if (!Array.isArray(opts.models)) throw new TypeError("i6sdk: opts.models must be an array");
+    const serviceOptions = opts.serviceOptions;
+    const infer = this.infer();
+    return Promise.all(
+      opts.models.map(
+        (m) => infer.update({
+          dataset: opts.dataset,
+          modelName: m.modelName,
+          partitions: m.partitions ?? m.partition,
+          sqliteUrl: m.sqliteUrl,
+          serviceOptions: m.serviceOptions ?? serviceOptions
+        })
+      )
+    );
+  }
+  /**
    * Registers an event listener on the SDK's internal event dispatcher (an EventTarget).
    * @param {string} evt - The event type or name to listen for.
    * @param {EventListenerOrEventListenerObject|Function} fn - The callback function or event listener object invoked when the event occurs.

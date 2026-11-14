@@ -11,12 +11,12 @@ class Ingest {
    * @param {UploadParams} params - Upload parameters.
    * @returns {Promise<UploadResult>} Resolves with the ingest id on a successful upload.
    */
-  async upload({ dataset, table, partitions, file, onProgress, signal, contentType, serviceOpts }) {
+  async upload({ dataset, table, partitions, file, onProgress, signal, contentType, serviceOptions }) {
     if (!(file instanceof File)) {
       throw new TypeError("file must be a single File.");
     }
     signal?.throwIfAborted();
-    const { ingestId, url } = await this.#getUrl({ dataset, table, partitions, serviceOpts });
+    const { ingestId, url } = await this.#getUrl({ dataset, table, partitions, serviceOptions });
     signal?.throwIfAborted();
     await this.#put(url, file, { onProgress, signal, contentType });
     return { ingestId };
@@ -27,11 +27,11 @@ class Ingest {
    * @param {GetUrlParams} params - Parameters for requesting the upload URL.
    * @returns {Promise<{ingestId: string, url: string}>} The ingest id and the signed PUT URL.
    */
-  async #getUrl({ dataset, table, partitions, serviceOpts }) {
+  async #getUrl({ dataset, table, partitions, serviceOptions }) {
     const resp = await this._services.apis().ingestzGetUrl({
       params: { dataset },
       payload: { table, partitions, amount: 1 }
-    }, serviceOpts);
+    }, serviceOptions);
     if (!resp.ok) {
       throw new Error(`Get upload URL failed with status ${resp.status}: ${resp.error?.message ?? ""}`);
     }

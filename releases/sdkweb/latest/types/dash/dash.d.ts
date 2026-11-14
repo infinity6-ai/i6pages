@@ -30,7 +30,7 @@ export type DashOptions = {
     /**
      * - Given to the API call that signs the sqlite URL.
      */
-    serviceOpts?: ServiceOptions;
+    serviceOptions?: ServiceOptions;
 };
 /**
  * Dash client.

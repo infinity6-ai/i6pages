@@ -5,7 +5,7 @@ import { describeModel, loadModel, runModel } from "./litert.js";
 import { debugLogger } from "../internal/debug/debug.js";
 const FILES = { sqlite: "sqlite.bin" };
 const DEFAULT_LIMIT = 20;
-const MIN_PRELOAD_TIME = 60;
+const UPDATE_INTERVAL = 5 * 60;
 const debug = debugLogger("infer");
 class Infer {
   /**
@@ -14,6 +14,41 @@ class Infer {
    */
   constructor(services) {
     this._services = services;
+    this._preloads = /* @__PURE__ */ new Map();
+  }
+  /**
+   * Preloads or revalidates the model assets in the background.
+   * Safe to call repeatedly as warmup; deduplicates in-flight calls and skips (noop) if checked within 5 minutes.
+   * @param {InferUpdateOptions} opts - Preload options.
+   * @returns {Promise<FileRef>} The cached sqlite file reference.
+   */
+  async update(opts) {
+    validateUpdate(opts);
+    const cacheName = `infer-${opts.modelName}-${partitionsKey(opts.partitions)}-sqlite`;
+    if (this._preloads.has(cacheName)) {
+      debug("reusing in-flight preload", { cacheName });
+      return this._preloads.get(cacheName);
+    }
+    const cached = await fs.get({ name: cacheName });
+    if (cached) {
+      const lastChecked = new Date(cached.checkedAt || cached.version).getTime();
+      const age = (Date.now() - lastChecked) / 1e3;
+      if (age < UPDATE_INTERVAL) {
+        debug(`skipping update for ${cacheName} (checked ${Math.round(age)}s ago < ${UPDATE_INTERVAL}s)`);
+        return cached;
+      }
+    }
+    const promise = (async () => {
+      const urls = await this._assetUrls(opts);
+      debug("model files located for preload", { sqlite: withoutQuery(urls.sqlite) });
+      return downloadFile(cacheName, urls.sqlite, UPDATE_INTERVAL);
+    })().finally(() => {
+      this._preloads.delete(cacheName);
+    });
+    promise.catch(() => {
+    });
+    this._preloads.set(cacheName, promise);
+    return promise;
   }
   /**
    * Runs the model in the browser and returns its recommendation result.
@@ -27,12 +62,17 @@ class Infer {
     const { modelName, params, sessionId, userId } = opts;
     const ids = { sessionId, userId };
     const queryName = (kind) => `model-${modelName}-${kind}`;
-    const urls = await this._assetUrls(opts);
-    debug(elapsed(), "1/4 model files located", { sqlite: withoutQuery(urls.sqlite) });
-    const cacheName = (kind) => `infer-${modelName}-${partitionsKey(opts.partitions)}-${kind}`;
-    const [sqliteRef] = await Promise.all([
-      downloadFile(cacheName("sqlite"), urls.sqlite, MIN_PRELOAD_TIME)
-    ]);
+    const cacheName = `infer-${modelName}-${partitionsKey(opts.partitions)}-sqlite`;
+    const cached = await fs.get({ name: cacheName });
+    let sqliteRef;
+    if (cached) {
+      debug(elapsed(), "1/4 using cached model file, revalidating in background", { version: cached.version });
+      this.update(opts);
+      sqliteRef = cached;
+    } else {
+      debug(elapsed(), "1/4 no cached model file, waiting for download");
+      sqliteRef = await this.update(opts);
+    }
     const conn = await sqlitez.open({ path: await fs.resolve(sqliteRef) });
     try {
       const [inputs, compiled] = await Promise.all([
@@ -52,7 +92,8 @@ class Infer {
       debug(elapsed(), "output query returned (after namedJsonQuery)", result);
       const recId = crypto.randomUUID();
       const results = { ...result, rec_id: recId };
-      const eventOpts = { dataset: opts.dataset, modelName, modelVersion: opts.partitions.version, storeId: opts.partitions.store_id, serviceOpts: opts.serviceOpts };
+      const serviceOptions = opts.serviceOptions;
+      const eventOpts = { dataset: opts.dataset, modelName, modelVersion: opts.partitions.version, storeId: opts.partitions.store_id, serviceOptions };
       this.#sendRecEvent(eventOpts, ids, recId, "recraw", results).then(
         () => debug(elapsed(), "recraw event sent", { rec_id: recId, results: results.results?.length }),
         (err) => debug(elapsed(), "recraw event failed", err)
@@ -76,7 +117,7 @@ class Infer {
         model_partitions: partitions,
         inputs
       }
-    }, opts.serviceOpts);
+    }, opts.serviceOptions);
   }
   /**
    * Asks `selectResults` which of the recommended skus are shown and sends their sku ids as the `recshow` event.
@@ -115,7 +156,7 @@ class Infer {
   /**
    * Sends one recommendation event.
    * @private
-   * @param {{dataset: string, modelName: string, modelVersion: string, storeId: string, serviceOpts?: ServiceOptions}} opts - Event options.
+   * @param {{dataset: string, modelName: string, modelVersion: string, storeId: string, serviceOptions?: ServiceOptions}} opts - Event options.
    * @param {{sessionId: string, userId: string}} ids - Session and user of the sdk.
    * @param {string} recId - Id of the recommendation, the same in the recraw and recshow events.
    * @param {"recraw"|"recshow"} kind - Which event.
@@ -138,7 +179,7 @@ class Infer {
           payload: JSON.stringify(payload)
         }
       }
-    }, opts.serviceOpts);
+    }, opts.serviceOptions);
   }
   /**
    * Finds where the model file is: the signed URLs of the model API, unless opts has them (tests).
@@ -152,7 +193,7 @@ class Infer {
     const resp = await this._services.apis().dszModelGet({
       params: { dataset, model_name: modelName },
       payload: { model_version: opts.partitions.version, model_partitions: partitions }
-    }, opts.serviceOpts);
+    }, opts.serviceOptions);
     const data = resp.parse();
     const byName = Object.fromEntries((data?.urls ?? []).map((file) => [file.name, file.url]));
     const missing = Object.values(FILES).find((name) => !byName[name]);
@@ -174,6 +215,14 @@ function announceTensors({ outputs, ...rest }) {
   if (!globalThis.I6_DEBUG || typeof globalThis.dispatchEvent !== "function") return;
   const plain = Object.fromEntries(Object.entries(outputs).map(([name, values]) => [name, Array.from(values)]));
   globalThis.dispatchEvent(new CustomEvent("i6:infer-tensors", { detail: { ...rest, outputs: plain } }));
+}
+function validateUpdate(opts) {
+  for (const key of ["modelName", "dataset"]) {
+    if (!opts || !opts[key]) throw new TypeError(`infer: opts.${key} is required`);
+  }
+  if (!isPartitions(opts.partitions)) {
+    throw new TypeError("infer: opts.partitions must be an object of string values");
+  }
 }
 function validate(opts) {
   for (const key of ["modelName", "dataset", "sessionId", "userId"]) {

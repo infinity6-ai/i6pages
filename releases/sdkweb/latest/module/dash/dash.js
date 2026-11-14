@@ -49,7 +49,7 @@ class Dash {
           { method: "GET", path: `i6tb://results.relevance-fashion-store-dash/store_id=${storeId}/sqlite.bin` }
         ]
       }
-    }, opts.serviceOpts);
+    }, opts.serviceOptions);
     if (!resp.ok) throw new Error(`dash: the api gave no "${SQLITE_FILE}" file: ${resp.error?.message ?? "empty answer"}`);
     const payload = resp.parse();
     const url = payload?.urls?.[0]?.url;

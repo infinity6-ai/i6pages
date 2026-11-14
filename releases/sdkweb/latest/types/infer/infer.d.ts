@@ -11,6 +11,28 @@
 export type Services = import("../services/services.js").Services;
 export type FileRef = import("../internal/fs/fs.js").FileRef;
 export type ServiceOptions = import("../invoker/invoker.js").ServiceOptions;
+export type InferUpdateOptions = {
+    /**
+     * - Model name (e.g. "relevance-fashion-fbt").
+     */
+    modelName: string;
+    /**
+     * - Partitions of the model, name -> value (e.g. `{ version: "v1", store_id: "s1" }`).
+     */
+    partitions: Record<string, string>;
+    /**
+     * - Dataset that holds the model files.
+     */
+    dataset: string;
+    /**
+     * - Tests only: URL of the sqlite (must answer HEAD with an etag). Default: the model API.
+     */
+    sqliteUrl?: string;
+    /**
+     * - Given to the API call that locates the model files.
+     */
+    serviceOptions?: ServiceOptions;
+};
 export type InferOptions = {
     /**
      * - Model name (e.g. "relevance-fashion-fbt"); names the cached assets and the named queries.
@@ -55,7 +77,7 @@ export type InferOptions = {
     /**
      * - Given to the API calls (the model API and the `recraw` event).
      */
-    serviceOpts?: ServiceOptions;
+    serviceOptions?: ServiceOptions;
 };
 export type SelectResultsOptions = {
     /**
@@ -97,7 +119,7 @@ export type SelectResultsOptions = {
     /**
      * - Given to the `recshow` event call.
      */
-    serviceOpts?: ServiceOptions;
+    serviceOptions?: ServiceOptions;
     /**
      * - Custom selection function.
      */
@@ -114,10 +136,23 @@ declare class Infer {
      */
     _services;
     /**
+     * In-flight preload/update promises by cache name.
+     * @private
+     * @type {Map<string, Promise<FileRef>>}
+     */
+    _preloads;
+    /**
      * Constructs an Infer client instance.
      * @param {Services} services - The services manager instance.
      */
     constructor(services: Services);
+    /**
+     * Preloads or revalidates the model assets in the background.
+     * Safe to call repeatedly as warmup; deduplicates in-flight calls and skips (noop) if checked within 5 minutes.
+     * @param {InferUpdateOptions} opts - Preload options.
+     * @returns {Promise<FileRef>} The cached sqlite file reference.
+     */
+    update(opts: InferUpdateOptions): Promise<FileRef>;
     /**
      * Runs the model in the browser and returns its recommendation result.
      * @param {InferOptions} opts - Inference options.
@@ -134,7 +169,7 @@ declare class Infer {
     /**
      * Sends one recommendation event.
      * @private
-     * @param {{dataset: string, modelName: string, modelVersion: string, storeId: string, serviceOpts?: ServiceOptions}} opts - Event options.
+     * @param {{dataset: string, modelName: string, modelVersion: string, storeId: string, serviceOptions?: ServiceOptions}} opts - Event options.
      * @param {{sessionId: string, userId: string}} ids - Session and user of the sdk.
      * @param {string} recId - Id of the recommendation, the same in the recraw and recshow events.
      * @param {"recraw"|"recshow"} kind - Which event.

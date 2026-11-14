@@ -68,6 +68,58 @@ export type I6SdkConfig = {
      */
     fetch?: import("./invoker/invoker.js").Fetcher;
 };
+export type WarmupModelOptions = {
+    /**
+     * - Model name (e.g. "relevance-fashion-fbt").
+     */
+    modelName: string;
+    /**
+     * - Model partitions (e.g. `{ version: "v1", store_id: "s1" }`).
+     */
+    partitions?: Record<string, string>;
+    /**
+     * - Alias for `partitions`.
+     */
+    partition?: Record<string, string>;
+    /**
+     * - Tests only: URL of the sqlite.
+     */
+    sqliteUrl?: string;
+    /**
+     * - Service options for this model.
+     */
+    serviceOptions?: import("./invoker/invoker.js").ServiceOptions;
+};
+export type WarmupDatasetOptions = {
+    /**
+     * - Dataset name.
+     */
+    dataset: string;
+    /**
+     * - Models to warm up.
+     */
+    models: Array<WarmupModelOptions>;
+    /**
+     * - Default service options for all models.
+     */
+    serviceOptions?: import("./invoker/invoker.js").ServiceOptions;
+};
+/**
+ * Model descriptor for warmupDataset.
+ * @typedef {Object} WarmupModelOptions
+ * @property {string} modelName - Model name (e.g. "relevance-fashion-fbt").
+ * @property {Object<string, string>} [partitions] - Model partitions (e.g. `{ version: "v1", store_id: "s1" }`).
+ * @property {Object<string, string>} [partition] - Alias for `partitions`.
+ * @property {string} [sqliteUrl] - Tests only: URL of the sqlite.
+ * @property {import("./invoker/invoker.js").ServiceOptions} [serviceOptions] - Service options for this model.
+ */
+/**
+ * Options for warmupDataset.
+ * @typedef {Object} WarmupDatasetOptions
+ * @property {string} dataset - Dataset name.
+ * @property {Array<WarmupModelOptions>} models - Models to warm up.
+ * @property {import("./invoker/invoker.js").ServiceOptions} [serviceOptions] - Default service options for all models.
+ */
 /**
  * Main SDK class providing access to i6 services.
  */
@@ -130,6 +182,13 @@ declare class I6Sdk {
      * @returns {SdkFuncs} An instance of the SdkFuncs client.
      */
     funcs(): SdkFuncs;
+    /**
+     * Warms up/preloads model assets for a dataset in the background.
+     * Safe to call on page load or during SDK initialization.
+     * @param {WarmupDatasetOptions} opts - Warmup options.
+     * @returns {Promise<Array<import("./internal/fs/fs.js").FileRef>>} References to the preloaded model files.
+     */
+    warmupDataset(opts: WarmupDatasetOptions): Promise<Array<import("./internal/fs/fs.js").FileRef>>;
     /**
      * Registers an event listener on the SDK's internal event dispatcher (an EventTarget).
      * @param {string} evt - The event type or name to listen for.
