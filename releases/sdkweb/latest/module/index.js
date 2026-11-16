@@ -4,7 +4,7 @@ import { bitmapz } from "./internal/bitmapz/bitmapz.js";
 const DEFAULT_CONFIG = {
   baseUrl: "https://decsuite.sandbox.rs.infinity6.ai",
   servUrls: {
-    "tfinfer": "https://tfinfer.sandbox.rs.infinity6.ai",
+    "tfinfer": "https://tfinfer.sandbox.lb.infinity6.ai",
     "userz": "https://userz.sandbox.rs.infinity6.ai"
   }
   // baseUrl: "http://localhost:9021",

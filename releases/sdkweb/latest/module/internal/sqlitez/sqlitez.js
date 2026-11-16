@@ -157,7 +157,9 @@ class Sqlitez {
       throw new Error(`sqlitez: ${opts.path} is not a sqlite file`);
     }
     const SQL = await loadSqlJs();
-    return new SqliteConn(new SQL.Database(bytes));
+    const ret = new SqliteConn(new SQL.Database(bytes));
+    await ret.namedQuery({ name: "bootstrap" });
+    return ret;
   }
 }
 const sqlitez = new Sqlitez();
