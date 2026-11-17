@@ -79,6 +79,7 @@ class SqliteConn {
    * Runs a query stored in the `namedqueries` table of the sqlite (columns `name` and `query`).
    * @param {Object} opts
    * @param {string} opts.name - required, the `name` of the stored query.
+   * @param {string} opts.ignoreIfNotExist - do not fail if named query does not exist.
    * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the stored query.
    * @returns {Promise<SqliteRow[]>} The rows of the stored query, like `query`.
    * @throws {TypeError} If opts.name is missing.
@@ -87,6 +88,9 @@ class SqliteConn {
     if (!opts || !opts.name) throw new TypeError("sqlitez: opts.name is required");
     const found = await this.query({ query: "SELECT query FROM namedqueries WHERE name = ?", params: [opts.name] });
     if (found.length === 0) {
+      if (opts.ignoreIfNotExist) {
+        return [];
+      }
       throw new Error(`sqlitez: no named query "${opts.name}"`);
     }
     return this.query({ query: String(found[0].query), params: opts.params });

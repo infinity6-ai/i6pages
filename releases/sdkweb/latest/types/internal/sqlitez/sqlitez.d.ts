@@ -65,12 +65,14 @@ declare class SqliteConn {
      * Runs a query stored in the `namedqueries` table of the sqlite (columns `name` and `query`).
      * @param {Object} opts
      * @param {string} opts.name - required, the `name` of the stored query.
+     * @param {string} opts.ignoreIfNotExist - do not fail if named query does not exist.
      * @param {SqliteValue[]} [opts.params] - values bound, in order, to the `?` of the stored query.
      * @returns {Promise<SqliteRow[]>} The rows of the stored query, like `query`.
      * @throws {TypeError} If opts.name is missing.
      */
     namedQuery(opts: {
         name: string;
+        ignoreIfNotExist: string;
         params?: SqliteValue[];
     }): Promise<SqliteRow[]>;
     /**
